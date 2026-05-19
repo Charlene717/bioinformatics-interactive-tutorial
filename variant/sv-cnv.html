@@ -1,0 +1,97 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SV / CNV — Variant Calling</title>
+<link rel="stylesheet" href="../styles.css"></head><body class="theme-variant">
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
+  <ul class="top-nav-links">
+    <li><a href="index.html">Variant</a></li><li><a href="preprocessing.html">Preproc</a></li><li><a href="calling.html">Calling</a></li><li><a href="filtering.html">Filter</a></li><li><a href="annotation.html">Annot</a></li>
+  </ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">STEP 5 / 5</div><h1 data-zh="SV / CNV 偵測" data-en="SV / CNV Detection">SV / CNV 偵測</h1><p class="subtitle" data-lang="zh">大片段變異——SNV/Indel 之外的另一個世界。</p><p class="subtitle" data-lang="en">Large-scale variants — another world beyond SNV/Indel.</p></header><main class="content-wrap">
+
+<section class="section"><div class="section-label" data-zh="核心概念" data-en="CONCEPT">核心概念</div>
+<h2 data-zh="SV vs CNV" data-en="SV vs CNV">SV vs CNV</h2>
+<div data-lang="zh"><p>結構變異 (Structural Variant, SV) 涵蓋 &gt; 50 bp 的大片段變化，包括 deletion (DEL)、duplication (DUP)、insertion (INS)、inversion (INV)、translocation (TRA)、breakend (BND)。拷貝數變異 (CNV) 是 SV 的子集，特指 DEL 與 DUP，數量變化以 kb 至 Mb 計。</p></div>
+<div data-lang="en"><p>Structural variants (SV) cover &gt; 50 bp changes: deletion (DEL), duplication (DUP), insertion (INS), inversion (INV), translocation (TRA), breakend (BND). Copy-number variants (CNV) are a subset — DEL and DUP at kb to Mb scale.</p></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="偵測訊號" data-en="SIGNALS">偵測訊號</div>
+<h2 data-zh="從 reads 推 SV 的四種訊號" data-en="Four Read-based SV Signals">四種訊號</h2>
+<div class="card-grid cols-2">
+<div class="card"><h4>1. Read depth (RD)</h4><p data-lang="zh">DUP 區域 reads 翻倍、DEL 區域 reads 減半——對 CNV 最直觀，需大量定序。工具：CNVkit、Control-FREEC、GATK gCNV。</p><p data-lang="en">DUP doubles depth, DEL halves it — most intuitive for CNV; needs decent depth. Tools: CNVkit, Control-FREEC, GATK gCNV.</p></div>
+<div class="card"><h4>2. Read pair (RP)</h4><p data-lang="zh">paired-end 之間距離若超出預期（或方向倒置），暗示有 DEL / INV。</p><p data-lang="en">If paired-end distance/orientation deviates from expected, suggests DEL / INV.</p></div>
+<div class="card"><h4>3. Split read (SR)</h4><p data-lang="zh">read 一半比對 chr1、一半比對 chr5 → translocation 或 INS 的標記。</p><p data-lang="en">Half a read aligns to chr1 and half to chr5 → translocation or insertion marker.</p></div>
+<div class="card"><h4>4. De novo assembly</h4><p data-lang="zh">無法比對的 reads 組裝後與基因組比對，找到 novel insertion / inversion。</p><p data-lang="en">Unmapped reads assembled then re-aligned — finds novel insertions / inversions.</p></div>
+</div>
+<div class="callout tip"><span class="callout-icon">💡</span><div data-lang="zh"><strong>長讀定序 (PacBio HiFi、ONT) 的優勢：</strong>單條 read 跨越大部分 SV 與重複序列，靈敏度遠勝 short reads。短讀對 &lt; 1 kb SV 漏報率高。</div><div data-lang="en"><strong>Long-read advantage (PacBio HiFi, ONT):</strong> single reads span most SVs and repeats. Short reads miss many &lt; 1 kb SVs.</div></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="工具" data-en="TOOLS">工具</div>
+<h2 data-zh="主流工具" data-en="Mainstream Tools">主流工具</h2>
+<table class="comp-table"><thead><tr><th>Tool</th><th data-zh="型態" data-en="Type">型態</th><th data-zh="訊號" data-en="Signals">訊號</th><th data-zh="特色" data-en="Notes">特色</th></tr></thead><tbody>
+<tr><td><strong>Manta</strong></td><td>SV (short-read)</td><td>RP + SR + assembly</td><td data-zh="速度快、germline + somatic 兩用" data-en="Fast; germline + somatic">業界主力</td></tr>
+<tr><td><strong>Delly</strong></td><td>SV (short-read)</td><td>RP + SR</td><td data-zh="支援多樣本聯合呼叫" data-en="Multi-sample joint calling">多樣本</td></tr>
+<tr><td><strong>GRIDSS2</strong></td><td>SV (short-read)</td><td data-zh="local assembly" data-en="Local assembly">assembly</td><td data-zh="高靈敏度；癌症 SV 強" data-en="High sensitivity; strong for cancer SVs">癌症</td></tr>
+<tr><td><strong>pbsv / Sniffles2</strong></td><td>SV (long-read)</td><td>SR + 長 read</td><td data-zh="PacBio / ONT 偵測 indel + SV" data-en="PacBio / ONT for indels + SVs">長讀</td></tr>
+<tr><td><strong>GATK gCNV</strong></td><td>CNV</td><td>RD</td><td data-zh="WES 友好；HMM 模型" data-en="WES-friendly HMM model">WES CNV</td></tr>
+<tr><td><strong>CNVkit</strong></td><td>CNV</td><td>RD</td><td data-zh="支援 WES、targeted；視覺化好" data-en="WES / targeted; nice visualization">視覺化</td></tr>
+<tr><td>Control-FREEC</td><td>CNV</td><td>RD</td><td data-zh="同時偵測 LOH" data-en="Also detects LOH">含 LOH</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label" data-zh="程式碼" data-en="CODE">程式碼</div>
+<h2 data-zh="實作範例" data-en="Code Examples">實作範例</h2>
+<div class="code-tabs"><div class="code-tab-btns">
+<button class="code-tab-btn active" onclick="switchTab(this,'manta')">Manta germline</button>
+<button class="code-tab-btn" onclick="switchTab(this,'gcnv')">GATK gCNV</button>
+<button class="code-tab-btn" onclick="switchTab(this,'cnvkit')">CNVkit</button>
+</div>
+<div class="code-tab-content active" id="manta"><pre><span class="comment"># Manta germline</span>
+configManta.py \
+  --bam analysis_ready.bam \
+  --referenceFasta GRCh38.fa \
+  --runDir manta_run/
+
+manta_run/runWorkflow.py -j <span class="num">8</span>
+<span class="comment"># 輸出在 manta_run/results/variants/diploidSV.vcf.gz</span></pre></div>
+<div class="code-tab-content" id="gcnv"><pre><span class="comment"># 1. 計算 read counts</span>
+gatk CollectReadCounts \
+  -I sample.bam -L exons.preprocessed.interval_list \
+  --interval-merging-rule OVERLAPPING_ONLY \
+  -O sample.counts.hdf5
+
+<span class="comment"># 2. 群體式呼叫 CNV (cohort mode)</span>
+gatk GermlineCNVCaller \
+  --input sample1.counts.hdf5 --input sample2.counts.hdf5 ... \
+  --contig-ploidy-calls ploidy_calls/ \
+  --output cnv_out/ --output-prefix cohort \
+  --run-mode COHORT</pre></div>
+<div class="code-tab-content" id="cnvkit"><pre>cnvkit.py batch \
+  tumor.bam --normal normal.bam \
+  --targets exons.bed --annotate refFlat.txt \
+  --fasta GRCh38.fa \
+  --output-reference my_reference.cnn \
+  --output-dir cnvkit_out/
+
+<span class="comment"># 視覺化</span>
+cnvkit.py scatter -s sample.cns sample.cnr -o sample.scatter.png
+cnvkit.py diagram  -s sample.cns sample.cnr -o sample.diagram.pdf</pre></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="陷阱" data-en="PITFALLS">陷阱</div>
+<h2 data-zh="常見錯誤" data-en="Common Pitfalls">常見錯誤</h2>
+<div class="callout danger"><span class="callout-icon">🚫</span><div data-lang="zh"><strong>WES 樣本跑 WGS-only 工具：</strong>WES 在 introns 沒覆蓋，許多 SV 工具會錯誤呼叫。WES 適合 GATK gCNV、CNVkit；別用 Manta 對 WES 跑 SV。</div><div data-lang="en"><strong>WES + WGS-only tools:</strong> WES lacks intronic coverage; many SV tools mis-call. Use GATK gCNV / CNVkit for WES; don't run Manta SV on WES.</div></div>
+<div class="callout danger"><span class="callout-icon">🚫</span><div data-lang="zh"><strong>只用單一工具：</strong>每個 SV 工具靈敏度與精準度互補。建議跑 Manta + Delly + GRIDSS，取交集或用 SURVIVOR 合併。</div><div data-lang="en"><strong>Single-tool reliance:</strong> SV callers have complementary sensitivity/precision. Run Manta + Delly + GRIDSS; intersect or merge with SURVIVOR.</div></div>
+<div class="callout danger"><span class="callout-icon">🚫</span><div data-lang="zh"><strong>沒過濾低品質區：</strong>centromere、telomere、segmental duplication 是 SV 假陽性的溫床——用 ENCODE blacklist + segmental dup region 過濾。</div><div data-lang="en"><strong>Skipping low-quality regions:</strong> centromeres, telomeres, segmental dups are SV FP hotspots — filter with ENCODE blacklist + segmental dup tracks.</div></div>
+</section>
+
+<nav class="page-nav"><a href="annotation.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 4：Annotation" data-en="Step 4: Annotation">Step 4：Annotation</span></a><a href="../index.html"><span class="nav-dir" data-zh="完成 ✓" data-en="Done ✓">完成 ✓</span><span class="nav-title" data-zh="返回 Hub" data-en="Back to Hub">返回 Hub</span></a></nav>
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
+<script src="../i18n.js"></script>
+<script>
+window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
+function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
+</script></body></html>

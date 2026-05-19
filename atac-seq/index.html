@@ -1,0 +1,59 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ATAC-seq — Bioinformatics Tutorial</title>
+<link rel="stylesheet" href="../styles.css"></head><body class="theme-atac">
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
+  <ul class="top-nav-links">
+    <li><a href="../index.html">Hub</a></li><li><a href="index.html" class="active">ATAC</a></li><li><a href="principles.html">原理</a></li><li><a href="alignment-peaks.html">Peaks</a></li><li><a href="motif.html">Motif</a></li><li><a href="integration.html">Integ</a></li>
+  </ul>
+</div></nav>
+<header class="page-hero"><div class="step-badge">TRACK 3 · ATAC-seq</div><h1 data-zh="ATAC-seq / 表觀基因組" data-en="ATAC-seq / Epigenomics">ATAC-seq / 表觀基因組</h1><p class="subtitle" data-lang="zh">透過 Tn5 轉位酶探查染色質開放區域——找到「哪些基因有資格被表達」的地圖。</p><p class="subtitle" data-lang="en">Probe open chromatin with Tn5 transposase — map of "which genes are eligible to be expressed".</p></header><main class="content-wrap">
+
+<section class="section"><div class="section-label" data-zh="總覽" data-en="OVERVIEW">總覽</div>
+<h2 data-zh="ATAC-seq 是什麼？" data-en="What is ATAC-seq?">ATAC-seq 是什麼？</h2>
+<div data-lang="zh"><p>ATAC-seq (Assay for Transposase-Accessible Chromatin with sequencing) 由 Buenrostro 等人 2013 年提出，利用工程化 <strong>Tn5 轉位酶</strong>切入開放染色質（open chromatin / OCR），同時把測序接頭嵌入。經 PCR 與測序，OCR 區域 reads 富集，而緊密包裹（核小體）的區域沒有訊號。</p></div>
+<div data-lang="en"><p>ATAC-seq (Assay for Transposase-Accessible Chromatin with sequencing), introduced by Buenrostro et al. (2013), uses an engineered <strong>Tn5 transposase</strong> that simultaneously cuts open chromatin (OCR) and inserts sequencing adapters. After PCR and sequencing, reads enrich in OCRs while nucleosomal regions are silent.</p></div>
+<div class="flow-chain">
+  <span class="fc-step">細胞核</span><span class="fc-arrow">+</span>
+  <span class="fc-step">Tn5</span><span class="fc-arrow">→</span>
+  <span class="fc-step">片段（含接頭）</span><span class="fc-arrow">→</span>
+  <span class="fc-step">PCR + Seq</span><span class="fc-arrow">→</span>
+  <span class="fc-step">OCR 圖譜</span>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="章節" data-en="CHAPTERS">章節</div>
+<h2 data-zh="四章節學習路徑" data-en="Four-chapter Path">四章節學習路徑</h2>
+<div class="hub-steps-grid">
+  <a href="principles.html" class="hub-card"><div class="hub-emoji">⚛️</div><span class="step-num">Step 1</span><h3 data-zh="原理與片段分佈" data-en="Principle & Fragment Distribution">原理與片段分佈</h3><p data-lang="zh">Tn5 機制、NFR / mono- / di-nucleosome 片段、與 ChIP-seq / DNase-seq 的比較。</p><p data-lang="en">Tn5 mechanism, NFR / mono- / di-nucleosome fragments, comparison with ChIP-seq / DNase-seq.</p></a>
+  <a href="alignment-peaks.html" class="hub-card"><div class="hub-emoji">📊</div><span class="step-num">Step 2</span><h3 data-zh="Alignment、Peak Calling 與 QC" data-en="Alignment, Peak Calling, and QC">Alignment & Peaks</h3><p data-lang="zh">BWA / Bowtie2 比對；MACS2/3 / Genrich peak calling；TSS enrichment、FRiP 等 QC。</p><p data-lang="en">BWA / Bowtie2 alignment; MACS2/3 / Genrich peak calling; TSS enrichment, FRiP, etc.</p></a>
+  <a href="motif.html" class="hub-card"><div class="hub-emoji">🔤</div><span class="step-num">Step 3</span><h3 data-zh="Motif 與 Footprinting" data-en="Motifs & Footprinting">Motif & Footprint</h3><p data-lang="zh">HOMER、MEME-ChIP、chromVAR；TF binding 留下的 footprint 解讀。</p><p data-lang="en">HOMER, MEME-ChIP, chromVAR; reading TF footprints in open chromatin.</p></a>
+  <a href="integration.html" class="hub-card"><div class="hub-emoji">🔗</div><span class="step-num">Step 4</span><h3 data-zh="多體學整合" data-en="Multi-omics Integration">多體學整合</h3><p data-lang="zh">ATAC × RNA-seq 整合：peak-gene 聯結、區域富集、單細胞 ATAC（10x Multiome、ArchR、Signac）。</p><p data-lang="en">ATAC × RNA-seq: peak-gene linking, region enrichment, single-cell ATAC (10x Multiome, ArchR, Signac).</p></a>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="重要差別" data-en="DIFFERENCES">重要差別</div>
+<h2 data-zh="ATAC-seq vs ChIP-seq vs DNase-seq" data-en="ATAC-seq vs ChIP-seq vs DNase-seq">ATAC-seq vs ChIP-seq vs DNase-seq</h2>
+<table class="comp-table"><thead><tr><th></th><th>ATAC-seq</th><th>ChIP-seq</th><th>DNase-seq</th></tr></thead><tbody>
+<tr><td data-zh="目標" data-en="Target">目標</td><td data-zh="開放染色質" data-en="Open chromatin">開放染色質</td><td data-zh="特定蛋白結合位 (TF / 組蛋白修飾)" data-en="Specific TF / histone mark binding sites">蛋白結合位</td><td data-zh="開放染色質 (DNase I 切位)" data-en="Open chromatin (DNase I cut sites)">開放染色質</td></tr>
+<tr><td data-zh="所需細胞" data-en="Cells needed">所需細胞</td><td>500 - 50,000</td><td>~10⁶</td><td>~10⁶</td></tr>
+<tr><td data-zh="耗時" data-en="Hands-on time">耗時</td><td data-zh="~半天" data-en="~Half day">~半天</td><td data-zh="2-3 天 + 抗體" data-en="2-3 days + antibody">2-3 天</td><td data-zh="1 天" data-en="1 day">1 天</td></tr>
+<tr><td data-zh="解析度" data-en="Resolution">解析度</td><td>~bp（Tn5 切位）</td><td>~100 bp</td><td>~bp</td></tr>
+<tr><td data-zh="優勢" data-en="Advantage">優勢</td><td data-zh="少細胞、快、全基因組開放圖譜 + 可推 TF footprint" data-en="Few cells; fast; whole-genome openness + TF footprints">少細胞 + 快 + footprint</td><td data-zh="精確標定特定蛋白" data-en="Pinpoint specific proteins">精確標定蛋白</td><td data-zh="ENCODE 大量歷史資料" data-en="Extensive ENCODE archive">ENCODE 歷史</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label" data-zh="檔案格式" data-en="FILE FORMATS">檔案格式</div>
+<h2 data-zh="ATAC-seq 流程中的檔案" data-en="Files in the ATAC-seq Pipeline">ATAC-seq 流程中的檔案</h2>
+<div class="card-grid cols-3">
+<div class="card"><h4>BAM</h4><p data-lang="zh">Bowtie2 / BWA 比對後的 read 檔。ATAC 需要 <strong>shift +4/-5</strong> 校正 Tn5 切位。</p><p data-lang="en">Aligned reads from Bowtie2 / BWA. ATAC needs a <strong>+4/-5 shift</strong> to correct Tn5 cut sites.</p></div>
+<div class="card"><h4>BED / narrowPeak</h4><p data-lang="zh">MACS2/3 輸出的 peak 區間。<code>narrowPeak</code> 還含 -log10(p)、fold enrichment。</p><p data-lang="en">Peaks from MACS2/3. <code>narrowPeak</code> includes -log10(p) and fold enrichment.</p></div>
+<div class="card"><h4>bigWig</h4><p data-lang="zh">逐 bp 的 coverage 軌道。IGV / UCSC / deepTools 視覺化用。</p><p data-lang="en">Per-bp coverage track. For IGV / UCSC / deepTools viewing.</p></div>
+</div>
+</section>
+
+<nav class="page-nav"><a href="../index.html"><span class="nav-dir" data-zh="← 返回" data-en="← Back">← 返回</span><span class="nav-title" data-zh="主頁" data-en="Hub">主頁</span></a><a href="principles.html"><span class="nav-dir" data-zh="開始 →" data-en="Start →">開始 →</span><span class="nav-title" data-zh="Step 1：原理" data-en="Step 1: Principles">Step 1：原理</span></a></nav>
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
+<script src="../i18n.js"></script>
+</body></html>

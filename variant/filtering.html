@@ -1,0 +1,124 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Filtering — Variant Calling</title>
+<link rel="stylesheet" href="../styles.css"></head><body class="theme-variant">
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
+  <ul class="top-nav-links">
+    <li><a href="index.html">Variant</a></li><li><a href="preprocessing.html">Preproc</a></li><li><a href="calling.html">Calling</a></li><li><a href="filtering.html" class="active">Filter</a></li><li><a href="annotation.html">Annot</a></li>
+  </ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">STEP 3 / 5</div><h1 data-zh="變異過濾" data-en="Variant Filtering">變異過濾</h1><p class="subtitle" data-lang="zh">原始 VCF 含大量 false positives——VQSR 或 hard filter 是必經之路。</p><p class="subtitle" data-lang="en">Raw VCFs are full of false positives — VQSR or hard filters are mandatory.</p></header><main class="content-wrap">
+
+<section class="section"><div class="section-label" data-zh="兩條路線" data-en="TWO ROUTES">兩條路線</div>
+<h2 data-zh="VQSR vs Hard Filter" data-en="VQSR vs Hard Filter">VQSR vs Hard Filter</h2>
+<div class="card-grid cols-2">
+<div class="card"><div class="card-icon">🤖</div><h4 data-zh="VQSR (機器學習)" data-en="VQSR (machine learning)">VQSR</h4><p data-lang="zh">VariantRecalibrator 用已知 truth set (HapMap、1000G、dbSNP) 訓練混合高斯模型，給每個變異一個 tranche-based VQSLOD 分數。<strong>需要 ≥ 30 個樣本</strong>才會穩定。</p><p data-lang="en">VariantRecalibrator trains a Gaussian mixture using known truth sets (HapMap, 1000G, dbSNP); each variant gets a tranche-based VQSLOD score. <strong>Needs ≥ 30 samples</strong> for stability.</p></div>
+<div class="card"><div class="card-icon">📏</div><h4 data-zh="Hard Filter" data-en="Hard Filter">Hard Filter</h4><p data-lang="zh">用固定門檻（QD &lt; 2、FS &gt; 60、MQ &lt; 40 等）篩。小樣本 / 非人類物種 / 沒 truth set 時必用。</p><p data-lang="en">Apply fixed thresholds (QD &lt; 2, FS &gt; 60, MQ &lt; 40, etc.). Used for small cohorts, non-human species, or when no truth set is available.</p></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="關鍵指標" data-en="KEY METRICS">關鍵指標</div>
+<h2 data-zh="VCF INFO 欄重要欄位" data-en="Key VCF INFO Fields">VCF INFO 欄重要欄位</h2>
+<table class="comp-table"><thead><tr><th data-zh="欄位" data-en="Field">欄位</th><th data-zh="意義" data-en="Meaning">意義</th><th data-zh="GATK 建議門檻（SNP）" data-en="GATK threshold (SNP)">GATK 門檻 (SNP)</th></tr></thead><tbody>
+<tr><td><strong>QD</strong> (QualByDepth)</td><td data-zh="變異品質 / 深度" data-en="Variant quality / depth">品質 / 深度</td><td>&lt; 2.0 → fail</td></tr>
+<tr><td><strong>FS</strong> (FisherStrand)</td><td data-zh="strand bias Fisher's exact" data-en="Strand bias by Fisher's exact">strand bias</td><td>&gt; 60.0 → fail</td></tr>
+<tr><td><strong>SOR</strong> (StrandOddsRatio)</td><td data-zh="strand bias odds-ratio 版" data-en="Strand bias odds-ratio">strand bias OR</td><td>&gt; 3.0 → fail</td></tr>
+<tr><td><strong>MQ</strong> (MappingQuality)</td><td data-zh="該位置 read 平均 MQ" data-en="Mean mapping quality">平均 MQ</td><td>&lt; 40 → fail</td></tr>
+<tr><td><strong>MQRankSum</strong></td><td data-zh="ref vs alt 的 MQ 差異" data-en="Ref vs alt MQ difference">MQ ranksum</td><td>&lt; -12.5 → fail</td></tr>
+<tr><td><strong>ReadPosRankSum</strong></td><td data-zh="變異在 read 內位置偏差" data-en="Position-in-read bias">位置偏差</td><td>&lt; -8.0 → fail</td></tr>
+<tr><td><strong>DP</strong> (depth)</td><td data-zh="該位置 read 數" data-en="Read depth at site">深度</td><td data-zh="太低或太高都可疑" data-en="Suspicious if very low or very high">極端值</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
+<h2 data-zh="QD 與 FS 門檻" data-en="QD & FS Thresholds">QD 與 FS 門檻</h2>
+<div data-lang="zh"><p>調整 QD 與 FS 門檻，看 TP / FP 比例變化：</p></div>
+<div data-lang="en"><p>Tune QD and FS thresholds; watch TP / FP rates:</p></div>
+<div class="interactive-panel">
+<div class="slider-group"><label>QD ≥ <span id="valQD">2.0</span></label><input type="range" id="sliderQD" min="0" max="20" value="2" step="0.5"></div>
+<div class="slider-group"><label>FS ≤ <span id="valFS">60</span></label><input type="range" id="sliderFS" min="0" max="120" value="60" step="2"></div>
+<div class="stat-row">
+<div class="stat-box"><div class="sb-num" id="tpr">--</div><div class="sb-lbl">TPR (sensitivity)</div></div>
+<div class="stat-box"><div class="sb-num" id="fpr">--</div><div class="sb-lbl">FPR</div></div>
+<div class="stat-box"><div class="sb-num" id="precision">--</div><div class="sb-lbl">Precision</div></div>
+</div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="程式碼" data-en="CODE">程式碼</div>
+<h2 data-zh="實作範例" data-en="Code Examples">實作範例</h2>
+<div class="code-tabs"><div class="code-tab-btns">
+<button class="code-tab-btn active" onclick="switchTab(this,'hf')">Hard Filter (SNP)</button>
+<button class="code-tab-btn" onclick="switchTab(this,'vqsr')">VQSR</button>
+</div>
+<div class="code-tab-content active" id="hf"><pre><span class="comment"># 拆 SNP 與 indel 分開 filter</span>
+gatk SelectVariants -V cohort.vcf.gz --select-type-to-include SNP -O cohort.snps.vcf.gz
+
+gatk VariantFiltration -V cohort.snps.vcf.gz -O cohort.snps.flt.vcf.gz \
+  --filter-expression <span class="str">"QD &lt; 2.0"</span>  --filter-name <span class="str">"QD2"</span>  \
+  --filter-expression <span class="str">"FS &gt; 60.0"</span> --filter-name <span class="str">"FS60"</span> \
+  --filter-expression <span class="str">"SOR &gt; 3.0"</span> --filter-name <span class="str">"SOR3"</span> \
+  --filter-expression <span class="str">"MQ &lt; 40.0"</span> --filter-name <span class="str">"MQ40"</span> \
+  --filter-expression <span class="str">"MQRankSum &lt; -12.5"</span>     --filter-name <span class="str">"MQRS"</span> \
+  --filter-expression <span class="str">"ReadPosRankSum &lt; -8.0"</span> --filter-name <span class="str">"RPRS"</span></pre></div>
+<div class="code-tab-content" id="vqsr"><pre><span class="comment"># 1. 訓練模型 (SNP)</span>
+gatk VariantRecalibrator \
+  -V cohort.vcf.gz -R GRCh38.fa \
+  --resource:hapmap,known=false,training=true,truth=true,prior=15.0 hapmap.vcf.gz \
+  --resource:omni,known=false,training=true,truth=false,prior=12.0 1000G_omni.vcf.gz \
+  --resource:1000G,known=false,training=true,truth=false,prior=10.0 1000G.phase1.vcf.gz \
+  --resource:dbsnp,known=true,training=false,truth=false,prior=2.0  dbsnp.vcf.gz \
+  -an QD -an FS -an MQ -an MQRankSum -an SOR -an ReadPosRankSum \
+  -mode SNP \
+  -O snps.recal --tranches-file snps.tranches
+
+<span class="comment"># 2. 套用</span>
+gatk ApplyVQSR \
+  -V cohort.vcf.gz -R GRCh38.fa \
+  -mode SNP \
+  --recal-file snps.recal --tranches-file snps.tranches \
+  --truth-sensitivity-filter-level <span class="num">99.7</span> \
+  -O cohort.snps.vqsr.vcf.gz</pre></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="決策" data-en="DECISION">決策</div>
+<h2 data-zh="VQSR vs Hard Filter 選擇" data-en="VQSR vs Hard Filter Decision">如何選？</h2>
+<div class="decision-tree"><h4>🌳 <span data-zh="決策樹" data-en="Decision tree">決策樹</span></h4>
+<div data-lang="zh">
+<div class="dt-node"><span class="dt-q">樣本 ≥ 30 + 人類：</span><div><strong>VQSR</strong>，sensitivity tranche 設 99.7%(SNP) / 99.0%(Indel)。</div></div>
+<div class="dt-node"><span class="dt-q">樣本 &lt; 30 / 非人類 / 無 truth set：</span><div><strong>Hard Filter</strong>，照官方門檻或社群基準。</div></div>
+<div class="dt-node"><span class="dt-q">CNN：</span><div>GATK CNNScoreVariants（小樣本替代 VQSR）可作為單樣本 high-quality filter。</div></div>
+<div class="dt-node"><span class="dt-q">DeepVariant 已輸出：</span><div>內建品質分數 (GQ)，不需再跑 VQSR，但仍需做 sample-level QC。</div></div>
+</div>
+<div data-lang="en">
+<div class="dt-node"><span class="dt-q">≥ 30 samples + human:</span><div><strong>VQSR</strong>; tranche 99.7% (SNP) / 99.0% (Indel).</div></div>
+<div class="dt-node"><span class="dt-q">&lt; 30 / non-human / no truth set:</span><div><strong>Hard filter</strong> with official thresholds.</div></div>
+<div class="dt-node"><span class="dt-q">CNN:</span><div>GATK CNNScoreVariants — single-sample alternative to VQSR.</div></div>
+<div class="dt-node"><span class="dt-q">DeepVariant output:</span><div>Already includes GQ — VQSR not needed but sample-level QC still required.</div></div>
+</div>
+</div>
+</section>
+
+<nav class="page-nav"><a href="calling.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 2：Calling" data-en="Step 2: Calling">Step 2：Calling</span></a><a href="annotation.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 4：Annotation" data-en="Step 4: Annotation">Step 4：Annotation</span></a></nav>
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
+<script src="../i18n.js"></script>
+<script>
+window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
+function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
+// Simulate TP/FP
+const N=2000;const variants=[];for(let i=0;i<N;i++){const tp=Math.random()<0.7;const qd=tp?5+Math.random()*15:Math.random()*8;const fs=tp?Math.random()*30:30+Math.random()*60;variants.push({tp,qd,fs});}
+function up(){
+  const qd=+document.getElementById('sliderQD').value;const fs=+document.getElementById('sliderFS').value;
+  document.getElementById('valQD').textContent=qd.toFixed(1);document.getElementById('valFS').textContent=fs;
+  let tp=0,fp=0,fn=0,tn=0;
+  variants.forEach(v=>{const pass=v.qd>=qd&&v.fs<=fs;if(v.tp&&pass)tp++;else if(v.tp)fn++;else if(pass)fp++;else tn++;});
+  const tpr=tp/(tp+fn);const fpr=fp/(fp+tn);const prec=tp/(tp+fp||1);
+  document.getElementById('tpr').textContent=(tpr*100).toFixed(1)+'%';
+  document.getElementById('fpr').textContent=(fpr*100).toFixed(1)+'%';
+  document.getElementById('precision').textContent=(prec*100).toFixed(1)+'%';
+}
+['sliderQD','sliderFS'].forEach(id=>document.getElementById(id).addEventListener('input',up));up();
+</script></body></html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Spatial Analysis — Spatial Transcriptomics</title>
+<link rel="stylesheet" href="../styles.css"></head><body class="theme-spatial">
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
+  <ul class="top-nav-links">
+    <li><a href="index.html">Spatial</a></li><li><a href="platforms.html">Platforms</a></li><li><a href="preprocessing.html">Preproc</a></li><li><a href="spatial-analysis.html" class="active">Analysis</a></li><li><a href="deconvolution.html">Deconv</a></li><li><a href="interactions.html">Comms</a></li>
+  </ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">STEP 3 / 5</div><h1 data-zh="空間聚類與 SVG" data-en="Spatial Clustering & SVGs">空間聚類與 SVG</h1><p class="subtitle" data-lang="zh">在「不只看表達、也看位置」的前提下，找出組織區域與空間變異基因。</p><p class="subtitle" data-lang="en">Find tissue domains and spatially variable genes — by leveraging position, not just expression.</p></header><main class="content-wrap">
+
+<section class="section"><div class="section-label" data-zh="核心概念" data-en="CONCEPT">核心概念</div>
+<h2 data-zh="為何需要 spatial-aware？" data-en="Why Spatial-aware?">為何需要 spatial-aware？</h2>
+<div data-lang="zh"><p>標準 Seurat / Scanpy cluster（Louvain on PCA）只看表達相似度。對組織切片來說，這會出現「明明在大腦不同層、表達相似但功能不同」的兩 cluster 混在一起；或同一層被切成多個 cluster。<br><strong>Spatial-aware clustering</strong> 在 cluster 過程同時考量空間鄰近資訊，讓結果更貼近組織形態學。</p></div>
+<div data-lang="en"><p>Standard Seurat / Scanpy clustering (Louvain on PCA) uses expression similarity only. In tissue, that can merge functionally distinct layers with similar profiles, or split one layer into many tiny clusters. <strong>Spatial-aware clustering</strong> incorporates neighbor information, yielding clusters that match morphology.</p></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="聚類工具" data-en="CLUSTERING">聚類工具</div>
+<h2 data-zh="主流空間聚類" data-en="Mainstream Spatial Clustering">主流空間聚類</h2>
+<table class="comp-table"><thead><tr><th>Tool</th><th data-zh="原理" data-en="Approach">原理</th><th data-zh="特色" data-en="Notes">特色</th></tr></thead><tbody>
+<tr><td><strong>BayesSpace</strong></td><td>Hidden Markov + MCMC</td><td data-zh="保留組織連續性；可做 sub-spot enhancement" data-en="Preserves continuity; sub-spot enhancement">連續性強</td></tr>
+<tr><td><strong>Banksy</strong></td><td data-zh="表達 + 鄰居「微環境平均」" data-en="Expression + neighbor-averaged microenv.">表達＋微環境特徵</td><td data-zh="速度快、支援大資料" data-en="Fast, scales to large data">快速</td></tr>
+<tr><td><strong>SpaGCN</strong></td><td>Graph Convolutional Network</td><td data-zh="同時利用表達、空間與 H&E 影像" data-en="Uses expression, space, and H&E image">含影像</td></tr>
+<tr><td><strong>STAGATE</strong></td><td>Graph attention auto-encoder</td><td data-zh="自適應鄰居權重" data-en="Adaptive neighbor weighting">學習權重</td></tr>
+<tr><td>標準 Seurat / Scanpy</td><td>Louvain / Leiden on PCA</td><td data-zh="作為基準對照" data-en="As baseline comparison">基準</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label" data-zh="SVG" data-en="SVG">SVG</div>
+<h2 data-zh="Spatially Variable Genes (SVG)" data-en="Spatially Variable Genes (SVG)">Spatially Variable Genes</h2>
+<div data-lang="zh"><p>SVG 是「表達量隨空間位置有結構性變化」的基因——區隔 HVG（單純表達變異大但無位置模式）。SVG 是空間轉錄組學最關鍵的特徵，下游應用包括：(1) 找組織區域 marker，(2) 找空間 gradient，(3) deconvolution 的訊號基因。</p></div>
+<div data-lang="en"><p>SVGs are genes whose expression varies systematically with location — distinct from HVGs (high variance but no spatial pattern). SVGs are the most important features in spatial data: (1) domain markers, (2) spatial gradients, (3) deconvolution signatures.</p></div>
+<table class="comp-table"><thead><tr><th>Tool</th><th data-zh="統計" data-en="Statistic">統計</th><th data-zh="特色" data-en="Notes">特色</th></tr></thead><tbody>
+<tr><td><strong>SpatialDE</strong></td><td data-zh="Gaussian Process" data-en="Gaussian Process">Gaussian Process</td><td data-zh="最早；速度中等" data-en="Original; moderate speed">經典</td></tr>
+<tr><td><strong>SPARK / SPARK-X</strong></td><td data-zh="非參數空間檢定" data-en="Non-parametric spatial test">非參數</td><td data-zh="SPARK-X 為大資料優化" data-en="SPARK-X scales to large data">大資料</td></tr>
+<tr><td><strong>Moran's I</strong></td><td data-zh="空間自相關係數" data-en="Spatial autocorrelation">自相關</td><td data-zh="解釋直觀；I &gt; 0 → 鄰近相似" data-en="Intuitive; I &gt; 0 → similar neighbors">直觀</td></tr>
+<tr><td><strong>nnSVG</strong></td><td data-zh="GP + 最近鄰近似" data-en="GP + nearest-neighbor approx.">GP-NN</td><td data-zh="Bioconductor 友好" data-en="Bioconductor-friendly">R 生態</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
+<h2 data-zh="Moran's I 直覺" data-en="Intuition for Moran's I">Moran's I 直覺</h2>
+<div data-lang="zh"><p>調整空間結構強度，看 Moran's I 變化。I 接近 1 = 強空間結構；接近 0 = 隨機；負值 = 棋盤式分散。</p></div>
+<div data-lang="en"><p>Tune spatial-structure strength; see Moran's I. I ~ 1 = strong structure; ~ 0 = random; negative = checkerboard.</p></div>
+<div class="interactive-panel">
+<div class="slider-group"><label data-lang="zh">空間結構強度<span id="valS">0.7</span></label><label data-lang="en">Structure strength<span id="valSEn">0.7</span></label><input type="range" id="sliderS" min="0" max="1" value="0.7" step="0.05"></div>
+<div class="stat-row">
+<div class="stat-box"><div class="sb-num" id="moranI">--</div><div class="sb-lbl">Moran's I</div></div>
+<div class="stat-box"><div class="sb-num" id="svgCalled">--</div><div class="sb-lbl">SVG?</div></div>
+</div>
+<div class="chart-container" style="height:330px;"><canvas id="spatial2d"></canvas></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="程式碼" data-en="CODE">程式碼</div>
+<h2 data-zh="實作範例" data-en="Code Examples">實作範例</h2>
+<div class="code-tabs"><div class="code-tab-btns">
+<button class="code-tab-btn active" onclick="switchTab(this,'bs')">BayesSpace</button>
+<button class="code-tab-btn" onclick="switchTab(this,'sde')">SpatialDE</button>
+<button class="code-tab-btn" onclick="switchTab(this,'sq')">squidpy</button>
+</div>
+<div class="code-tab-content active" id="bs"><pre><span class="kw">library</span>(BayesSpace); <span class="kw">library</span>(SpatialExperiment)
+sce &lt;- <span class="func">readVisium</span>(<span class="str">"sample_outs/"</span>)
+sce &lt;- <span class="func">spatialPreprocess</span>(sce, n.PCs = <span class="num">15</span>, n.HVGs = <span class="num">2000</span>)
+sce &lt;- <span class="func">qTune</span>(sce, qs = <span class="num">3</span>:<span class="num">10</span>)
+<span class="func">qPlot</span>(sce)
+sce &lt;- <span class="func">spatialCluster</span>(sce, q = <span class="num">7</span>, nrep = <span class="num">10000</span>, burn.in = <span class="num">1000</span>)
+<span class="func">clusterPlot</span>(sce)</pre></div>
+<div class="code-tab-content" id="sde"><pre><span class="kw">import</span> NaiveDE, SpatialDE
+counts = adata.to_df().T   <span class="comment"># gene × spot</span>
+norm_expr = NaiveDE.stabilize(counts).T
+resid_expr = NaiveDE.regress_out(adata.obs, norm_expr.T, <span class="str">"np.log(total_counts)"</span>).T
+results = SpatialDE.run(adata.obsm[<span class="str">"spatial"</span>], resid_expr)
+results.sort_values(<span class="str">"qval"</span>).head(<span class="num">20</span>)</pre></div>
+<div class="code-tab-content" id="sq"><pre><span class="kw">import</span> squidpy <span class="kw">as</span> sq
+<span class="comment"># Moran's I 計算前需先建立鄰接圖</span>
+sq.gr.spatial_neighbors(adata, coord_type=<span class="str">"generic"</span>)
+sq.gr.spatial_autocorr(adata, mode=<span class="str">"moran"</span>, n_perms=<span class="num">100</span>)
+adata.uns[<span class="str">"moranI"</span>].head(<span class="num">20</span>)</pre></div>
+</div>
+</section>
+
+<section class="quiz-section"><h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
+<div class="quiz-q" data-answer="2"><p data-lang="zh">SVG 與 HVG 最大差別是？</p><p data-lang="en">What primarily distinguishes SVG from HVG?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. SVG 一定在 cluster 中顯著</span><span data-lang="en">A. SVG is always significant in a cluster</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. SVG 表達量必定較高</span><span data-lang="en">B. SVG must have higher expression</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. SVG 變異具有空間結構，HVG 只看整體變異</span><span data-lang="en">C. SVG variance has spatial structure; HVG looks at overall variance only</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. SVG 用 t-test 找</span><span data-lang="en">D. SVG is found via t-test</span></div>
+</div><div class="quiz-feedback" id="fb1"></div></div>
+</section>
+
+<nav class="page-nav"><a href="preprocessing.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 2：Preprocessing" data-en="Step 2: Preprocessing">Step 2：Preprocessing</span></a><a href="deconvolution.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 4：Deconvolution" data-en="Step 4: Deconvolution">Step 4：Deconvolution</span></a></nav>
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="../i18n.js"></script>
+<script>
+window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
+function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
+// 2D heatmap with sliders
+const grid=20;const pts=[];for(let i=0;i<grid;i++){for(let j=0;j<grid;j++){pts.push({x:i,y:j,v:0});}}
+const ctx=document.getElementById('spatial2d');
+const ch=new Chart(ctx,{type:'scatter',data:{datasets:[{label:'expression',data:[],pointRadius:7,pointStyle:'rect'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:false,min:-1,max:grid},y:{display:false,min:-1,max:grid}}}});
+function color(v){const r=Math.round(255*v);const b=Math.round(150*(1-v));return 'rgba('+r+',60,'+b+',0.8)';}
+function upS(){
+  const s=+document.getElementById('sliderS').value;
+  document.getElementById('valS').textContent=s.toFixed(2);document.getElementById('valSEn').textContent=s.toFixed(2);
+  pts.forEach(p=>{const struct=Math.sin(p.x*0.4)*Math.cos(p.y*0.4)*0.5+0.5;const rand=Math.random();p.v=s*struct+(1-s)*rand;});
+  ch.data.datasets[0].data=pts.map(p=>({x:p.x,y:p.y,backgroundColor:color(p.v)}));
+  // hacky: per-point bg
+  ch.data.datasets[0].backgroundColor=pts.map(p=>color(p.v));
+  ch.update('none');
+  // approximate Moran's I (1D shift)
+  let num=0,denom=0,w=0;const mean=pts.reduce((s,p)=>s+p.v,0)/pts.length;
+  pts.forEach(p=>{denom+=(p.v-mean)**2;});
+  pts.forEach(p=>{const nb=[{x:p.x+1,y:p.y},{x:p.x-1,y:p.y},{x:p.x,y:p.y+1},{x:p.x,y:p.y-1}];nb.forEach(n=>{const t=pts.find(q=>q.x===n.x&&q.y===n.y);if(t){num+=(p.v-mean)*(t.v-mean);w+=1;}});});
+  const I=pts.length/w*num/denom;
+  document.getElementById('moranI').textContent=I.toFixed(2);
+  const L=I18n.get();document.getElementById('svgCalled').textContent=I>0.2?(L==='zh'?'是 ✓':'Yes ✓'):(L==='zh'?'否':'No');
+}
+document.getElementById('sliderS').addEventListener('input',upS);document.addEventListener('langchange',upS);upS();
+window._QF={zh:{q1_y:'SVG 是空間結構性變異；HVG 是表達層級的整體變異。',q1_n:'答案是 C：SVG 強調空間結構。'},en:{q1_y:'SVG = spatially structured variance; HVG = overall expression variance.',q1_n:'Answer is C: SVG emphasizes spatial structure.'}};
+const QF=window._QF||{};document.querySelectorAll(".quiz-q").forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll(".quiz-opt").forEach(o=>{o.addEventListener("click",()=>{if(q.classList.contains("answered"))return;q.classList.add("answered");const fb=document.getElementById("fb"+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?"correct":"wrong");if(!ok)q.querySelectorAll(".quiz-opt")[ans].classList.add("correct");const L=I18n.get();fb.className="quiz-feedback show "+(ok?"correct-fb":"wrong-fb");fb.textContent=(ok?"✅ ":"❌ ")+(QF[L]&&QF[L]["q"+(qi+1)+"_"+(ok?"y":"n")]||"");});});});
+</script></body></html>

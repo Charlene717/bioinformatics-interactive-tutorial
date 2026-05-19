@@ -1,0 +1,108 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Cell-Cell Communication — Spatial</title>
+<link rel="stylesheet" href="../styles.css"></head><body class="theme-spatial">
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
+  <ul class="top-nav-links">
+    <li><a href="index.html">Spatial</a></li><li><a href="platforms.html">Platforms</a></li><li><a href="preprocessing.html">Preproc</a></li><li><a href="spatial-analysis.html">Analysis</a></li><li><a href="deconvolution.html">Deconv</a></li><li><a href="interactions.html" class="active">Comms</a></li>
+  </ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">STEP 5 / 5</div><h1 data-zh="空間細胞通訊" data-en="Spatial Cell-Cell Communication">空間細胞通訊</h1><p class="subtitle" data-lang="zh">納入「距離」概念的 ligand-receptor 分析——找出真正在物理上接觸的細胞對話。</p><p class="subtitle" data-lang="en">Ligand-receptor analysis with distance — find conversations between physically adjacent cells.</p></header><main class="content-wrap">
+
+<section class="section"><div class="section-label" data-zh="核心概念" data-en="CONCEPT">核心概念</div>
+<h2 data-zh="非空間 vs 空間 LR 分析" data-en="Non-spatial vs Spatial LR Analysis">非空間 vs 空間 LR 分析</h2>
+<div data-lang="zh"><p>scRNA-seq 級的 CellChat、CellPhoneDB 假設「任何兩種 cell type 的 ligand/receptor 共表達 = 可能通訊」——但兩種細胞如果離得遠，paracrine 訊號根本送不到。空間細胞通訊工具在計算 L-R 對交互作用時加入「鄰近權重」，更貼近真實。</p></div>
+<div data-lang="en"><p>scRNA-level tools (CellChat, CellPhoneDB) assume any two cell types co-expressing ligand/receptor = potential communication. But two cells far apart can't realistically send paracrine signals. Spatial CCC tools weight L-R interactions by proximity for more realistic inference.</p></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="主流工具" data-en="TOOLS">主流工具</div>
+<h2 data-zh="工具比較" data-en="Tool Comparison">工具比較</h2>
+<table class="comp-table"><thead><tr><th>Tool</th><th data-zh="特色" data-en="Notes">特色</th></tr></thead><tbody>
+<tr><td><strong>COMMOT</strong></td><td data-zh="optimal transport-based；估量訊號實際傳輸方向與量" data-en="Optimal-transport based; quantifies signaling flow direction and magnitude">最佳運輸</td></tr>
+<tr><td><strong>MISTy</strong></td><td data-zh="multi-view 機器學習；同時看 intra-spot、近鄰、遠近趨勢" data-en="Multi-view ML: intra-spot, near-neighbor, distance trends">多視角</td></tr>
+<tr><td><strong>stLearn</strong></td><td data-zh="cluster-level LR 富集；含整合 H&E 影像" data-en="Cluster-level LR enrichment; integrates H&E">影像整合</td></tr>
+<tr><td><strong>NICHES</strong></td><td data-zh="把每對鄰近細胞當作一個「niche」進行分析" data-en="Treats every neighbor pair as a niche">niche-level</td></tr>
+<tr><td><strong>SpaTalk</strong></td><td data-zh="ligand-receptor + downstream TF 路徑" data-en="LR + downstream TF pathway">含下游</td></tr>
+<tr><td>CellChat / CellPhoneDB</td><td data-zh="非空間，但仍可在 cluster 層加入位置註釋對照" data-en="Non-spatial; can post-hoc cross-check with locations">非空間參考</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
+<h2 data-zh="距離權重對 LR 分數的影響" data-en="Distance Weighting on LR Scores">距離權重對 LR 分數</h2>
+<div data-lang="zh"><p>調整距離衰減常數 σ，看不同距離 cell pair 的 LR interaction score：</p></div>
+<div data-lang="en"><p>Tune the distance decay σ; see interaction scores for cell pairs at varying distances:</p></div>
+<div class="interactive-panel">
+<div class="slider-group"><label data-lang="zh">距離衰減 σ (μm)<span id="valSig">100</span></label><label data-lang="en">Distance decay σ (μm)<span id="valSigEn">100</span></label><input type="range" id="sliderSig" min="20" max="500" value="100" step="10"></div>
+<div class="chart-container" style="height:300px;"><canvas id="lrChart"></canvas></div>
+<div id="lrTip" style="font-size:.9rem;color:var(--c-ink-light);"></div>
+</div>
+<div class="callout tip"><span class="callout-icon">💡</span><div data-lang="zh"><strong>典型距離尺度：</strong>juxtacrine（直接接觸）≈ 1 細胞徑（10–20 μm）；paracrine 訊號 ≈ 50–200 μm；endocrine 跨組織。空間分析中常用 σ ≈ 50–150 μm 對應 paracrine。</div><div data-lang="en"><strong>Typical scales:</strong> juxtacrine (direct contact) ≈ 1 cell diameter (10–20 μm); paracrine ≈ 50–200 μm; endocrine = systemic. σ ≈ 50–150 μm is common for paracrine.</div></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="程式碼" data-en="CODE">程式碼</div>
+<h2 data-zh="實作範例" data-en="Code Examples">實作範例</h2>
+<div class="code-tabs"><div class="code-tab-btns">
+<button class="code-tab-btn active" onclick="switchTab(this,'commot')">COMMOT</button>
+<button class="code-tab-btn" onclick="switchTab(this,'misty')">MISTy</button>
+<button class="code-tab-btn" onclick="switchTab(this,'stlearn')">stLearn</button>
+</div>
+<div class="code-tab-content active" id="commot"><pre><span class="kw">import</span> commot <span class="kw">as</span> ct
+<span class="comment"># 取得 CellChatDB ligand-receptor pairs</span>
+df_LR = ct.pp.ligand_receptor_database(species=<span class="str">"human"</span>, signaling_type=<span class="str">"Secreted Signaling"</span>)
+<span class="comment"># 空間 LR 計算</span>
+ct.tl.spatial_communication(adata,
+    database_name=<span class="str">"cellchat"</span>,
+    df_ligrec=df_LR,
+    dis_thr=<span class="num">500</span>, heteromeric=<span class="kw">True</span>)
+<span class="comment"># 視覺化</span>
+ct.pl.plot_cell_communication(adata, k=<span class="num">5</span>)</pre></div>
+<div class="code-tab-content" id="misty"><pre><span class="kw">library</span>(mistyR)
+views &lt;- <span class="func">create_initial_view</span>(expr_intra) <span class="func">|&gt;</span>
+         <span class="func">add_juxtaview</span>(positions, neighbor.thr = <span class="num">15</span>) <span class="func">|&gt;</span>
+         <span class="func">add_paraview</span>(positions, l = <span class="num">100</span>)
+res &lt;- <span class="func">run_misty</span>(views, results.folder = <span class="str">"misty_out"</span>)
+<span class="func">misty_results</span>(<span class="str">"misty_out"</span>) <span class="func">|&gt;</span> <span class="func">plot_view_contributions</span>()</pre></div>
+<div class="code-tab-content" id="stlearn"><pre><span class="kw">import</span> stlearn <span class="kw">as</span> st
+st.tl.cci.run(adata, lrs=lr_pairs,
+              min_spots=<span class="num">20</span>, distance=<span class="kw">None</span>,
+              n_pairs=<span class="num">10000</span>, n_cpus=<span class="num">8</span>)
+st.pl.lr_summary(adata)
+st.pl.cci_check(adata, top_lr=<span class="str">"VEGFA_KDR"</span>)</pre></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="驗證" data-en="VALIDATION">驗證</div>
+<h2 data-zh="如何驗證 LR 結果可信？" data-en="How to Validate LR Findings?">如何驗證 LR 結果可信？</h2>
+<div class="card-grid cols-2">
+<div class="card"><h4 data-zh="多工具交叉驗證" data-en="Cross-tool validation">多工具交叉</h4><p data-lang="zh">同時跑 COMMOT、MISTy、stLearn——三者都顯著的 LR pair 最可信。</p><p data-lang="en">Run COMMOT, MISTy, stLearn together — LR pairs significant in all three are most trustworthy.</p></div>
+<div class="card"><h4 data-zh="與單細胞參照比對" data-en="Compare with scRNA reference">與 scRNA 對照</h4><p data-lang="zh">同一組織也有 scRNA 資料 → 跑 CellChat → 比對哪些 LR 在空間中也出現。</p><p data-lang="en">If matched scRNA exists → run CellChat → see which LRs also appear in space.</p></div>
+<div class="card"><h4 data-zh="實驗驗證" data-en="Wet-lab confirmation">實驗驗證</h4><p data-lang="zh">最有信心的 LR 對：用 multiplex IHC / RNAscope 在原組織直接看蛋白 / mRNA 共存。</p><p data-lang="en">Highest-confidence: confirm with multiplex IHC / RNAscope showing co-localization in the original tissue.</p></div>
+<div class="card"><h4 data-zh="負控制檢驗" data-en="Negative control">負控制</h4><p data-lang="zh">隨機 shuffle spot 位置後重跑——若仍有顯著 LR，代表結果不是空間驅動的。</p><p data-lang="en">Shuffle spot positions and rerun — significant LRs that persist are not spatially driven.</p></div>
+</div>
+</section>
+
+<nav class="page-nav"><a href="deconvolution.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 4：Deconvolution" data-en="Step 4: Deconvolution">Step 4：Deconvolution</span></a><a href="../index.html"><span class="nav-dir" data-zh="完成 ✓" data-en="Done ✓">完成 ✓</span><span class="nav-title" data-zh="返回 Hub" data-en="Back to Hub">返回 Hub</span></a></nav>
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="../i18n.js"></script>
+<script>
+window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
+function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
+const dists=Array.from({length:30},(_,i)=>i*25);
+const ch=new Chart(document.getElementById('lrChart'),{type:'line',data:{labels:dists,datasets:[{label:'Interaction weight',data:[],borderColor:'#7a4eb5',backgroundColor:'rgba(122,78,181,0.18)',borderWidth:2,fill:true,tension:0.2,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{title:{display:true,text:'distance (μm)'}},y:{title:{display:true,text:'weight'},min:0,max:1}},plugins:{legend:{display:false}}}});
+function upLR(){
+  const sig=+document.getElementById('sliderSig').value;
+  document.getElementById('valSig').textContent=sig;document.getElementById('valSigEn').textContent=sig;
+  const w=dists.map(d=>Math.exp(-(d**2)/(2*sig**2)));
+  ch.data.datasets[0].data=w;ch.update('none');
+  const L=I18n.get();
+  let scale;
+  if(sig<40)scale=L==='zh'?'juxtacrine（細胞接觸）':'juxtacrine (cell-contact)';
+  else if(sig<200)scale=L==='zh'?'paracrine（近距離擴散）':'paracrine (local diffusion)';
+  else scale=L==='zh'?'長距離訊號 / endocrine 類似':'long-range / endocrine-like';
+  document.getElementById('lrTip').textContent=L==='zh'?'目前對應：'+scale+'。50% 衰減距離 ≈ '+(sig*1.18).toFixed(0)+' μm。':'Currently: '+scale+'. 50%-decay distance ≈ '+(sig*1.18).toFixed(0)+' μm.';
+}
+document.getElementById('sliderSig').addEventListener('input',upLR);document.addEventListener('langchange',upLR);upLR();
+</script></body></html>

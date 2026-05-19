@@ -1,0 +1,136 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Normalization — Bulk RNA-seq</title>
+<link rel="stylesheet" href="../styles.css"></head><body class="theme-bulk">
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
+  <ul class="top-nav-links">
+    <li><a href="index.html">Bulk RNA</a></li><li><a href="qc-trim.html">QC</a></li><li><a href="alignment.html">Align</a></li><li><a href="quantification.html">Quant</a></li><li><a href="normalization.html" class="active">Norm</a></li><li><a href="de.html">DE</a></li><li><a href="visualization.html">Viz</a></li><li><a href="gsea.html">GSEA</a></li>
+  </ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">STEP 4 / 7</div><h1 data-zh="標準化" data-en="Normalization">標準化</h1><p class="subtitle" data-lang="zh">校正樣本間的 library size 與組成偏差，讓不同樣本間的 counts 真正可比。</p><p class="subtitle" data-lang="en">Correct for library-size and composition biases so counts from different samples become comparable.</p></header><main class="content-wrap">
+
+<section class="section"><div class="section-label" data-zh="為什麼要標準化" data-en="WHY">為什麼要標準化</div>
+<h2 data-zh="兩種樣本間的偏差" data-en="Two Inter-sample Biases">兩種樣本間的偏差</h2>
+<div class="card-grid cols-2">
+<div class="card"><div class="card-icon">📦</div><h4 data-zh="Library size 偏差" data-en="Library size bias">Library size 偏差</h4><p data-lang="zh">A 樣本 30M reads、B 樣本 50M reads，即使表達一致，B 的 raw counts 自然較高。</p><p data-lang="en">If A has 30 M reads and B has 50 M, raw counts in B will be higher even with identical biology.</p></div>
+<div class="card"><div class="card-icon">⚖️</div><h4 data-zh="Composition 偏差" data-en="Composition bias">Composition 偏差</h4><p data-lang="zh">某幾個基因暴衝（如肝臟 albumin），會「吃掉」其他基因的 reads share；單純除 library size 無法校正。</p><p data-lang="en">If a few genes dominate (e.g., liver albumin), they steal share from others — dividing by library size alone cannot fix it.</p></div>
+</div>
+<div class="callout tip"><span class="callout-icon">💡</span><div data-lang="zh"><strong>核心想法：</strong>多數基因不會有差異表達，因此這些「house-keeping」基因在 case/control 中應該大致一樣多——這個假設是 TMM、DESeq2 size factor 的基礎。</div><div data-lang="en"><strong>Core assumption:</strong> Most genes are not differentially expressed; "housekeeping" genes should be roughly equal across case/control. This underpins TMM and DESeq2 size factors.</div></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="主流方法" data-en="METHODS">主流方法</div>
+<h2 data-zh="標準化方法總覽" data-en="Normalization Methods">標準化方法總覽</h2>
+<table class="comp-table"><thead><tr><th data-zh="方法" data-en="Method">方法</th><th data-zh="工具" data-en="Tool">工具</th><th data-zh="校正" data-en="Corrects for">校正</th><th data-zh="用途" data-en="Use case">用途</th></tr></thead><tbody>
+<tr><td>CPM</td><td>edgeR<code>cpm()</code></td><td>library size</td><td data-zh="跨樣本可視化、過濾低表達基因" data-en="Cross-sample viz; filter low expressors">視覺化／過濾</td></tr>
+<tr><td>TPM</td><td>Salmon, RSEM</td><td>library + 長度</td><td data-zh="樣本內基因排序、跨樣本單一基因比較" data-en="Within-sample gene ranking; cross-sample single-gene compare">樣本內比較</td></tr>
+<tr><td><strong>TMM</strong></td><td>edgeR<code>calcNormFactors()</code></td><td>library + composition</td><td data-zh="edgeR DE 模型的內建 size factor" data-en="edgeR's built-in size factor for DE">edgeR DE</td></tr>
+<tr><td><strong>RLE / Median-of-ratios</strong></td><td>DESeq2<code>estimateSizeFactors()</code></td><td>library + composition</td><td data-zh="DESeq2 DE 模型的 size factor" data-en="DESeq2's size factor for DE">DESeq2 DE</td></tr>
+<tr><td>vst / rlog</td><td>DESeq2</td><td data-zh="library + 異質變異 (heteroscedasticity)" data-en="library + heteroscedasticity">library + heteroscedasticity</td><td data-zh="PCA / heatmap / 機器學習" data-en="PCA / heatmap / ML">視覺化／聚類</td></tr>
+<tr><td>quantile</td><td>limma<code>normalizeBetweenArrays</code></td><td data-zh="整體分布" data-en="Whole distribution">整體分布</td><td data-zh="限定假設下的微陣列風格分析" data-en="Array-style analyses under strict assumptions">特殊情境</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
+<h2 data-zh="Composition 偏差如何欺騙簡單除法" data-en="How Composition Bias Tricks Simple Scaling">Composition 偏差如何欺騙簡單除法</h2>
+<div data-lang="zh"><p>樣本 B 有一個「巨星基因」暴衝（slider 控制），會偷掉其他基因的 read share。觀察 raw、CPM、TMM-normalized 中其他基因的相對量：</p></div>
+<div data-lang="en"><p>Sample B harbors a "superstar gene" stealing read share from others. See how raw / CPM / TMM-normalized values for the other genes compare:</p></div>
+<div class="interactive-panel">
+<div class="slider-group"><label data-lang="zh">巨星基因在 B 的相對表達 (倍數)<span id="valDom">10</span>×</label><label data-lang="en">Superstar fold-change in B<span id="valDomEn">10</span>×</label><input type="range" id="sliderDom" min="1" max="100" value="10" step="1"></div>
+<div class="chart-container" style="height:330px;"><canvas id="normChart"></canvas></div>
+<div id="normMsg" style="font-size:.9rem;color:var(--c-ink-light);margin-top:8px;"></div>
+</div>
+<div class="callout warn"><span class="callout-icon">⚠️</span><div data-lang="zh">當巨星基因強到一定程度，CPM 會錯誤地把其他基因（其實沒變化）顯示為「下降」。TMM/RLE 透過取中位數比例可避開這個假象。</div><div data-lang="en">A strong-enough superstar can make all other (unchanged) genes look "down-regulated" under CPM. TMM/RLE avoid this by anchoring on median ratios.</div></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="程式碼" data-en="CODE">程式碼</div>
+<h2 data-zh="實作範例" data-en="Code Examples">實作範例</h2>
+<div class="code-tabs"><div class="code-tab-btns">
+<button class="code-tab-btn active" onclick="switchTab(this,'edgeR')">edgeR TMM</button>
+<button class="code-tab-btn" onclick="switchTab(this,'dds')">DESeq2 RLE</button>
+<button class="code-tab-btn" onclick="switchTab(this,'vst')">vst / rlog</button>
+</div>
+<div class="code-tab-content active" id="edgeR"><pre><span class="kw">library</span>(edgeR)
+y &lt;- <span class="func">DGEList</span>(counts = mat, group = grp)
+y &lt;- <span class="func">calcNormFactors</span>(y, method = <span class="str">"TMM"</span>)
+<span class="comment"># 標準化後的 CPM（log）</span>
+logcpm &lt;- <span class="func">cpm</span>(y, log = <span class="kw">TRUE</span>, prior.count = <span class="num">1</span>)</pre></div>
+<div class="code-tab-content" id="dds"><pre><span class="kw">library</span>(DESeq2)
+dds &lt;- <span class="func">DESeqDataSetFromMatrix</span>(countData = mat, colData = info, design = ~condition)
+dds &lt;- <span class="func">estimateSizeFactors</span>(dds)
+<span class="func">sizeFactors</span>(dds)   <span class="comment"># size factor / 樣本</span>
+norm_counts &lt;- <span class="func">counts</span>(dds, normalized = <span class="kw">TRUE</span>)</pre></div>
+<div class="code-tab-content" id="vst"><pre><span class="comment"># vst (推薦)：快、變異穩定；適合 PCA、heatmap、ML</span>
+vsd &lt;- <span class="func">vst</span>(dds, blind = <span class="kw">FALSE</span>)
+<span class="func">plotPCA</span>(vsd, intgroup = <span class="str">"condition"</span>)
+
+<span class="comment"># rlog：小樣本(&lt;30)時較穩，但慢</span>
+rld &lt;- <span class="func">rlog</span>(dds, blind = <span class="kw">FALSE</span>)</pre></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="決策" data-en="DECISION">決策</div>
+<h2 data-zh="該選哪個？" data-en="Which to Use?">該選哪個？</h2>
+<div class="decision-tree"><h4>🌳 <span data-zh="按用途挑方法" data-en="Pick by purpose">按用途挑方法</span></h4>
+<div data-lang="zh">
+<div class="dt-node"><span class="dt-q">DE 統計：</span><div><strong>不用做額外標準化</strong>——直接 raw counts 餵 DESeq2/edgeR，工具內建 size factor。</div></div>
+<div class="dt-node"><span class="dt-q">PCA / heatmap：</span><div><strong>vst</strong>（推薦）或 <strong>rlog</strong>（n &lt; 30）。</div></div>
+<div class="dt-node"><span class="dt-q">基因表達比較表：</span><div>取 <strong>TPM</strong>（log 轉換後）作為跨樣本展示。</div></div>
+<div class="dt-node"><span class="dt-q">機器學習特徵：</span><div><strong>vst</strong> 後再做 z-score；勿用 raw counts 直接訓練。</div></div>
+</div>
+<div data-lang="en">
+<div class="dt-node"><span class="dt-q">DE statistics:</span><div><strong>No extra step</strong> — feed raw counts to DESeq2/edgeR; size factors are computed internally.</div></div>
+<div class="dt-node"><span class="dt-q">PCA / heatmap:</span><div><strong>vst</strong> (recommended) or <strong>rlog</strong> (small n &lt; 30).</div></div>
+<div class="dt-node"><span class="dt-q">Expression tables:</span><div><strong>log-TPM</strong> for cross-sample display.</div></div>
+<div class="dt-node"><span class="dt-q">ML features:</span><div><strong>vst</strong> then z-score; never train on raw counts directly.</div></div>
+</div>
+</div>
+</section>
+
+<section class="quiz-section"><h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
+<div class="quiz-q" data-answer="1"><p data-lang="zh">什麼是 composition bias 的核心特徵？</p><p data-lang="en">What characterizes composition bias?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 整體 library size 不同</span><span data-lang="en">A. Different total library sizes</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 少數基因表達差異極大，「吃掉」其他基因的 read share</span><span data-lang="en">B. A few genes change dramatically, stealing read share from others</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 基因長度的 GC 含量不同</span><span data-lang="en">C. GC content varies with gene length</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. PCR 重複造成的 inflation</span><span data-lang="en">D. PCR duplicate inflation</span></div>
+</div><div class="quiz-feedback" id="fb1"></div></div>
+<div class="quiz-q" data-answer="2"><p data-lang="zh">DESeq2 進行 PCA 前，最推薦先做什麼轉換？</p><p data-lang="en">What's the recommended transform before PCA in DESeq2?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. log2(raw + 1)</span><span data-lang="en">A. log2(raw + 1)</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. log2(TPM + 1)</span><span data-lang="en">B. log2(TPM + 1)</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. vst() / rlog()</span><span data-lang="en">C. vst() / rlog()</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. quantile normalization</span><span data-lang="en">D. quantile normalization</span></div>
+</div><div class="quiz-feedback" id="fb2"></div></div>
+</section>
+
+<nav class="page-nav"><a href="quantification.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 3：Quantification" data-en="Step 3: Quantification">Step 3：Quantification</span></a><a href="de.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 5：差異表達" data-en="Step 5: DE Analysis">Step 5：差異表達</span></a></nav>
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="../i18n.js"></script>
+<script>
+window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
+function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
+// Simulate normalization
+const G=20;const baseA=[];const baseB=[];for(let i=0;i<G;i++){baseA.push(50+Math.random()*200);baseB.push(baseA[i]*(0.9+Math.random()*0.2));}
+const normChart=new Chart(document.getElementById('normChart'),{type:'bar',data:{labels:Array.from({length:G},(_,i)=>'g'+(i+1)),datasets:[
+  {label:'A (CPM)',data:[],backgroundColor:'rgba(26,94,138,0.6)'},
+  {label:'B (CPM)',data:[],backgroundColor:'rgba(192,57,43,0.6)'},
+  {label:'B (TMM)',data:[],backgroundColor:'rgba(26,107,90,0.6)'}
+]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{title:{display:true,text:'value'}}}}});
+function upN(){
+  const dom=+document.getElementById('sliderDom').value;
+  document.getElementById('valDom').textContent=dom;document.getElementById('valDomEn').textContent=dom;
+  const a=baseA.slice();const b=baseB.slice();
+  const star=300; b[0]=star*dom; a[0]=star;
+  const sa=a.reduce((s,v)=>s+v,0);const sb=b.reduce((s,v)=>s+v,0);
+  const cpmA=a.map(v=>v/sa*1e6);const cpmB=b.map(v=>v/sb*1e6);
+  const ratios=a.slice(1).map((v,i)=>b[i+1]/v);ratios.sort((x,y)=>x-y);const tmm=ratios[Math.floor(ratios.length/2)];
+  const tmmB=b.map((v,i)=>v/sb*1e6/tmm);
+  normChart.data.datasets[0].data=cpmA;normChart.data.datasets[1].data=cpmB;normChart.data.datasets[2].data=tmmB;normChart.update('none');
+  const L=I18n.get();
+  document.getElementById('normMsg').innerHTML=L==='zh'?'TMM 因子：'+tmm.toFixed(2)+'。當 fold &gt; 5×，CPM 顯示的「下降」其實是 composition bias。':'TMM factor: '+tmm.toFixed(2)+'. With fold &gt; 5×, the apparent CPM "down-regulation" is actually composition bias.';
+}
+document.getElementById('sliderDom').addEventListener('input',upN);document.addEventListener('langchange',upN);upN();
+window._QF={zh:{q1_y:'B 正確：composition bias 來自少數巨變基因。',q1_n:'答案是 B。',q2_y:'vst / rlog 校正 mean-variance 關係，適合下游聚類分析。',q2_n:'答案是 C：vst()。'},en:{q1_y:'B is correct: composition bias comes from a few dramatically changing genes.',q1_n:'Answer is B.',q2_y:'vst / rlog stabilize the mean-variance relationship for downstream clustering.',q2_n:'Answer is C: vst().'}};
+const QF=window._QF||{};document.querySelectorAll(".quiz-q").forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll(".quiz-opt").forEach(o=>{o.addEventListener("click",()=>{if(q.classList.contains("answered"))return;q.classList.add("answered");const fb=document.getElementById("fb"+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?"correct":"wrong");if(!ok)q.querySelectorAll(".quiz-opt")[ans].classList.add("correct");const L=I18n.get();fb.className="quiz-feedback show "+(ok?"correct-fb":"wrong-fb");fb.textContent=(ok?"✅ ":"❌ ")+(QF[L]&&QF[L]["q"+(qi+1)+"_"+(ok?"y":"n")]||"");});});});
+</script></body></html>

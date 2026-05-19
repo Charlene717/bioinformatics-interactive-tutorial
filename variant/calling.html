@@ -1,0 +1,143 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Variant Calling — Variant Calling</title>
+<link rel="stylesheet" href="../styles.css"></head><body class="theme-variant">
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
+  <ul class="top-nav-links">
+    <li><a href="index.html">Variant</a></li><li><a href="preprocessing.html">Preproc</a></li><li><a href="calling.html" class="active">Calling</a></li><li><a href="filtering.html">Filter</a></li><li><a href="annotation.html">Annot</a></li>
+  </ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">STEP 2 / 5</div><h1 data-zh="變異偵測" data-en="Variant Calling">變異偵測</h1><p class="subtitle" data-lang="zh">Germline、Somatic 與 CNN-based 三種主要策略。</p><p class="subtitle" data-lang="en">Germline, Somatic, and CNN-based — three mainstream approaches.</p></header><main class="content-wrap">
+
+<section class="section"><div class="section-label" data-zh="核心概念" data-en="CONCEPT">核心概念</div>
+<h2 data-zh="Germline vs Somatic" data-en="Germline vs Somatic">Germline vs Somatic</h2>
+<div class="card-grid cols-2">
+<div class="card"><div class="card-icon">🧬</div><h4>Germline（生殖系）</h4><p data-lang="zh">遺傳自父母的變異，存在於全身細胞。預期 VAF 為 0%、50% (het) 或 100% (hom)。GATK HaplotypeCaller 是標準。</p><p data-lang="en">Inherited variants present in every cell. Expected VAF: 0%, 50% (het), or 100% (hom). GATK HaplotypeCaller is standard.</p></div>
+<div class="card"><div class="card-icon">🦠</div><h4>Somatic（體細胞）</h4><p data-lang="zh">後天發生的變異（癌症突變）。VAF 連續變化（亞群體性），常 &lt; 50% 甚至 &lt; 10%。需 paired tumor-normal 設計與 Mutect2。</p><p data-lang="en">Acquired variants (cancer mutations). Continuous VAF (subclonality), often &lt; 50% or even &lt; 10%. Needs paired tumor-normal + Mutect2.</p></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="主流工具" data-en="TOOLS">主流工具</div>
+<h2 data-zh="工具比較" data-en="Tool Comparison">工具比較</h2>
+<table class="comp-table"><thead><tr><th>Tool</th><th data-zh="情境" data-en="Scenario">情境</th><th data-zh="方法" data-en="Method">方法</th><th data-zh="特色" data-en="Notes">特色</th></tr></thead><tbody>
+<tr><td><strong>GATK HaplotypeCaller</strong></td><td>Germline</td><td data-zh="local de novo + PairHMM" data-en="Local de novo + PairHMM">local re-assembly</td><td data-zh="GATK Best Practice 標準" data-en="GATK Best Practice standard">業界標準</td></tr>
+<tr><td><strong>DeepVariant</strong></td><td>Germline</td><td data-zh="CNN 影像分類" data-en="CNN image classification">深度學習</td><td data-zh="準確度業界領先，速度快" data-en="State-of-the-art accuracy, fast">最準</td></tr>
+<tr><td><strong>Strelka2</strong></td><td>Germline + Somatic</td><td data-zh="indel realignment + 機率模型" data-en="Indel realignment + probabilistic">indel 強</td><td data-zh="indel 表現特別好" data-en="Strong on indels">indel 強</td></tr>
+<tr><td><strong>GATK Mutect2</strong></td><td>Somatic</td><td data-zh="local re-assembly + PoN" data-en="Local re-assembly + panel-of-normals">配對 + PoN</td><td data-zh="paired-mode、tumor-only 兩用；含 contamination 模型" data-en="Paired and tumor-only; contamination model">最標準</td></tr>
+<tr><td>VarScan2</td><td>Somatic</td><td data-zh="基本統計 + heuristic" data-en="Basic stats + heuristics">heuristic</td><td data-zh="老牌、輕量；不如 Mutect2" data-en="Old, light; outperformed by Mutect2">輕量</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label" data-zh="Germline 流程" data-en="GERMLINE">Germline 流程</div>
+<h2 data-zh="HaplotypeCaller → GVCF → 聯合 genotyping" data-en="HaplotypeCaller → GVCF → Joint genotyping">HaplotypeCaller 流程</h2>
+<div data-lang="zh"><p>對多樣本族群最佳實踐是 <strong>GVCF + joint genotyping</strong>：每樣本單獨產生 GVCF，再用 <code>GenotypeGVCFs</code> 一起 call。這能讓「在某樣本 ref-ref 但其他樣本有變異的位置」被正確記錄為 ref/ref 而非缺失。</p></div>
+<div data-lang="en"><p>For cohorts, GATK Best Practice is <strong>GVCF + joint genotyping</strong>: per-sample GVCFs, then <code>GenotypeGVCFs</code> together. Positions that are ref-ref in some samples but variant in others get recorded as ref/ref rather than missing.</p></div>
+<div class="code-tabs"><div class="code-tab-btns">
+<button class="code-tab-btn active" onclick="switchTab(this,'gvcf')">HC → GVCF</button>
+<button class="code-tab-btn" onclick="switchTab(this,'joint')">Joint genotyping</button>
+<button class="code-tab-btn" onclick="switchTab(this,'dv')">DeepVariant</button>
+</div>
+<div class="code-tab-content active" id="gvcf"><pre><span class="comment"># 1. 每樣本生 GVCF</span>
+gatk HaplotypeCaller \
+  -I patient_01.bam -R GRCh38.fa \
+  -ERC GVCF \
+  -O patient_01.g.vcf.gz
+
+<span class="comment"># 對 WES：加 --intervals 限制目標</span>
+<span class="comment"># gatk HaplotypeCaller -L exons.bed ...</span></pre></div>
+<div class="code-tab-content" id="joint"><pre><span class="comment"># 2. 合併 GVCF（族群）</span>
+gatk CombineGVCFs \
+  -R GRCh38.fa \
+  -V patient_01.g.vcf.gz \
+  -V patient_02.g.vcf.gz ... \
+  -O cohort.g.vcf.gz
+
+<span class="comment"># 或用 GenomicsDBImport（大族群更快）</span>
+gatk GenomicsDBImport \
+  --genomicsdb-workspace-path my_db \
+  --sample-name-map cohort.sample_map \
+  --intervals chr1
+
+<span class="comment"># 3. Joint genotyping</span>
+gatk GenotypeGVCFs \
+  -R GRCh38.fa -V cohort.g.vcf.gz \
+  -O cohort.vcf.gz</pre></div>
+<div class="code-tab-content" id="dv"><pre><span class="comment"># DeepVariant 對 WGS 較簡單</span>
+run_deepvariant \
+  --model_type=WGS \
+  --ref=GRCh38.fa \
+  --reads=analysis_ready.bam \
+  --output_vcf=patient_01.vcf.gz \
+  --output_gvcf=patient_01.g.vcf.gz \
+  --num_shards=<span class="num">32</span></pre></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="Somatic 流程" data-en="SOMATIC">Somatic 流程</div>
+<h2 data-zh="Mutect2 paired tumor-normal" data-en="Mutect2 Paired Tumor-Normal">Mutect2 paired tumor-normal</h2>
+<div class="code-tabs"><div class="code-tab-btns"><button class="code-tab-btn active" onclick="switchTab(this,'mutect')">Mutect2</button></div>
+<div class="code-tab-content active" id="mutect"><pre><span class="comment"># 1. 主呼叫（含 Panel of Normals + germline resource）</span>
+gatk Mutect2 \
+  -R GRCh38.fa \
+  -I tumor.bam -tumor patient01_T \
+  -I normal.bam -normal patient01_N \
+  --panel-of-normals pon.vcf.gz \
+  --germline-resource af-only-gnomad.vcf.gz \
+  -O somatic.vcf.gz \
+  --f1r2-tar-gz f1r2.tar.gz
+
+<span class="comment"># 2. 校正方向偏差</span>
+gatk LearnReadOrientationModel \
+  -I f1r2.tar.gz -O read-orient-model.tar.gz
+
+<span class="comment"># 3. 估計汙染（contamination）</span>
+gatk GetPileupSummaries -I tumor.bam -V af-only-gnomad.vcf.gz -L exons.bed -O tumor.pileups.table
+gatk CalculateContamination -I tumor.pileups.table -O contamination.table
+
+<span class="comment"># 4. 過濾</span>
+gatk FilterMutectCalls \
+  -V somatic.vcf.gz -R GRCh38.fa \
+  --contamination-table contamination.table \
+  --ob-priors read-orient-model.tar.gz \
+  -O somatic.filtered.vcf.gz</pre></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
+<h2 data-zh="VAF 與偵測力" data-en="VAF & Detection Power">VAF 與偵測力</h2>
+<div data-lang="zh"><p>調整 VAF（變異等位基因頻率）與深度，看是否被視為「顯著」變異：</p></div>
+<div data-lang="en"><p>Tune VAF and depth; see whether the site is called significant:</p></div>
+<div class="interactive-panel">
+<div class="slider-group"><label>VAF (%) <span id="valVAF">10</span></label><input type="range" id="sliderVAF" min="1" max="50" value="10" step="0.5"></div>
+<div class="slider-group"><label data-lang="zh">深度 (X)<span id="valDP">50</span></label><label data-lang="en">Depth (X)<span id="valDPEn">50</span></label><input type="range" id="sliderDP" min="5" max="200" value="50" step="1"></div>
+<div class="stat-row">
+<div class="stat-box"><div class="sb-num" id="altReads">--</div><div class="sb-lbl" data-zh="預期 alt reads" data-en="Expected alt reads">預期 alt reads</div></div>
+<div class="stat-box"><div class="sb-num" id="callable">--</div><div class="sb-lbl" data-zh="可被偵測？" data-en="Callable?">可偵測？</div></div>
+</div>
+</div>
+<div class="callout tip"><span class="callout-icon">💡</span><div data-lang="zh"><strong>大致原則：</strong>Germline（het VAF ~50%）→ 即使 10× 也大致可叫。Somatic VAF 10% → 至少需 30× 才有合理偵測力；VAF 5% 需 ≥ 60-100×。</div><div data-lang="en"><strong>Rule of thumb:</strong> Germline (het ~50% VAF) → callable at 10× in most cases. Somatic VAF 10% needs ≥ 30×; VAF 5% needs ≥ 60-100×.</div></div>
+</section>
+
+<nav class="page-nav"><a href="preprocessing.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 1：預處理" data-en="Step 1: Preprocessing">Step 1：預處理</span></a><a href="filtering.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 3：Filtering" data-en="Step 3: Filtering">Step 3：Filtering</span></a></nav>
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
+<script src="../i18n.js"></script>
+<script>
+window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
+function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
+function up(){
+  const v=+document.getElementById('sliderVAF').value/100;const d=+document.getElementById('sliderDP').value;
+  document.getElementById('valVAF').textContent=Math.round(v*100*10)/10;
+  document.getElementById('valDP').textContent=d;document.getElementById('valDPEn').textContent=d;
+  const alt=v*d;
+  document.getElementById('altReads').textContent=alt.toFixed(1);
+  const L=I18n.get();let c;
+  if(alt>=8)c=L==='zh'?'是（高信心）':'Yes (high)';
+  else if(alt>=4)c=L==='zh'?'勉強':'Borderline';
+  else if(alt>=2)c=L==='zh'?'困難':'Hard';
+  else c=L==='zh'?'不可':'No';
+  document.getElementById('callable').textContent=c;
+}
+['sliderVAF','sliderDP'].forEach(id=>document.getElementById(id).addEventListener('input',up));document.addEventListener('langchange',up);up();
+</script></body></html>

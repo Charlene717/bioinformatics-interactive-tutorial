@@ -1,0 +1,106 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Annotation — Variant Calling</title>
+<link rel="stylesheet" href="../styles.css"></head><body class="theme-variant">
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
+  <ul class="top-nav-links">
+    <li><a href="index.html">Variant</a></li><li><a href="preprocessing.html">Preproc</a></li><li><a href="calling.html">Calling</a></li><li><a href="filtering.html">Filter</a></li><li><a href="annotation.html" class="active">Annot</a></li>
+  </ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">STEP 4 / 5</div><h1 data-zh="變異功能註釋" data-en="Functional Annotation">變異功能註釋</h1><p class="subtitle" data-lang="zh">從「染色體上的座標」躍升到「對基因、蛋白、疾病的潛在影響」。</p><p class="subtitle" data-lang="en">From "a position on a chromosome" to "potential impact on gene, protein, and disease".</p></header><main class="content-wrap">
+
+<section class="section"><div class="section-label" data-zh="工具" data-en="TOOLS">工具</div>
+<h2 data-zh="三大主流註釋工具" data-en="Three Mainstream Annotators">三大主流註釋工具</h2>
+<table class="comp-table"><thead><tr><th>Tool</th><th data-zh="提供者" data-en="Maintainer">提供者</th><th data-zh="特色" data-en="Notes">特色</th></tr></thead><tbody>
+<tr><td><strong>VEP</strong> (Variant Effect Predictor)</td><td>Ensembl</td><td data-zh="最完整的轉錄本／domain／調控資訊；plugin 生態強" data-en="Most complete transcript/domain/regulatory info; rich plugin ecosystem">官方完整</td></tr>
+<tr><td><strong>ANNOVAR</strong></td><td>USC</td><td data-zh="輕量、快、商用授權需付費" data-en="Light, fast, commercial use requires license">輕快</td></tr>
+<tr><td><strong>SnpEff</strong></td><td>Pablo Cingolani</td><td data-zh="與 SnpSift 搭配做 VCF 篩選；多物種支援" data-en="Pairs with SnpSift for VCF filtering; multi-species">開源強</td></tr>
+<tr><td>Funcotator</td><td>GATK4</td><td data-zh="GATK 內建；癌症情境較強" data-en="Built into GATK4; cancer-friendly">癌症</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label" data-zh="資料庫" data-en="DATABASES">資料庫</div>
+<h2 data-zh="必加註釋來源" data-en="Essential Annotation Sources">必加註釋來源</h2>
+<div class="card-grid cols-2">
+<div class="card"><h4>gnomAD</h4><p data-lang="zh">最大公開人類群體變異頻率資料庫。<strong>AF (allele frequency)</strong> 是判斷是否為「罕見變異」（&lt; 1% 為罕見）的標準。</p><p data-lang="en">Largest public human population AF database. <strong>AF</strong> distinguishes rare (&lt; 1%) from common variants.</p></div>
+<div class="card"><h4>ClinVar</h4><p data-lang="zh">NIH 維護的臨床顯著變異庫。提供 P (pathogenic) / LP / VUS / LB / B 五級分類與審核星等。</p><p data-lang="en">NIH-maintained clinical significance DB. Provides P / LP / VUS / LB / B classifications and review-star ratings.</p></div>
+<div class="card"><h4>COSMIC</h4><p data-lang="zh">癌症體細胞突變目錄；COSMIC ID、CGC (Cancer Gene Census) 標記重要驅動基因。</p><p data-lang="en">Catalog of somatic mutations in cancer; COSMIC ID + CGC (Cancer Gene Census) flags key drivers.</p></div>
+<div class="card"><h4>dbSNP / dbNSFP</h4><p data-lang="zh">dbSNP 是已知變異資料庫；dbNSFP 整合 SIFT、PolyPhen、CADD、REVEL 等預測分數。</p><p data-lang="en">dbSNP catalogs known variants; dbNSFP aggregates SIFT, PolyPhen, CADD, REVEL prediction scores.</p></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="影響分類" data-en="IMPACT">影響分類</div>
+<h2 data-zh="VEP 影響等級" data-en="VEP Impact Tiers">VEP 影響等級</h2>
+<table class="comp-table"><thead><tr><th>Tier</th><th data-zh="例子" data-en="Examples">例子</th><th data-zh="解讀" data-en="Interpretation">解讀</th></tr></thead><tbody>
+<tr><td><strong>HIGH</strong></td><td>stop_gained, frameshift, splice_acceptor</td><td data-zh="蛋白結構嚴重破壞，疾病關聯性高" data-en="Severe protein disruption; high disease association">嚴重影響</td></tr>
+<tr><td><strong>MODERATE</strong></td><td>missense, inframe_indel, protein_altering</td><td data-zh="可能改變蛋白功能，需進一步預測（SIFT, PolyPhen）" data-en="May alter protein function; check SIFT/PolyPhen">中度影響</td></tr>
+<tr><td><strong>LOW</strong></td><td>synonymous, splice_region, stop_retained</td><td data-zh="多數預期無功能改變" data-en="Usually no functional change">低影響</td></tr>
+<tr><td><strong>MODIFIER</strong></td><td>intron, intergenic, upstream, downstream</td><td data-zh="編碼區外，需 functional element 證據才有意義" data-en="Non-coding; needs functional-element evidence">非編碼</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label" data-zh="程式碼" data-en="CODE">程式碼</div>
+<h2 data-zh="實作範例" data-en="Code Examples">實作範例</h2>
+<div class="code-tabs"><div class="code-tab-btns">
+<button class="code-tab-btn active" onclick="switchTab(this,'vep')">VEP</button>
+<button class="code-tab-btn" onclick="switchTab(this,'annovar')">ANNOVAR</button>
+<button class="code-tab-btn" onclick="switchTab(this,'snpeff')">SnpEff</button>
+<button class="code-tab-btn" onclick="switchTab(this,'bcf')">bcftools query</button>
+</div>
+<div class="code-tab-content active" id="vep"><pre><span class="comment"># VEP 加入 gnomAD AF、CADD、ClinVar 與 LoF (LOFTEE) plugin</span>
+vep -i cohort.filtered.vcf.gz \
+  -o cohort.vep.vcf.gz --vcf --compress_output bgzip \
+  --species homo_sapiens --assembly GRCh38 \
+  --fasta GRCh38.fa --cache --offline --dir_cache vep_cache/ \
+  --everything --pick \
+  --plugin LOFTEE,loftee_path:./loftee,human_ancestor_fa:human_ancestor.fa.gz \
+  --plugin CADD,whole_genome_SNVs.tsv.gz,InDels.tsv.gz \
+  --custom gnomad.exomes.r2.1.1.sites.vcf.gz,gnomADe,vcf,exact,0,AF \
+  --custom clinvar.vcf.gz,ClinVar,vcf,exact,0,CLNSIG</pre></div>
+<div class="code-tab-content" id="annovar"><pre><span class="comment"># ANNOVAR：refGene + cytoBand + gnomAD + ClinVar + dbnsfp</span>
+table_annovar.pl cohort.flt.vcf humandb/ -buildver hg38 \
+  -out cohort.anno \
+  -protocol refGene,cytoBand,gnomad30_genome,clinvar_20230520,dbnsfp42a \
+  -operation g,r,f,f,f \
+  -nastring . -vcfinput \
+  -polish</pre></div>
+<div class="code-tab-content" id="snpeff"><pre><span class="comment"># SnpEff + SnpSift</span>
+snpEff -v hg38 cohort.flt.vcf.gz &gt; cohort.snpeff.vcf
+SnpSift annotate -info CLNSIG clinvar.vcf.gz cohort.snpeff.vcf &gt; cohort.cs.vcf
+SnpSift filter <span class="str">"ANN[*].EFFECT has 'missense_variant' &amp; (CLNSIG = 'Pathogenic')"</span> cohort.cs.vcf</pre></div>
+<div class="code-tab-content" id="bcf"><pre><span class="comment"># 快速抽取註釋後欄位 - 適合大量過濾</span>
+bcftools +split-vep cohort.vep.vcf.gz -f <span class="str">'%CHROM\t%POS\t%REF\t%ALT\t%Consequence\t%gnomADe_AF\t%CADD_PHRED\t%CLIN_SIG\n'</span> \
+  -d -A tab \
+  | awk <span class="str">'$6&lt;0.01 &amp;&amp; $7&gt;20'</span>   <span class="comment"># 罕見 + 高 CADD</span></pre></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="臨床優先排序" data-en="PRIORITIZATION">臨床優先排序</div>
+<h2 data-zh="如何挑出值得驗證的變異？" data-en="How to Prioritize for Validation?">如何挑出值得驗證的變異？</h2>
+<div class="decision-tree"><h4>🌳 <span data-zh="優先排序原則" data-en="Prioritization principles">優先排序原則</span></h4>
+<div data-lang="zh">
+<div class="dt-node"><span class="dt-q">1.</span><div><strong>頻率：</strong>gnomAD AF &lt; 1%（罕見）或 0（unseen）。</div></div>
+<div class="dt-node"><span class="dt-q">2.</span><div><strong>影響：</strong>HIGH impact (LoF) 或 MODERATE + 高 CADD (&gt; 20)。</div></div>
+<div class="dt-node"><span class="dt-q">3.</span><div><strong>臨床：</strong>ClinVar Pathogenic / Likely Pathogenic，且 review status ≥ 2 stars。</div></div>
+<div class="dt-node"><span class="dt-q">4.</span><div><strong>基因清單：</strong>是否落在 OMIM、HPO 或目標 disease panel 的基因？</div></div>
+<div class="dt-node"><span class="dt-q">5.</span><div><strong>遺傳模式：</strong>顯性 → het 即可；隱性 → 需 hom 或 compound het；X-linked 等。</div></div>
+</div>
+<div data-lang="en">
+<div class="dt-node"><span class="dt-q">1.</span><div><strong>Frequency:</strong> gnomAD AF &lt; 1% (rare) or 0 (unseen).</div></div>
+<div class="dt-node"><span class="dt-q">2.</span><div><strong>Impact:</strong> HIGH (LoF) or MODERATE + high CADD (&gt; 20).</div></div>
+<div class="dt-node"><span class="dt-q">3.</span><div><strong>Clinical:</strong> ClinVar Pathogenic / Likely Pathogenic, review ≥ 2 stars.</div></div>
+<div class="dt-node"><span class="dt-q">4.</span><div><strong>Gene list:</strong> falls in OMIM / HPO / target disease panel?</div></div>
+<div class="dt-node"><span class="dt-q">5.</span><div><strong>Inheritance:</strong> dominant → het suffices; recessive → hom or compound het; X-linked; etc.</div></div>
+</div>
+</div>
+</section>
+
+<nav class="page-nav"><a href="filtering.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 3：Filtering" data-en="Step 3: Filtering">Step 3：Filtering</span></a><a href="sv-cnv.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 5：SV / CNV" data-en="Step 5: SV / CNV">Step 5：SV / CNV</span></a></nav>
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
+<script src="../i18n.js"></script>
+<script>
+window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
+function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
+</script></body></html>

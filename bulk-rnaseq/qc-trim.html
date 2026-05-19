@@ -1,0 +1,153 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>QC & Trimming — Bulk RNA-seq</title>
+<link rel="stylesheet" href="../styles.css"></head><body class="theme-bulk">
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
+  <ul class="top-nav-links">
+    <li><a href="index.html">Bulk RNA</a></li>
+    <li><a href="qc-trim.html" class="active">QC</a></li>
+    <li><a href="alignment.html">Align</a></li>
+    <li><a href="quantification.html">Quant</a></li>
+    <li><a href="normalization.html">Norm</a></li>
+    <li><a href="de.html">DE</a></li>
+    <li><a href="visualization.html">Viz</a></li>
+    <li><a href="gsea.html">GSEA</a></li>
+  </ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">STEP 1 / 7</div><h1 data-zh="原始品質管控與修剪" data-en="Raw QC & Trimming">原始品質管控與修剪</h1><p class="subtitle" data-lang="zh">在比對之前先檢視 reads 品質、移除接頭與低品質鹼基——garbage in, garbage out。</p><p class="subtitle" data-lang="en">Inspect read quality and remove adapters / low-quality bases before alignment — garbage in, garbage out.</p></header><main class="content-wrap">
+
+<section class="section"><div class="section-label" data-zh="檔案格式" data-en="FILE FORMAT">檔案格式</div><h2 data-zh="認識 FASTQ" data-en="Understanding FASTQ">認識 FASTQ</h2>
+<div data-lang="zh"><p>FASTQ 是定序儀的標準輸出格式，每筆 read 佔 4 行：</p></div>
+<div data-lang="en"><p>FASTQ is the standard sequencer output. Each read takes 4 lines:</p></div>
+<div class="code-tabs"><div class="code-tab-btns"><button class="code-tab-btn active" onclick="switchTab(this,'fq1')">FASTQ</button></div>
+<div class="code-tab-content active" id="fq1"><pre><span class="comment">@SRR1039508.1 HWI-ST177:290:C0TECACXX:1:1101:1225:2130 length=63</span>
+GAACAGCGGCTTGGGCAGCGAGCAGCTGCACCCTGAGGGGCCACTTTCAGGCAACTTCCATG
+<span class="comment">+</span>
+<span class="str">CCCFFFFFHHHHHJJIIJIJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJIJJJIJJJIJJJ</span></pre></div></div>
+<div class="card-grid cols-2">
+  <div class="card"><h4>Line 1</h4><p data-lang="zh"><code>@</code> 開頭，後面是 read ID 與機器資訊。</p><p data-lang="en"><code>@</code> followed by read ID and sequencer metadata.</p></div>
+  <div class="card"><h4>Line 2</h4><p data-lang="zh">DNA 序列 (A/C/G/T/N)，N 表示無法判讀。</p><p data-lang="en">DNA sequence (A/C/G/T/N); N marks ambiguous calls.</p></div>
+  <div class="card"><h4>Line 3</h4><p data-lang="zh"><code>+</code> 分隔符。</p><p data-lang="en">A <code>+</code> separator.</p></div>
+  <div class="card"><h4>Line 4</h4><p data-lang="zh">Phred 品質分數（ASCII 編碼，Q33）。<code>Q30</code> 代表錯誤率 0.1%。</p><p data-lang="en">Phred quality (ASCII Q33). <code>Q30</code> means 0.1% error rate.</p></div>
+</div>
+<div class="callout tip"><span class="callout-icon">💡</span><div data-lang="zh"><strong>Phred 公式：</strong><code>Q = -10·log10(P_error)</code>。Q20 = 1%、Q30 = 0.1%、Q40 = 0.01%。Illumina 新平台大多 Q30+。</div><div data-lang="en"><strong>Phred formula:</strong> <code>Q = -10·log10(P_error)</code>. Q20 = 1%, Q30 = 0.1%, Q40 = 0.01%. Modern Illumina is mostly Q30+.</div></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="工具" data-en="TOOLS">工具</div><h2 data-zh="FastQC 與 MultiQC" data-en="FastQC & MultiQC">FastQC 與 MultiQC</h2>
+<div data-lang="zh"><p><strong>FastQC</strong> 是業界標準的單樣本品質報告產生器；<strong>MultiQC</strong> 則把多個 FastQC（或 STAR、Salmon、…）的 log 整合成一份可瀏覽的 HTML。</p></div>
+<div data-lang="en"><p><strong>FastQC</strong> is the industry-standard per-sample QC report. <strong>MultiQC</strong> aggregates FastQC (and STAR, Salmon, …) logs into one browsable HTML.</p></div>
+<div class="tool-pills"><span class="tool-pill">fastqc</span><span class="tool-pill">multiqc</span><span class="tool-pill">fastp</span><span class="tool-pill">trim_galore</span><span class="tool-pill">trimmomatic</span><span class="tool-pill">cutadapt</span></div>
+
+<h3 data-zh="FastQC 重點指標" data-en="Key FastQC Metrics">FastQC 重點指標</h3>
+<table class="comp-table"><thead><tr><th data-zh="模組" data-en="Module">模組</th><th data-zh="觀察" data-en="What to look for">觀察</th><th data-zh="常見原因" data-en="Common cause">常見原因</th></tr></thead><tbody>
+<tr><td>Per base sequence quality</td><td data-zh="3' 端品質下滑屬正常" data-en="3' end drop is normal">3' 端品質下滑屬正常</td><td data-zh="化學循環疲乏" data-en="Chemistry exhaustion">化學循環疲乏</td></tr>
+<tr><td>Per base sequence content</td><td data-zh="前 10–12 bp 不平衡" data-en="Imbalance in first 10–12 bp">前 10–12 bp 不平衡</td><td data-zh="random hexamer priming bias，正常現象" data-en="Random hexamer priming bias — normal">random hexamer priming bias</td></tr>
+<tr><td>Sequence duplication levels</td><td data-zh="高表達基因易高重複，PCR 重複也會貢獻" data-en="Highly expressed genes inflate this; PCR dups too">高表達基因 / PCR 重複</td><td data-zh="library complexity 不足或過度 PCR" data-en="Low library complexity or PCR overcycling">複雜度不足</td></tr>
+<tr><td>Overrepresented sequences</td><td data-zh="若是接頭→需 trim" data-en="If adapter, trim">需要修剪</td><td data-zh="insert 太短" data-en="Insert too short">insert 太短</td></tr>
+<tr><td>Adapter content</td><td data-zh="3' 端比例上升" data-en="Rising 3'-end content">3' 端含量上升</td><td data-zh="部分 read 讀穿 insert" data-en="Reads read through insert">讀穿 insert</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div><h2 data-zh="調整 Trimming 參數，看 read 留存率" data-en="Tune Trimming Parameters, See Read Retention">調整 Trimming 參數</h2>
+<div data-lang="zh"><p>觀察「最小品質」(Q-threshold) 與「最小長度」(min-length) 如何影響 read 通過率與平均品質：</p></div>
+<div data-lang="en"><p>See how min-quality (Q-threshold) and min-length affect read pass rate and average quality:</p></div>
+<div class="interactive-panel">
+<div class="slider-group"><label>Min Quality (Q) <span id="valQ">20</span></label><input type="range" id="sliderQ" min="0" max="40" value="20" step="1"></div>
+<div class="slider-group"><label>Min Length (bp) <span id="valL">36</span></label><input type="range" id="sliderL" min="0" max="100" value="36" step="1"></div>
+<div class="sim-stats"><div class="sim-stat pass" id="passStat">Pass: 0%</div><div class="sim-stat" id="meanStat">Mean Q: --</div><div class="sim-stat" id="kepStat">Reads kept: 0 / 10000</div></div>
+<div class="chart-container" style="height:280px;"><canvas id="trimChart"></canvas></div>
+</div>
+<div class="callout warn"><span class="callout-icon">⚠️</span><div data-lang="zh"><strong>避免過度 trimming：</strong>Q20、min length 25–36 通常足夠。過度嚴格會丟失大量訊號，且現代比對工具（如 STAR、HISAT2）對輕微低品質鹼基有容忍度。</div><div data-lang="en"><strong>Avoid over-trimming:</strong> Q20 and min length 25–36 are usually enough. Overly strict thresholds discard real signal; modern aligners (STAR, HISAT2) tolerate slightly low-quality bases.</div></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="程式碼" data-en="CODE">程式碼</div><h2 data-zh="實作範例" data-en="Code Examples">實作範例</h2>
+<div class="code-tabs"><div class="code-tab-btns">
+<button class="code-tab-btn active" onclick="switchTab(this,'fastp')">fastp</button>
+<button class="code-tab-btn" onclick="switchTab(this,'trimg')">trim_galore</button>
+<button class="code-tab-btn" onclick="switchTab(this,'mqc')">multiqc</button>
+</div>
+<div class="code-tab-content active" id="fastp"><pre><span class="comment"># 推薦：fastp 一站式 QC + trimming + 報告</span>
+fastp \
+  -i sample_R1.fastq.gz -I sample_R2.fastq.gz \
+  -o trim_R1.fastq.gz   -O trim_R2.fastq.gz \
+  --detect_adapter_for_pe \
+  --qualified_quality_phred <span class="num">20</span> \
+  --length_required <span class="num">36</span> \
+  --thread <span class="num">8</span> \
+  --html sample.fastp.html --json sample.fastp.json</pre></div>
+<div class="code-tab-content" id="trimg"><pre><span class="comment"># trim_galore 包裝 cutadapt，自動偵測接頭</span>
+trim_galore \
+  --paired --illumina \
+  --quality <span class="num">20</span> --length <span class="num">36</span> \
+  --cores <span class="num">4</span> --fastqc \
+  -o trimmed/ \
+  sample_R1.fq.gz sample_R2.fq.gz</pre></div>
+<div class="code-tab-content" id="mqc"><pre><span class="comment"># 跑完 FastQC 後一鍵彙整</span>
+fastqc -o fastqc_out/ *.fastq.gz
+multiqc fastqc_out/ trimmed/ -o multiqc_report/
+<span class="comment"># 開啟 multiqc_report/multiqc_report.html</span></pre></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="決策" data-en="DECISION">決策</div><h2 data-zh="工具選擇" data-en="Tool Choice">工具選擇</h2>
+<div class="decision-tree"><h4>🌳 <span data-zh="哪個 trimming 工具？" data-en="Which trimming tool?">哪個 trimming 工具？</span></h4>
+<div data-lang="zh">
+<div class="dt-node"><span class="dt-q">速度優先：</span><div><strong>fastp</strong> — 多執行緒 + 一次完成 QC、trim、報告。</div></div>
+<div class="dt-node"><span class="dt-q">簡單易用：</span><div><strong>trim_galore</strong> — 自動偵測接頭，預設參數即可上手。</div></div>
+<div class="dt-node"><span class="dt-q">精細調控：</span><div><strong>cutadapt / Trimmomatic</strong> — 需要客製接頭序列或滑動視窗時的選擇。</div></div>
+<div class="dt-node"><span class="dt-q">UMI 處理：</span><div><strong>umi_tools extract</strong> 先抽 UMI，再 trim。</div></div>
+</div>
+<div data-lang="en">
+<div class="dt-node"><span class="dt-q">Speed-first:</span><div><strong>fastp</strong> — multi-threaded, one-shot QC + trim + report.</div></div>
+<div class="dt-node"><span class="dt-q">Easy default:</span><div><strong>trim_galore</strong> — auto adapter detection; defaults work out of box.</div></div>
+<div class="dt-node"><span class="dt-q">Fine control:</span><div><strong>cutadapt / Trimmomatic</strong> — for custom adapters or sliding-window logic.</div></div>
+<div class="dt-node"><span class="dt-q">UMI handling:</span><div><strong>umi_tools extract</strong> first, then trim.</div></div>
+</div>
+</div>
+</section>
+
+<section class="quiz-section"><h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
+<div class="quiz-q" data-answer="2"><p data-lang="zh">下列哪一項對 FASTQ 品質分數 Q 與錯誤率 P 的描述正確？</p><p data-lang="en">Which is correct about FASTQ quality Q and error rate P?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. Q = P × 100</span><span data-lang="en">A. Q = P × 100</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. Q = 10·ln(P)</span><span data-lang="en">B. Q = 10·ln(P)</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. Q = -10·log10(P)</span><span data-lang="en">C. Q = -10·log10(P)</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. Q 與 P 無數學關係</span><span data-lang="en">D. No mathematical relation</span></div>
+</div><div class="quiz-feedback" id="fb1"></div></div>
+<div class="quiz-q" data-answer="1"><p data-lang="zh">FastQC「Per base sequence content」前 10–12 bp 出現不平衡通常是？</p><p data-lang="en">Imbalance in "Per base sequence content" at the first 10–12 bp is usually due to?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 嚴重的接頭汙染</span><span data-lang="en">A. Severe adapter contamination</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. random hexamer priming 偏差，屬正常</span><span data-lang="en">B. Random hexamer priming bias — normal</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 基因組 GC 偏好</span><span data-lang="en">C. Genome GC bias</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 樣本退化</span><span data-lang="en">D. Sample degradation</span></div>
+</div><div class="quiz-feedback" id="fb2"></div></div>
+</section>
+
+<nav class="page-nav"><a href="index.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Bulk RNA 總覽" data-en="Bulk RNA Overview">Bulk RNA 總覽</span></a><a href="alignment.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 2：Alignment" data-en="Step 2: Alignment">Step 2：Alignment</span></a></nav>
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="../i18n.js"></script>
+<script>
+window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
+function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
+// Trim simulator
+const N=10000;const reads=[];for(let i=0;i<N;i++){const len=Math.round(35+Math.random()*70);const q=Math.round(15+Math.random()*22);reads.push({len,q});}
+const trimChart=new Chart(document.getElementById('trimChart'),{type:'scatter',data:{datasets:[
+  {label:'Kept',data:[],backgroundColor:'rgba(26,107,90,0.5)',pointRadius:2},
+  {label:'Dropped',data:[],backgroundColor:'rgba(192,57,43,0.4)',pointRadius:2}
+]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{title:{display:true,text:'Read Length (bp)'}},y:{title:{display:true,text:'Quality (Q)'}}}}});
+function upTrim(){
+  const Q=+document.getElementById('sliderQ').value;const L=+document.getElementById('sliderL').value;
+  document.getElementById('valQ').textContent=Q;document.getElementById('valL').textContent=L;
+  const kept=[];const dropped=[];reads.forEach(r=>{if(r.q>=Q&&r.len>=L)kept.push({x:r.len,y:r.q});else dropped.push({x:r.len,y:r.q});});
+  const passPct=(kept.length/N*100).toFixed(1);const meanQ=kept.length?kept.reduce((s,r)=>s+r.y,0)/kept.length:0;
+  document.getElementById('passStat').textContent='Pass: '+passPct+'%';
+  document.getElementById('meanStat').textContent='Mean Q: '+meanQ.toFixed(1);
+  document.getElementById('kepStat').textContent='Reads kept: '+kept.length+' / '+N;
+  trimChart.data.datasets[0].data=kept.slice(0,500);trimChart.data.datasets[1].data=dropped.slice(0,500);trimChart.update('none');
+}
+document.getElementById('sliderQ').addEventListener('input',upTrim);document.getElementById('sliderL').addEventListener('input',upTrim);upTrim();
+// Quiz
+window._QF={zh:{q1_y:'Q = -10·log10(P)。Q30 對應錯誤率 0.001。',q1_n:'答案是 C：Q = -10·log10(P)。',q2_y:'這是 random hexamer priming 的固有偏差，正常現象，不需 trim。',q2_n:'答案是 B：random hexamer priming bias，是正常現象。'},en:{q1_y:'Q = -10·log10(P). Q30 corresponds to 0.001 error rate.',q1_n:'Answer is C: Q = -10·log10(P).',q2_y:'This is intrinsic random hexamer priming bias — normal, no need to trim.',q2_n:'Answer is B: random hexamer priming bias — a normal phenomenon.'}};
+const QF=window._QF||{};document.querySelectorAll(".quiz-q").forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll(".quiz-opt").forEach(o=>{o.addEventListener("click",()=>{if(q.classList.contains("answered"))return;q.classList.add("answered");const fb=document.getElementById("fb"+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?"correct":"wrong");if(!ok)q.querySelectorAll(".quiz-opt")[ans].classList.add("correct");const L=I18n.get();fb.className="quiz-feedback show "+(ok?"correct-fb":"wrong-fb");fb.textContent=(ok?"✅ ":"❌ ")+(QF[L]&&QF[L]["q"+(qi+1)+"_"+(ok?"y":"n")]||"");});});});
+</script></body></html>

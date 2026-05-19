@@ -1,0 +1,119 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Preprocessing — Spatial</title>
+<link rel="stylesheet" href="../styles.css"></head><body class="theme-spatial">
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
+  <ul class="top-nav-links">
+    <li><a href="index.html">Spatial</a></li><li><a href="platforms.html">Platforms</a></li><li><a href="preprocessing.html" class="active">Preproc</a></li><li><a href="spatial-analysis.html">Analysis</a></li><li><a href="deconvolution.html">Deconv</a></li><li><a href="interactions.html">Comms</a></li>
+  </ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">STEP 2 / 5</div><h1 data-zh="資料載入與 QC" data-en="Loading & Quality Control">資料載入與 QC</h1><p class="subtitle" data-lang="zh">SpaceRanger 輸出、Seurat / Scanpy 載入、與空間樣本獨特的 QC 指標。</p><p class="subtitle" data-lang="en">SpaceRanger output, Seurat / Scanpy loading, and QC metrics unique to spatial samples.</p></header><main class="content-wrap">
+
+<section class="section"><div class="section-label" data-zh="檔案結構" data-en="FILE STRUCTURE">檔案結構</div>
+<h2 data-zh="SpaceRanger 輸出" data-en="SpaceRanger Output">SpaceRanger 輸出</h2>
+<div data-lang="zh"><p>10x Visium 的官方流程 SpaceRanger 會把每個樣本輸出為一個資料夾，重要檔案包含：</p></div>
+<div data-lang="en"><p>10x's SpaceRanger pipeline outputs a folder per sample. Key files:</p></div>
+<div class="code-tabs"><div class="code-tab-btns"><button class="code-tab-btn active" onclick="switchTab(this,'tree')">tree</button></div>
+<div class="code-tab-content active" id="tree"><pre>sample_outs/
+├─ filtered_feature_bc_matrix.h5    <span class="comment"># 主表達矩陣（HDF5）</span>
+├─ raw_feature_bc_matrix.h5          <span class="comment"># 未過濾矩陣（所有 spots）</span>
+├─ spatial/
+│  ├─ tissue_positions.csv          <span class="comment"># spot 像素 / 組織內外</span>
+│  ├─ tissue_lowres_image.png       <span class="comment"># 縮圖（顯示用）</span>
+│  ├─ tissue_hires_image.png        <span class="comment"># 高解析 H&E</span>
+│  ├─ scalefactors_json.json        <span class="comment"># 像素 ↔ μm 換算</span>
+│  └─ aligned_fiducials.jpg
+├─ analysis/                         <span class="comment"># SpaceRanger 內建分析</span>
+└─ web_summary.html                  <span class="comment"># 樣本 QC 報告</span></pre></div></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="載入" data-en="LOADING">載入</div>
+<h2 data-zh="主流工具" data-en="Mainstream Tools">主流工具</h2>
+<div class="tool-pills"><span class="tool-pill">Seurat (R)</span><span class="tool-pill">Scanpy + squidpy</span><span class="tool-pill">stLearn</span><span class="tool-pill">Giotto</span><span class="tool-pill">SpatialExperiment</span></div>
+<div class="code-tabs"><div class="code-tab-btns">
+<button class="code-tab-btn active" onclick="switchTab(this,'seurat')">Seurat (R)</button>
+<button class="code-tab-btn" onclick="switchTab(this,'scanpy')">Scanpy (Py)</button>
+</div>
+<div class="code-tab-content active" id="seurat"><pre><span class="kw">library</span>(Seurat)
+br &lt;- <span class="func">Load10X_Spatial</span>(
+  data.dir   = <span class="str">"sample_outs/"</span>,
+  filename   = <span class="str">"filtered_feature_bc_matrix.h5"</span>,
+  assay      = <span class="str">"Spatial"</span>,
+  slice      = <span class="str">"slice1"</span>)
+
+<span class="comment"># 基本 QC</span>
+br[[<span class="str">"percent.mt"</span>]] &lt;- <span class="func">PercentageFeatureSet</span>(br, pattern = <span class="str">"^MT-"</span>)
+<span class="func">VlnPlot</span>(br, features = <span class="func">c</span>(<span class="str">"nCount_Spatial"</span>, <span class="str">"nFeature_Spatial"</span>, <span class="str">"percent.mt"</span>))
+<span class="func">SpatialFeaturePlot</span>(br, features = <span class="str">"nCount_Spatial"</span>)</pre></div>
+<div class="code-tab-content" id="scanpy"><pre><span class="kw">import</span> scanpy <span class="kw">as</span> sc; <span class="kw">import</span> squidpy <span class="kw">as</span> sq
+adata = sc.read_visium(<span class="str">"sample_outs/"</span>)
+adata.var_names_make_unique()
+sc.pp.calculate_qc_metrics(adata, percent_top=None, inplace=<span class="kw">True</span>)
+adata.var[<span class="str">"mt"</span>] = adata.var_names.str.startswith(<span class="str">"MT-"</span>)
+sc.pp.calculate_qc_metrics(adata, qc_vars=[<span class="str">"mt"</span>], inplace=<span class="kw">True</span>)
+sc.pl.spatial(adata, color=[<span class="str">"total_counts"</span>, <span class="str">"n_genes_by_counts"</span>])</pre></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="QC 指標" data-en="QC METRICS">QC 指標</div>
+<h2 data-zh="空間樣本的特殊 QC" data-en="Spatial-specific QC">空間樣本的特殊 QC</h2>
+<table class="comp-table"><thead><tr><th data-zh="指標" data-en="Metric">指標</th><th data-zh="意義" data-en="Meaning">意義</th><th data-zh="警示值" data-en="Warning">警示值</th></tr></thead><tbody>
+<tr><td>nCount per spot</td><td data-zh="每個 spot 的 UMI 總數，反映該位置組織量" data-en="UMI per spot — proxy for local tissue amount">每 spot UMI 總數</td><td data-zh="&lt; 500 通常代表 spot 上組織稀少" data-en="&lt; 500 often means thin tissue">&lt; 500 警示</td></tr>
+<tr><td>nFeature per spot</td><td data-zh="偵測到的基因數" data-en="Number of genes detected">基因數</td><td data-zh="&lt; 200 可能是空 spot 或邊緣" data-en="&lt; 200 likely empty or edge spot">&lt; 200</td></tr>
+<tr><td>% mitochondrial</td><td data-zh="與 scRNA 類似，但空間樣本 mt% 高常代表 ischemia / 壞死區" data-en="Like scRNA, but high mt% often marks ischemic / necrotic regions">高 mt% = 缺氧/壞死</td><td data-zh="&gt; 25-30%" data-en="&gt; 25-30%">&gt; 25-30%</td></tr>
+<tr><td>Tissue coverage</td><td data-zh="進入組織的 spots 佔比" data-en="% spots inside tissue">組織 spot 比例</td><td data-zh="設計上應 &gt; 50%；過低代表切片貼錯位置" data-en="Should be &gt; 50% by design; lower = misaligned section">&lt; 50%</td></tr>
+<tr><td>Spatial autocorrelation</td><td data-zh="QC 基因（如 housekeeping）是否呈空間趨勢" data-en="Whether housekeeping genes show spatial trends">空間自相關</td><td data-zh="高自相關於 housekeeping 表示批次 / 切片偏差" data-en="High autocorr. for HK genes = batch / section bias">housekeeping 不應有空間結構</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
+<h2 data-zh="QC 過濾門檻" data-en="QC Filtering Thresholds">QC 過濾門檻</h2>
+<div data-lang="zh"><p>調整每 spot 最低 UMI / 基因數，看可用 spot 保留比例：</p></div>
+<div data-lang="en"><p>Drag thresholds on min UMI / genes per spot to see retention:</p></div>
+<div class="interactive-panel">
+<div class="slider-group"><label>Min UMI / spot <span id="valU">500</span></label><input type="range" id="sliderU" min="0" max="3000" value="500" step="50"></div>
+<div class="slider-group"><label>Min genes / spot <span id="valG">200</span></label><input type="range" id="sliderG" min="0" max="2000" value="200" step="10"></div>
+<div class="stat-row">
+<div class="stat-box"><div class="sb-num" id="keepN">--</div><div class="sb-lbl" data-zh="保留 spots" data-en="Spots kept">保留 spots</div></div>
+<div class="stat-box"><div class="sb-num" id="keepP">--</div><div class="sb-lbl" data-zh="保留 %" data-en="% kept">保留 %</div></div>
+<div class="stat-box"><div class="sb-num" id="medU">--</div><div class="sb-lbl" data-zh="保留 spots 中位 UMI" data-en="Median UMI of kept">中位 UMI</div></div>
+</div>
+<div id="qcMsg" style="font-size:.9rem;color:var(--c-ink-light);margin-top:8px;"></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="標準化" data-en="NORMALIZATION">標準化</div>
+<h2 data-zh="空間樣本的標準化" data-en="Normalizing Spatial Data">空間樣本的標準化</h2>
+<div data-lang="zh"><p>空間樣本標準化大致同 scRNA-seq，但需注意：</p></div>
+<div data-lang="en"><p>Largely the same as scRNA-seq, with a few caveats:</p></div>
+<div class="card-grid cols-2">
+<div class="card"><h4>SCTransform</h4><p data-lang="zh">變異穩定的 GLM 殘差，常用於 Visium（Seurat 預設）。對組織異質性區分力強。</p><p data-lang="en">Variance-stabilized GLM residuals — common Seurat default for Visium; strong at distinguishing tissue heterogeneity.</p></div>
+<div class="card"><h4>LogNormalize</h4><p data-lang="zh">與 scRNA 相同；簡單、跨工具一致。下游有 batch correction（如 Harmony）時表現穩定。</p><p data-lang="en">Same as scRNA; simple, cross-tool consistent. Stable when downstream batch correction (Harmony) is applied.</p></div>
+</div>
+<div class="callout warn"><span class="callout-icon">⚠️</span><div data-lang="zh"><strong>勿用空間相關 deconv 結果做 DE：</strong>deconvolution 出來的 cell-type 比例不是 raw counts，不能直接餵 DESeq2；要做差異需用對應 cell-level matrices。</div><div data-lang="en"><strong>Don't DE on deconv-proportions:</strong> deconvolution outputs are proportions, not counts — never feed them to DESeq2; use cell-level matrices instead.</div></div>
+</section>
+
+<nav class="page-nav"><a href="platforms.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 1：平台" data-en="Step 1: Platforms">Step 1：平台</span></a><a href="spatial-analysis.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 3：空間分析" data-en="Step 3: Spatial Analysis">Step 3：空間分析</span></a></nav>
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
+<script src="../i18n.js"></script>
+<script>
+window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
+function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
+// QC sim
+const M=5000;const spots=[];for(let i=0;i<M;i++){const u=Math.round(50+Math.exp(Math.random()*8.5));const g=Math.round(u*(0.3+Math.random()*0.4));spots.push({u,g});}
+function upQC(){
+  const U=+document.getElementById('sliderU').value;const G=+document.getElementById('sliderG').value;
+  document.getElementById('valU').textContent=U;document.getElementById('valG').textContent=G;
+  const kept=spots.filter(s=>s.u>=U&&s.g>=G);
+  const us=kept.map(s=>s.u).sort((a,b)=>a-b);const med=us.length?us[Math.floor(us.length/2)]:0;
+  document.getElementById('keepN').textContent=kept.length;
+  document.getElementById('keepP').textContent=(kept.length/M*100).toFixed(1)+'%';
+  document.getElementById('medU').textContent=med;
+  const L=I18n.get();const p=kept.length/M*100;
+  const msg=p>80?(L==='zh'?'門檻寬鬆：保留多數 spots，但可能含低品質點。':'Loose threshold: keep most spots, but may include low-quality ones.'):p>50?(L==='zh'?'門檻平衡：保留多數真實組織區，過濾邊緣空 spots。':'Balanced: keeps real tissue, filters edge / empty spots.'):(L==='zh'?'⚠ 門檻過嚴：可能丟失真實的低表達區域（如壞死、空腔附近）。':'⚠ Too strict: may discard real low-expression regions (necrotic, cavity-adjacent).');
+  document.getElementById('qcMsg').textContent=msg;
+}
+['sliderU','sliderG'].forEach(id=>document.getElementById(id).addEventListener('input',upQC));document.addEventListener('langchange',upQC);upQC();
+</script></body></html>

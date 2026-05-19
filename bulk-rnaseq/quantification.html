@@ -1,0 +1,137 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Quantification — Bulk RNA-seq</title>
+<link rel="stylesheet" href="../styles.css"></head><body class="theme-bulk">
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
+  <ul class="top-nav-links">
+    <li><a href="index.html">Bulk RNA</a></li><li><a href="qc-trim.html">QC</a></li><li><a href="alignment.html">Align</a></li><li><a href="quantification.html" class="active">Quant</a></li><li><a href="normalization.html">Norm</a></li><li><a href="de.html">DE</a></li><li><a href="visualization.html">Viz</a></li><li><a href="gsea.html">GSEA</a></li>
+  </ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">STEP 3 / 7</div><h1 data-zh="表達量定量" data-en="Expression Quantification">表達量定量</h1><p class="subtitle" data-lang="zh">從 BAM 或 reads 計算每個基因 / 轉錄本的表達量——這是進入統計分析前的最後一步資料整理。</p><p class="subtitle" data-lang="en">Count reads per gene / transcript from BAM or directly from FASTQ — the last data-prep step before statistics.</p></header><main class="content-wrap">
+
+<section class="section"><div class="section-label" data-zh="核心概念" data-en="CONCEPT">核心概念</div>
+<h2 data-zh="什麼是「表達量」" data-en="What is &quot;Expression&quot;?">什麼是「表達量」</h2>
+<div data-lang="zh"><p>「表達量」(expression) 其實是個比較概念。在統計上，最原始、最有資訊量的表示是 <strong>raw read count</strong>——某基因有幾條 reads 被分配到它身上。所有合理的 DE 工具 (DESeq2、edgeR、limma-voom) 都從 raw count 開始建模。</p><p>各種「TPM / FPKM / CPM」都是把 count 換算成可以跨樣本／跨基因比較的「標準化單位」，但這些不是 DE 統計的最佳輸入。</p></div>
+<div data-lang="en"><p>"Expression" is fundamentally a comparison. Statistically, the rawest, most informative representation is a <strong>raw read count</strong> — how many reads were assigned to a gene. All proper DE tools (DESeq2, edgeR, limma-voom) model raw counts.</p><p>TPM / FPKM / CPM are normalized units intended for cross-sample / cross-gene comparison; they are <em>not</em> the right input for DE statistics.</p></div>
+<table class="comp-table"><thead><tr><th data-zh="單位" data-en="Unit">單位</th><th data-zh="公式" data-en="Formula">公式</th><th data-zh="何時使用" data-en="When to use">何時使用</th></tr></thead><tbody>
+<tr><td>raw count</td><td data-zh="N_g：分配到基因 g 的 read 數" data-en="N_g: reads assigned to gene g">N_g</td><td data-zh="DE 統計分析（DESeq2、edgeR）" data-en="DE statistics (DESeq2, edgeR)">DE 統計</td></tr>
+<tr><td>CPM</td><td>10⁶ · N_g / Σ N</td><td data-zh="跨樣本基本比較" data-en="Basic per-sample comparison">跨樣本比較</td></tr>
+<tr><td>FPKM / RPKM</td><td>10⁹ · N_g / (L_g · ΣN)</td><td data-zh="長度校正後比較單一樣本內基因" data-en="Compare genes within one sample after length correction">樣本內比較</td></tr>
+<tr><td>TPM</td><td>10⁶ · (N_g/L_g) / Σ (N/L)</td><td data-zh="跨樣本比較單一基因（更穩定）" data-en="Cross-sample for a single gene (more stable)">跨樣本比較</td></tr>
+</tbody></table>
+<div class="callout warn"><span class="callout-icon">⚠️</span><div data-lang="zh"><strong>常見誤用：</strong>用 TPM 直接做 t-test 來找 DE 是錯的——TPM 已喪失樣本間總量資訊，且未建模 mean-variance 關係。請永遠把 raw count 餵給 DESeq2/edgeR/voom。</div><div data-lang="en"><strong>Common pitfall:</strong> Running a t-test on TPMs to find DEGs is wrong — TPM loses total-library info and ignores the mean-variance relationship. Always feed raw counts to DESeq2 / edgeR / voom.</div></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="工具" data-en="TOOLS">工具</div>
+<h2 data-zh="兩條主流路徑" data-en="Two Mainstream Routes">兩條主流路徑</h2>
+<div class="card-grid cols-2">
+<div class="card"><div class="card-icon">📊</div><h4 data-zh="路徑 A：BAM → featureCounts" data-en="Route A: BAM → featureCounts">路徑 A：BAM → featureCounts</h4><p data-lang="zh">先用 STAR/HISAT2 得到 BAM，再用 <strong>featureCounts</strong>（Subread 套件）或 <strong>HTSeq-count</strong> 在 GTF 註釋上計算每個基因 reads。</p><p data-lang="en">Get BAM from STAR/HISAT2, then count with <strong>featureCounts</strong> (Subread) or <strong>HTSeq-count</strong> against a GTF.</p></div>
+<div class="card"><div class="card-icon">⚡</div><h4 data-zh="路徑 B：Salmon → tximport" data-en="Route B: Salmon → tximport">路徑 B：Salmon → tximport</h4><p data-lang="zh">Salmon / kallisto 直接給轉錄本層級表達量；<strong>tximport</strong> 把轉錄本估計值整合成基因層級的 counts（含 lengthScaledTPM 校正）。</p><p data-lang="en">Salmon / kallisto give transcript-level estimates; <strong>tximport</strong> aggregates to gene-level counts with proper length scaling.</p></div>
+</div>
+<div class="tool-pills"><span class="tool-pill">featureCounts</span><span class="tool-pill">HTSeq-count</span><span class="tool-pill">salmon</span><span class="tool-pill">tximport</span><span class="tool-pill">RSEM</span><span class="tool-pill">stringtie</span></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="決策" data-en="DECISION">決策</div>
+<h2 data-zh="關鍵設定" data-en="Critical Settings">關鍵設定</h2>
+<div class="decision-tree"><h4>🌳 <span data-zh="featureCounts 必檢三項" data-en="featureCounts: 3 settings to check">featureCounts 必檢三項</span></h4>
+<div data-lang="zh">
+<div class="dt-node"><span class="dt-q">-s：</span><div><strong>Strandedness</strong>。<code>0=非鏈特異</code>、<code>1=正鏈</code>（如 dUTP 為 <code>2=反鏈</code>）。設錯會少算 50% 以上 counts！可用 <code>infer_experiment.py</code> 驗證。</div></div>
+<div class="dt-node"><span class="dt-q">-p：</span><div><strong>Paired-end</strong>。雙端定序要加 <code>-p --countReadPairs</code>，否則 R1+R2 會被當成兩條獨立 reads（雙倍灌水）。</div></div>
+<div class="dt-node"><span class="dt-q">-t -g：</span><div><strong>Feature 類型</strong>。預設 <code>-t exon -g gene_id</code> 統合 exons → gene 計數，符合大部分 DE 流程。</div></div>
+</div>
+<div data-lang="en">
+<div class="dt-node"><span class="dt-q">-s:</span><div><strong>Strandedness</strong>. <code>0=unstranded</code>, <code>1=forward</code>, <code>2=reverse</code> (e.g., dUTP). Wrong setting drops &gt; 50% counts! Verify with <code>infer_experiment.py</code>.</div></div>
+<div class="dt-node"><span class="dt-q">-p:</span><div><strong>Paired-end</strong>. Add <code>-p --countReadPairs</code> for PE; otherwise R1 + R2 count as two independent reads (double-counting).</div></div>
+<div class="dt-node"><span class="dt-q">-t -g:</span><div><strong>Feature levels</strong>. Default <code>-t exon -g gene_id</code> aggregates exons → gene for standard DE flow.</div></div>
+</div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
+<h2 data-zh="同一個基因，不同單位的數值" data-en="Same Gene, Different Units">同一個基因，不同單位的數值</h2>
+<div data-lang="zh"><p>調整某基因的 reads 數與基因長度，看 CPM、FPKM、TPM 如何變動：</p></div>
+<div data-lang="en"><p>Tweak the reads and gene length, watch CPM / FPKM / TPM respond:</p></div>
+<div class="interactive-panel">
+<div class="slider-group"><label>Reads on gene g <span id="valN">2500</span></label><input type="range" id="sliderN" min="0" max="10000" value="2500" step="100"></div>
+<div class="slider-group"><label data-lang="zh">基因 g 長度 (kb)<span id="valL">3.0</span></label><label data-lang="en">Gene g length (kb)<span id="valLEn">3.0</span></label><input type="range" id="sliderL" min="0.2" max="20" value="3" step="0.1"></div>
+<div class="slider-group"><label data-lang="zh">總 library size (M)<span id="valLib">25</span></label><label data-lang="en">Total library size (M)<span id="valLibEn">25</span></label><input type="range" id="sliderLib" min="5" max="100" value="25" step="1"></div>
+<div class="stat-row">
+<div class="stat-box"><div class="sb-num" id="cpm">--</div><div class="sb-lbl">CPM</div></div>
+<div class="stat-box"><div class="sb-num" id="fpkm">--</div><div class="sb-lbl">FPKM</div></div>
+<div class="stat-box"><div class="sb-num" id="tpm">--</div><div class="sb-lbl">TPM (approx.)</div></div>
+</div>
+<div style="font-size:.86rem;color:var(--c-ink-muted);"><span data-lang="zh">※ TPM 為近似（假設總體 (N/L) 加總值固定為 1.5M）。</span><span data-lang="en">※ TPM is approximate (assumes Σ(N/L) ≈ 1.5M).</span></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="程式碼" data-en="CODE">程式碼</div><h2 data-zh="實作範例" data-en="Code Examples">實作範例</h2>
+<div class="code-tabs"><div class="code-tab-btns">
+<button class="code-tab-btn active" onclick="switchTab(this,'fc')">featureCounts</button>
+<button class="code-tab-btn" onclick="switchTab(this,'htseq')">HTSeq</button>
+<button class="code-tab-btn" onclick="switchTab(this,'tximp')">tximport</button>
+</div>
+<div class="code-tab-content active" id="fc"><pre><span class="comment"># Paired-end, reverse-stranded (dUTP), gene-level count</span>
+featureCounts \
+  -a gencode.v44.gtf \
+  -F GTF -t exon -g gene_id \
+  -p --countReadPairs \
+  -s <span class="num">2</span> -T <span class="num">8</span> \
+  -o counts.tsv \
+  star_out/*.bam</pre></div>
+<div class="code-tab-content" id="htseq"><pre>htseq-count -f bam -r pos \
+  -s reverse -t exon -i gene_id \
+  -m union --nonunique=none \
+  sample1.bam gencode.v44.gtf &gt; sample1.counts.tsv</pre></div>
+<div class="code-tab-content" id="tximp"><pre><span class="kw">library</span>(tximport)
+<span class="kw">library</span>(GenomicFeatures)
+<span class="comment"># 1. 建立 tx2gene 對應表</span>
+txdb &lt;- <span class="func">makeTxDbFromGFF</span>(<span class="str">"gencode.v44.gtf"</span>)
+k    &lt;- <span class="func">keys</span>(txdb, keytype = <span class="str">"TXNAME"</span>)
+tx2gene &lt;- <span class="func">select</span>(txdb, keys = k, columns = <span class="str">"GENEID"</span>, keytype = <span class="str">"TXNAME"</span>)
+<span class="comment"># 2. 整合多個 salmon 結果</span>
+files &lt;- file.path(<span class="str">"salmon_out"</span>, samples, <span class="str">"quant.sf"</span>)
+<span class="func">names</span>(files) &lt;- samples
+txi &lt;- <span class="func">tximport</span>(files, type = <span class="str">"salmon"</span>, tx2gene = tx2gene)
+<span class="comment"># txi$counts 可直接餵給 DESeqDataSetFromTximport()</span></pre></div>
+</div>
+</section>
+
+<section class="quiz-section"><h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
+<div class="quiz-q" data-answer="2"><p data-lang="zh">下列哪個量化單位最適合餵給 DESeq2 進行差異表達分析？</p><p data-lang="en">Which quantification unit is best to feed into DESeq2 for DE analysis?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. log2(TPM + 1)</span><span data-lang="en">A. log2(TPM + 1)</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. FPKM</span><span data-lang="en">B. FPKM</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. raw integer counts</span><span data-lang="en">C. raw integer counts</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. CPM</span><span data-lang="en">D. CPM</span></div>
+</div><div class="quiz-feedback" id="fb1"></div></div>
+<div class="quiz-q" data-answer="3"><p data-lang="zh">featureCounts 對 dUTP library 應該設 <code>-s</code> 為？</p><p data-lang="en">For a dUTP library, <code>-s</code> in featureCounts should be?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 0 (unstranded)</span><span data-lang="en">A. 0 (unstranded)</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 1 (forward stranded)</span><span data-lang="en">B. 1 (forward stranded)</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 自動偵測</span><span data-lang="en">C. Auto detect</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 2 (reverse stranded)</span><span data-lang="en">D. 2 (reverse stranded)</span></div>
+</div><div class="quiz-feedback" id="fb2"></div></div>
+</section>
+
+<nav class="page-nav"><a href="alignment.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 2：Alignment" data-en="Step 2: Alignment">Step 2：Alignment</span></a><a href="normalization.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 4：Normalization" data-en="Step 4: Normalization">Step 4：Normalization</span></a></nav>
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
+<script src="../i18n.js"></script>
+<script>
+window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
+function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
+function upQ(){
+  const N=+document.getElementById('sliderN').value;const L=+document.getElementById('sliderL').value;const lib=+document.getElementById('sliderLib').value;
+  document.getElementById('valN').textContent=N;document.getElementById('valL').textContent=L.toFixed(1);document.getElementById('valLEn').textContent=L.toFixed(1);
+  document.getElementById('valLib').textContent=lib;document.getElementById('valLibEn').textContent=lib;
+  const libN=lib*1e6;
+  const cpm=N/libN*1e6;
+  const fpkm=N/(L*1e3)/libN*1e9;
+  const sumNL=1.5e6;const tpm=(N/L)/sumNL*1e6;
+  document.getElementById('cpm').textContent=cpm.toFixed(1);
+  document.getElementById('fpkm').textContent=fpkm.toFixed(1);
+  document.getElementById('tpm').textContent=tpm.toFixed(1);
+}
+['sliderN','sliderL','sliderLib'].forEach(id=>document.getElementById(id).addEventListener('input',upQ));upQ();
+window._QF={zh:{q1_y:'DE 統計工具預期負二項分佈的整數 counts。TPM/FPKM 失去 library size 資訊。',q1_n:'答案是 C：raw integer counts。',q2_y:'dUTP 為反鏈 library，<code>-s 2</code>。',q2_n:'答案是 D：dUTP → -s 2 (reverse stranded)。'},en:{q1_y:'DE tools assume negative-binomial integer counts. TPM/FPKM lose library size info.',q1_n:'Answer is C: raw integer counts.',q2_y:'dUTP is reverse-stranded; use <code>-s 2</code>.',q2_n:'Answer is D: dUTP → -s 2.'}};
+const QF=window._QF||{};document.querySelectorAll(".quiz-q").forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll(".quiz-opt").forEach(o=>{o.addEventListener("click",()=>{if(q.classList.contains("answered"))return;q.classList.add("answered");const fb=document.getElementById("fb"+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?"correct":"wrong");if(!ok)q.querySelectorAll(".quiz-opt")[ans].classList.add("correct");const L=I18n.get();fb.className="quiz-feedback show "+(ok?"correct-fb":"wrong-fb");fb.innerHTML=(ok?"✅ ":"❌ ")+(QF[L]&&QF[L]["q"+(qi+1)+"_"+(ok?"y":"n")]||"");});});});
+</script></body></html>

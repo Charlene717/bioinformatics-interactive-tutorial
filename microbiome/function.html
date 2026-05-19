@@ -1,0 +1,94 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Functional Profiling — Microbiome</title>
+<link rel="stylesheet" href="../styles.css"></head><body class="theme-microbiome">
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
+  <ul class="top-nav-links">
+    <li><a href="index.html">Microbiome</a></li><li><a href="amplicon.html">Amplicon</a></li><li><a href="metagenomics.html">Metagenomics</a></li><li><a href="function.html" class="active">Function</a></li>
+  </ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">STEP 3 / 3</div><h1 data-zh="功能性分析" data-en="Functional Profiling">功能性分析</h1><p class="subtitle" data-lang="zh">從「有誰」躍進到「他們在做什麼」——pathway、KO、代謝重建。</p><p class="subtitle" data-lang="en">From "who's there" to "what they do" — pathways, KOs, metabolic reconstruction.</p></header><main class="content-wrap">
+
+<section class="section"><div class="section-label" data-zh="核心概念" data-en="CONCEPT">核心概念</div>
+<h2 data-zh="兩條路：shotgun vs 16S" data-en="Two Routes: shotgun vs 16S">兩條路：shotgun vs 16S</h2>
+<div class="card-grid cols-2">
+<div class="card"><div class="card-icon">📚</div><h4 data-zh="Shotgun: 直接量化" data-en="Shotgun: direct quantification">Shotgun: 直接</h4><p data-lang="zh">直接從 reads 比對到蛋白家族（UniRef、KEGG Orthology）。實際存在的功能基因，最精準。</p><p data-lang="en">Map reads directly to protein families (UniRef, KEGG Orthology). Actual genes — most accurate.</p><p data-lang="zh"><strong>工具：</strong>HUMAnN3、SqueezeMeta、MetaQUAST。</p><p data-lang="en"><strong>Tools:</strong> HUMAnN3, SqueezeMeta, MetaQUAST.</p></div>
+<div class="card"><div class="card-icon">🔮</div><h4 data-zh="16S: 推估" data-en="16S: prediction">16S: 推估</h4><p data-lang="zh">用已知物種的「基因組功能輪廓」推估 16S 樣本可能有什麼基因。<strong>限：</strong>誤差大，不能取代 shotgun。</p><p data-lang="en">Predict gene content of a 16S sample from known reference genomes. <strong>Caveat:</strong> uncertain — not a shotgun substitute.</p><p data-lang="zh"><strong>工具：</strong>PICRUSt2、Tax4Fun2、Piphillin。</p><p data-lang="en"><strong>Tools:</strong> PICRUSt2, Tax4Fun2, Piphillin.</p></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="HUMAnN3" data-en="HUMAnN3">HUMAnN3</div>
+<h2 data-zh="HUMAnN3 流程" data-en="HUMAnN3 Workflow">HUMAnN3 流程</h2>
+<div data-lang="zh"><p>HUMAnN3 是 shotgun 功能分析的事實標準。流程分三層：</p></div>
+<div data-lang="en"><p>HUMAnN3 is the shotgun functional analysis de facto standard. Three layers:</p></div>
+<div class="flow-chain">
+  <span class="fc-step" data-zh="MetaPhlAn4" data-en="MetaPhlAn4">MetaPhlAn4</span><span class="fc-arrow">→</span>
+  <span class="fc-step" data-zh="ChocoPhlAn pangenomes" data-en="ChocoPhlAn pangenomes">ChocoPhlAn</span><span class="fc-arrow">→</span>
+  <span class="fc-step">UniRef</span><span class="fc-arrow">→</span>
+  <span class="fc-step" data-zh="MetaCyc pathways" data-en="MetaCyc pathways">MetaCyc</span>
+</div>
+<div class="code-tabs"><div class="code-tab-btns"><button class="code-tab-btn active" onclick="switchTab(this,'humann')">HUMAnN3</button></div>
+<div class="code-tab-content active" id="humann"><pre>humann --input sample1_concat.fq.gz \
+  --output humann_out/ \
+  --threads <span class="num">16</span> \
+  --metaphlan-options=<span class="str">"--bowtie2db metaphlan4_db"</span>
+
+<span class="comment"># 主要輸出</span>
+<span class="comment">#   sample1_genefamilies.tsv  — UniRef gene families × samples</span>
+<span class="comment">#   sample1_pathabundance.tsv — MetaCyc pathway abundance</span>
+<span class="comment">#   sample1_pathcoverage.tsv  — pathway coverage</span>
+
+<span class="comment"># 重新正規化為 CPM 並做 KO/Pfam mapping</span>
+humann_renorm_table -i sample1_genefamilies.tsv -o sample1_gf.cpm.tsv --units cpm
+humann_regroup_table -i sample1_gf.cpm.tsv -g uniref90_ko -o sample1_KO.tsv</pre></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="PICRUSt2" data-en="PICRUSt2">PICRUSt2</div>
+<h2 data-zh="PICRUSt2 from 16S" data-en="PICRUSt2 from 16S">PICRUSt2 from 16S</h2>
+<div class="code-tabs"><div class="code-tab-btns"><button class="code-tab-btn active" onclick="switchTab(this,'picrust')">PICRUSt2</button></div>
+<div class="code-tab-content active" id="picrust"><pre><span class="comment"># 1. 把 ASV 放到參考樹</span>
+picrust2_pipeline.py \
+  -s rep-seqs.fasta \
+  -i feature-table.biom \
+  -o picrust2_out \
+  -p <span class="num">16</span>
+
+<span class="comment"># 輸出：</span>
+<span class="comment">#   KO_metagenome_out/  ←  KEGG Orthology 豐度</span>
+<span class="comment">#   pathways_out/       ←  MetaCyc pathway 豐度</span>
+
+<span class="comment"># 加描述</span>
+add_descriptions.py \
+  -i KO_metagenome_out/pred_metagenome_unstrat.tsv.gz \
+  -m KO -o KO_with_desc.tsv.gz</pre></div>
+</div>
+<div class="callout warn"><span class="callout-icon">⚠️</span><div data-lang="zh"><strong>NSTI 是品質指標：</strong>PICRUSt2 對每個 ASV 計算 Nearest Sequenced Taxon Index——距離參考越遠、預測越不可信。建議過濾 NSTI &gt; 2。</div><div data-lang="en"><strong>NSTI is a quality flag:</strong> PICRUSt2 computes Nearest Sequenced Taxon Index for each ASV — farther from reference = less reliable. Filter NSTI &gt; 2.</div></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="下游" data-en="DOWNSTREAM">下游</div>
+<h2 data-zh="差異功能分析" data-en="Differential Functional Analysis">差異功能分析</h2>
+<div class="card-grid cols-2">
+<div class="card"><h4>MaAsLin2</h4><p data-lang="zh">廣義線性模型，支援 metadata 多協變量；適合臨床 cohort 功能差異分析。</p><p data-lang="en">GLM with multiple covariates; ideal for clinical cohort functional differential analysis.</p></div>
+<div class="card"><h4>LEfSe</h4><p data-lang="zh">非參數 + LDA 找最具區別力的功能/物種。</p><p data-lang="en">Non-parametric + LDA to find most discriminative features.</p></div>
+<div class="card"><h4>ALDEx2 / ANCOM-BC</h4><p data-lang="zh">處理 composition 資料的差異豐度——對 KO 計數同樣適用。</p><p data-lang="en">Compositional-aware DA tools — work on KO counts too.</p></div>
+<div class="card"><h4 data-zh="代謝模型" data-en="Metabolic models">代謝模型</h4><p data-lang="zh">用 <strong>CarveMe</strong>、<strong>MICOM</strong> 從 MAG / 群落建立 genome-scale metabolic model，預測代謝物產出與物種交互。</p><p data-lang="en"><strong>CarveMe</strong>, <strong>MICOM</strong> build genome-scale metabolic models from MAGs / communities to predict metabolite outputs and interactions.</p></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="陷阱" data-en="PITFALLS">陷阱</div>
+<h2 data-zh="常見錯誤" data-en="Common Pitfalls">常見錯誤</h2>
+<div class="callout danger"><span class="callout-icon">🚫</span><div data-lang="zh"><strong>把 16S 預測當實驗事實：</strong>PICRUSt2 只是「推估」，準確度依賴參考樹涵蓋度。談機制前一定要 shotgun 驗證。</div><div data-lang="en"><strong>Treating 16S predictions as ground truth:</strong> PICRUSt2 only predicts; accuracy depends on tree coverage. Validate with shotgun before mechanistic claims.</div></div>
+<div class="callout danger"><span class="callout-icon">🚫</span><div data-lang="zh"><strong>用 raw counts 做 pathway 比較：</strong>樣本間 library size 差異會干擾——先 CPM / CLR 正規化。</div><div data-lang="en"><strong>Pathway compare on raw counts:</strong> library-size differences confound — normalize with CPM / CLR.</div></div>
+<div class="callout danger"><span class="callout-icon">🚫</span><div data-lang="zh"><strong>忽略 host DNA：</strong>人類腸道樣本可能含 30%+ 人類 DNA，會稀釋微生物訊號。先用 Bowtie2 對人類基因組過濾。</div><div data-lang="en"><strong>Ignoring host DNA:</strong> human gut samples may contain 30%+ human DNA diluting microbial signal. Pre-filter with Bowtie2 against host genome.</div></div>
+</section>
+
+<nav class="page-nav"><a href="metagenomics.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 2：Metagenomics" data-en="Step 2: Metagenomics">Step 2：Metagenomics</span></a><a href="../index.html"><span class="nav-dir" data-zh="完成 ✓" data-en="Done ✓">完成 ✓</span><span class="nav-title" data-zh="返回 Hub" data-en="Back to Hub">返回 Hub</span></a></nav>
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
+<script src="../i18n.js"></script>
+<script>
+window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
+function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
+</script></body></html>

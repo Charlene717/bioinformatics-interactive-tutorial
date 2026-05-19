@@ -1,0 +1,116 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Motif & Footprinting — ATAC-seq</title>
+<link rel="stylesheet" href="../styles.css"></head><body class="theme-atac">
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
+  <ul class="top-nav-links">
+    <li><a href="index.html">ATAC</a></li><li><a href="principles.html">原理</a></li><li><a href="alignment-peaks.html">Peaks</a></li><li><a href="motif.html" class="active">Motif</a></li><li><a href="integration.html">Integ</a></li>
+  </ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">STEP 3 / 4</div><h1 data-zh="Motif 與 Footprinting" data-en="Motif & Footprinting">Motif 與 Footprinting</h1><p class="subtitle" data-lang="zh">從開放區域進一步推斷「是哪些轉錄因子在這裡結合」。</p><p class="subtitle" data-lang="en">From open regions to inferring which transcription factors are bound there.</p></header><main class="content-wrap">
+
+<section class="section"><div class="section-label" data-zh="兩個層次" data-en="TWO LEVELS">兩個層次</div>
+<h2 data-zh="Motif Enrichment vs Footprint" data-en="Motif Enrichment vs Footprint">Motif Enrichment vs Footprint</h2>
+<div class="card-grid cols-2">
+<div class="card"><div class="card-icon">🔤</div><h4 data-zh="Motif Enrichment" data-en="Motif Enrichment">Motif Enrichment</h4><p data-lang="zh">問：「我的 peaks 是否富集某個 TF 的 motif (DNA 序列模式)？」用 HOMER、MEME-ChIP、AME 等掃 motif 資料庫 (JASPAR、CIS-BP)，再做超幾何檢定。</p><p data-lang="en">"Are my peaks enriched for a TF's motif (DNA pattern)?" Scan motif DBs (JASPAR, CIS-BP) with HOMER, MEME-ChIP, AME, then hypergeometric test.</p></div>
+<div class="card"><div class="card-icon">👣</div><h4 data-zh="Footprinting" data-en="Footprinting">Footprinting</h4><p data-lang="zh">問：「motif 上方是否真的有 TF 蛋白蹲坐？」TF 結合會在 Tn5 cut 信號上留下「下凹」——蛋白擋住 Tn5。工具：HINT-ATAC、TOBIAS、Wellington。</p><p data-lang="en">"Is a TF actually bound at this motif?" A bound TF blocks Tn5 → leaves a "dip" in the cut-site signal. Tools: HINT-ATAC, TOBIAS, Wellington.</p></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="主流工具" data-en="TOOLS">主流工具</div>
+<h2 data-zh="工具比較" data-en="Tool Comparison">工具比較</h2>
+<table class="comp-table"><thead><tr><th>Tool</th><th data-zh="類型" data-en="Type">類型</th><th data-zh="特色" data-en="Notes">特色</th></tr></thead><tbody>
+<tr><td><strong>HOMER</strong></td><td data-zh="Motif enrichment" data-en="Motif enrichment">enrichment</td><td data-zh="<code>findMotifsGenome.pl</code> 是 ATAC 標配；含 known + de novo" data-en="<code>findMotifsGenome.pl</code> is the ATAC default; known + de novo">最普及</td></tr>
+<tr><td>MEME-ChIP</td><td data-zh="Motif enrichment + de novo" data-en="Motif enrichment + de novo">enrichment</td><td data-zh="網頁可跑；GUI 友好" data-en="Web-based; GUI-friendly">網頁版</td></tr>
+<tr><td>AME</td><td data-zh="single-mode enrichment" data-en="Single-mode enrichment">enrichment</td><td data-zh="MEME suite 的 enrichment 模組" data-en="MEME suite's enrichment module">MEME suite</td></tr>
+<tr><td><strong>chromVAR</strong></td><td data-zh="single-cell motif accessibility" data-en="Single-cell motif accessibility">scATAC</td><td data-zh="計算每細胞每 motif 的 deviation score" data-en="Per-cell, per-motif deviation score">scATAC</td></tr>
+<tr><td><strong>HINT-ATAC</strong></td><td data-zh="Footprinting" data-en="Footprinting">footprint</td><td data-zh="基於 HMM；輸出可信 footprint" data-en="HMM-based; outputs confident footprints">HMM</td></tr>
+<tr><td><strong>TOBIAS</strong></td><td data-zh="Footprinting + 比較" data-en="Footprinting + comparison">footprint</td><td data-zh="跨條件比較 footprint depth；含 GUI" data-en="Compares footprint depth across conditions; with GUI">條件比較</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
+<h2 data-zh="Footprint 形狀模擬" data-en="Footprint Shape Simulator">Footprint 形狀模擬</h2>
+<div data-lang="zh"><p>調整 TF 結合強度，觀察 motif 中心的 Tn5 cut signal 「dip」程度：</p></div>
+<div data-lang="en"><p>Tune TF binding strength; watch the central "dip" deepening in Tn5 cut signal:</p></div>
+<div class="interactive-panel">
+<div class="slider-group"><label data-lang="zh">TF 結合佔比 (%)<span id="valBound">70</span></label><label data-lang="en">TF binding occupancy (%)<span id="valBoundEn">70</span></label><input type="range" id="sliderBound" min="0" max="100" value="70" step="1"></div>
+<div class="chart-container" style="height:300px;"><canvas id="footChart"></canvas></div>
+<div id="footTip" style="font-size:.9rem;color:var(--c-ink-light);"></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="程式碼" data-en="CODE">程式碼</div>
+<h2 data-zh="實作範例" data-en="Code Examples">實作範例</h2>
+<div class="code-tabs"><div class="code-tab-btns">
+<button class="code-tab-btn active" onclick="switchTab(this,'homer')">HOMER</button>
+<button class="code-tab-btn" onclick="switchTab(this,'cv')">chromVAR</button>
+<button class="code-tab-btn" onclick="switchTab(this,'tobias')">TOBIAS</button>
+</div>
+<div class="code-tab-content active" id="homer"><pre><span class="comment"># Motif enrichment in your peaks vs background</span>
+findMotifsGenome.pl sample1.narrowPeak hg38 motif_out/ \
+  -size <span class="num">200</span> -mask -p <span class="num">8</span>
+<span class="comment"># 結果在 knownResults.html 與 homerResults.html</span></pre></div>
+<div class="code-tab-content" id="cv"><pre><span class="kw">library</span>(chromVAR); <span class="kw">library</span>(motifmatchr); <span class="kw">library</span>(JASPAR2022)
+counts &lt;- <span class="func">SummarizedExperiment</span>(...)   <span class="comment"># peak × cell counts</span>
+counts &lt;- <span class="func">addGCBias</span>(counts, genome = BSgenome.Hsapiens.UCSC.hg38)
+motifs &lt;- <span class="func">getJasparMotifs</span>(species = <span class="str">"Homo sapiens"</span>)
+motif_ix &lt;- <span class="func">matchMotifs</span>(motifs, counts, genome = <span class="str">"hg38"</span>)
+dev &lt;- <span class="func">computeDeviations</span>(object = counts, annotations = motif_ix)
+vd &lt;- <span class="func">computeVariability</span>(dev)
+<span class="func">head</span>(vd[<span class="func">order</span>(-vd$variability), ])</pre></div>
+<div class="code-tab-content" id="tobias"><pre><span class="comment"># 1. ATAC-corrected signal</span>
+TOBIAS ATACorrect \
+  --bam shifted.bam \
+  --genome hg38.fa \
+  --peaks union_peaks.bed \
+  --outdir tobias_out
+
+<span class="comment"># 2. footprint scoring</span>
+TOBIAS ScoreBigwig \
+  --signal tobias_out/sample1_corrected.bw \
+  --regions union_peaks.bed \
+  --output sample1_footprint.bw
+
+<span class="comment"># 3. cross-condition comparison</span>
+TOBIAS BINDetect \
+  --motifs JASPAR2022_human.jaspar \
+  --signals A_footprint.bw B_footprint.bw \
+  --genome hg38.fa \
+  --peaks union_peaks.bed \
+  --outdir bindetect_out</pre></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="陷阱" data-en="PITFALLS">陷阱</div>
+<h2 data-zh="常見錯誤" data-en="Common Pitfalls">常見錯誤</h2>
+<div class="callout danger"><span class="callout-icon">🚫</span><div data-lang="zh"><strong>用整個基因組當 background：</strong>HOMER 等若不指定 background，預設用基因組亂數，不公平。建議用 GC-matched 隨機區域或自訂 background peaks。</div><div data-lang="en"><strong>Using the whole genome as background:</strong> HOMER's default uses random genome — unfair. Use GC-matched random regions or custom background peaks.</div></div>
+<div class="callout danger"><span class="callout-icon">🚫</span><div data-lang="zh"><strong>Tn5 sequence bias 沒校正：</strong>Tn5 對某些序列有 ±1.5× 偏好（如 GC-rich）。Footprinting 前需用 <code>TOBIAS ATACorrect</code> 或 HINT-ATAC 的偏差校正。</div><div data-lang="en"><strong>Skipping Tn5 sequence-bias correction:</strong> Tn5 has ±1.5× preference for some motifs (GC-rich). Correct with <code>TOBIAS ATACorrect</code> or HINT-ATAC before footprinting.</div></div>
+<div class="callout danger"><span class="callout-icon">🚫</span><div data-lang="zh"><strong>把 motif enrichment 當作 TF binding 證據：</strong>motif 富集只說「這 TF 可能參與」；要確認 binding，需 footprint 或 ChIP-seq。</div><div data-lang="en"><strong>Treating motif enrichment as binding evidence:</strong> enrichment only suggests potential involvement; confirm with footprinting or ChIP-seq.</div></div>
+</section>
+
+<nav class="page-nav"><a href="alignment-peaks.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 2：Peaks" data-en="Step 2: Peaks">Step 2：Peaks</span></a><a href="integration.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 4：多體學整合" data-en="Step 4: Multi-omics">Step 4：多體學整合</span></a></nav>
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="../i18n.js"></script>
+<script>
+window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
+function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
+const xs=Array.from({length:101},(_,i)=>i-50);
+const ch=new Chart(document.getElementById('footChart'),{type:'line',data:{labels:xs,datasets:[{label:'cut signal',data:[],borderColor:'#c66a1e',backgroundColor:'rgba(198,106,30,0.15)',borderWidth:2,fill:true,pointRadius:0,tension:0.2}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{title:{display:true,text:'distance from motif center (bp)'}},y:{title:{display:true,text:'normalized cut signal'},min:0}},plugins:{legend:{display:false}}}});
+function upF(){
+  const b=+document.getElementById('sliderBound').value/100;
+  document.getElementById('valBound').textContent=Math.round(b*100);document.getElementById('valBoundEn').textContent=Math.round(b*100);
+  const base=xs.map(x=>1+1.5*Math.exp(-(x**2)/(2*15**2)));
+  const dipped=base.map((v,i)=>{const x=xs[i];const dip=b*1.2*Math.exp(-(x**2)/(2*5**2));return Math.max(0.1,v-dip);});
+  ch.data.datasets[0].data=dipped;ch.update('none');
+  const L=I18n.get();let msg;
+  if(b>=0.7)msg=L==='zh'?'明顯 footprint：motif 中心訊號比兩翼低，強烈支持 TF binding。':'Strong footprint: center is lower than flanks — strong evidence of TF binding.';
+  else if(b>=0.4)msg=L==='zh'?'中度 footprint：部分細胞 TF binding。':'Moderate footprint: subset of cells with TF bound.';
+  else msg=L==='zh'?'幾乎無 dip：footprint 不顯著。':'Almost no dip: footprint not significant.';
+  document.getElementById('footTip').textContent=msg;
+}
+document.getElementById('sliderBound').addEventListener('input',upF);document.addEventListener('langchange',upF);upF();
+</script></body></html>

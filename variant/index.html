@@ -1,0 +1,59 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Variant Calling — Bioinformatics Tutorial</title>
+<link rel="stylesheet" href="../styles.css"></head><body class="theme-variant">
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
+  <ul class="top-nav-links">
+    <li><a href="../index.html">Hub</a></li><li><a href="index.html" class="active">Variant</a></li><li><a href="preprocessing.html">Preproc</a></li><li><a href="calling.html">Calling</a></li><li><a href="filtering.html">Filter</a></li><li><a href="annotation.html">Annot</a></li>
+  </ul>
+</div></nav>
+<header class="page-hero"><div class="step-badge">TRACK 4 · VARIANT CALLING</div><h1 data-zh="變異偵測 (WGS / WES)" data-en="Variant Calling (WGS / WES)">變異偵測 (WGS / WES)</h1><p class="subtitle" data-lang="zh">從 FASTQ 到可信變異——GATK Best Practice 帶你走完每個步驟。</p><p class="subtitle" data-lang="en">From FASTQ to trusted variants — GATK Best Practice, step by step.</p></header><main class="content-wrap">
+
+<section class="section"><div class="section-label" data-zh="總覽" data-en="OVERVIEW">總覽</div>
+<h2 data-zh="變異偵測流程" data-en="Variant Calling Workflow">流程概覽</h2>
+<div class="flow-chain">
+  <span class="fc-step">FASTQ</span><span class="fc-arrow">→</span>
+  <span class="fc-step">BWA-MEM</span><span class="fc-arrow">→</span>
+  <span class="fc-step">MarkDup + BQSR</span><span class="fc-arrow">→</span>
+  <span class="fc-step">HaplotypeCaller</span><span class="fc-arrow">→</span>
+  <span class="fc-step">GenotypeGVCFs</span><span class="fc-arrow">→</span>
+  <span class="fc-step">Filter</span><span class="fc-arrow">→</span>
+  <span class="fc-step">VEP</span>
+</div>
+<div data-lang="zh"><p>變異偵測 (variant calling) 從定序 reads 推斷個體基因組中與參考序列不同的位點。GATK Best Practice 是 Broad Institute 制定的業界標準流程，涵蓋 germline (生殖系)、somatic (體細胞) 兩條路線。</p></div>
+<div data-lang="en"><p>Variant calling infers genomic positions that differ from the reference from sequencing reads. GATK Best Practice is Broad Institute's industry-standard workflow covering germline and somatic paths.</p></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="章節" data-en="CHAPTERS">章節</div>
+<h2 data-zh="五章節學習路徑" data-en="Five-chapter Path">五章節學習路徑</h2>
+<div class="hub-steps-grid">
+  <a href="preprocessing.html" class="hub-card"><div class="hub-emoji">🛠️</div><span class="step-num">Step 1</span><h3 data-zh="Read 預處理" data-en="Read Preprocessing">Read 預處理</h3><p data-lang="zh">BWA-MEM 比對、MarkDuplicates 標記重複、BQSR 校正鹼基品質。</p><p data-lang="en">BWA-MEM alignment, MarkDuplicates, BQSR base-quality recalibration.</p></a>
+  <a href="calling.html" class="hub-card"><div class="hub-emoji">🎯</div><span class="step-num">Step 2</span><h3 data-zh="Variant Calling" data-en="Variant Calling">變異偵測</h3><p data-lang="zh">HaplotypeCaller germline、Mutect2 somatic、DeepVariant CNN 方法。</p><p data-lang="en">HaplotypeCaller germline, Mutect2 somatic, DeepVariant CNN approach.</p></a>
+  <a href="filtering.html" class="hub-card"><div class="hub-emoji">🧹</div><span class="step-num">Step 3</span><h3 data-zh="變異過濾" data-en="Variant Filtering">變異過濾</h3><p data-lang="zh">VQSR 機器學習 vs hard filter、site-level vs sample-level filters。</p><p data-lang="en">VQSR machine learning vs hard filters; site- vs sample-level criteria.</p></a>
+  <a href="annotation.html" class="hub-card"><div class="hub-emoji">🏷️</div><span class="step-num">Step 4</span><h3 data-zh="功能註釋" data-en="Functional Annotation">功能註釋</h3><p data-lang="zh">VEP、ANNOVAR、SnpEff 加上臨床資料庫 (ClinVar、gnomAD、COSMIC)。</p><p data-lang="en">VEP, ANNOVAR, SnpEff plus clinical DBs (ClinVar, gnomAD, COSMIC).</p></a>
+  <a href="sv-cnv.html" class="hub-card"><div class="hub-emoji">🧩</div><span class="step-num">Step 5</span><h3 data-zh="SV / CNV 偵測" data-en="SV / CNV Detection">SV / CNV 偵測</h3><p data-lang="zh">結構變異 (Manta、Delly)、拷貝數變異 (GATK gCNV、CNVkit)。</p><p data-lang="en">Structural variants (Manta, Delly), copy-number variants (GATK gCNV, CNVkit).</p></a>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="變異類型" data-en="VARIANT TYPES">變異類型</div>
+<h2 data-zh="五種主要變異" data-en="Five Main Variant Classes">五種主要變異</h2>
+<table class="comp-table"><thead><tr><th data-zh="類型" data-en="Type">類型</th><th data-zh="長度" data-en="Length">長度</th><th data-zh="工具" data-en="Tools">工具</th></tr></thead><tbody>
+<tr><td><strong>SNV</strong> (single-nucleotide variant)</td><td>1 bp</td><td>GATK HaplotypeCaller / DeepVariant</td></tr>
+<tr><td><strong>Indel</strong> (insertion/deletion)</td><td>1-50 bp</td><td>GATK HaplotypeCaller / DeepVariant</td></tr>
+<tr><td><strong>MNV</strong> (multi-nucleotide)</td><td>2-50 bp</td><td>GATK / Strelka2</td></tr>
+<tr><td><strong>SV</strong> (structural variant)</td><td>&gt; 50 bp</td><td>Manta / Delly / GRIDSS / pbsv</td></tr>
+<tr><td><strong>CNV</strong> (copy-number)</td><td data-zh="多 kb 到 Mb" data-en="kb to Mb">多 kb~Mb</td><td>GATK gCNV / CNVkit / Control-FREEC</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label" data-zh="範例資料" data-en="DATASETS">範例資料</div>
+<h2 data-zh="公開資料集" data-en="Public Datasets">公開資料集</h2>
+<div data-lang="zh"><ul style="margin-left:24px;color:var(--c-ink-light);"><li><strong>Genome in a Bottle (GIAB)</strong>：HG001-HG007 NIST 標準樣本，內附 truth set，是 benchmark 業界標配。</li><li><strong>1000 Genomes</strong>：2504 個個體的 WGS / WES，最大規模公開人類變異參考。</li><li><strong>gnomAD v4</strong>：730k+ exome + 76k+ genome 的群體頻率資料庫，註釋必備。</li><li><strong>TCGA / ICGC</strong>：癌症體細胞變異公開資源。</li><li><strong>ClinVar</strong>：人類臨床顯著變異註釋庫。</li></ul></div>
+<div data-lang="en"><ul style="margin-left:24px;color:var(--c-ink-light);"><li><strong>Genome in a Bottle (GIAB)</strong>: NIST reference samples HG001-HG007 with truth sets — the benchmark standard.</li><li><strong>1000 Genomes</strong>: WGS / WES of 2504 individuals — the largest public reference.</li><li><strong>gnomAD v4</strong>: 730k+ exomes + 76k+ genomes for population frequency — essential for annotation.</li><li><strong>TCGA / ICGC</strong>: cancer somatic variants.</li><li><strong>ClinVar</strong>: clinically significant human variant annotations.</li></ul></div>
+</section>
+
+<nav class="page-nav"><a href="../index.html"><span class="nav-dir" data-zh="← 返回" data-en="← Back">← 返回</span><span class="nav-title" data-zh="主頁" data-en="Hub">主頁</span></a><a href="preprocessing.html"><span class="nav-dir" data-zh="開始 →" data-en="Start →">開始 →</span><span class="nav-title" data-zh="Step 1：預處理" data-en="Step 1: Preprocessing">Step 1：預處理</span></a></nav>
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
+<script src="../i18n.js"></script>
+</body></html>

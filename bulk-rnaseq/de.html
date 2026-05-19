@@ -1,0 +1,146 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Differential Expression — Bulk RNA-seq</title>
+<link rel="stylesheet" href="../styles.css"></head><body class="theme-bulk">
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
+  <ul class="top-nav-links">
+    <li><a href="index.html">Bulk RNA</a></li><li><a href="qc-trim.html">QC</a></li><li><a href="alignment.html">Align</a></li><li><a href="quantification.html">Quant</a></li><li><a href="normalization.html">Norm</a></li><li><a href="de.html" class="active">DE</a></li><li><a href="visualization.html">Viz</a></li><li><a href="gsea.html">GSEA</a></li>
+  </ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">STEP 5 / 7</div><h1 data-zh="差異表達分析" data-en="Differential Expression">差異表達分析</h1><p class="subtitle" data-lang="zh">用統計模型找出組間真正表達不同的基因——RNA-seq 的核心目的。</p><p class="subtitle" data-lang="en">Use statistical models to find genuinely changing genes between groups — the core purpose of RNA-seq.</p></header><main class="content-wrap">
+
+<section class="section"><div class="section-label" data-zh="核心概念" data-en="CONCEPT">核心概念</div>
+<h2 data-zh="為什麼不用 t-test？" data-en="Why not just t-test?">為什麼不用 t-test？</h2>
+<div data-lang="zh"><p>RNA-seq counts 是離散整數，且呈現 <strong>過度離散</strong>（variance &gt; mean），t-test 假設常態分布 + 等變異，會嚴重低估 false positives。三大主流模型用不同方式解決：</p></div>
+<div data-lang="en"><p>RNA-seq counts are discrete integers and show <strong>over-dispersion</strong> (variance &gt; mean). A t-test assumes normality and equal variance, which underestimates false positives. The three mainstream models handle this differently:</p></div>
+<table class="comp-table"><thead><tr><th>Tool</th><th data-zh="分佈" data-en="Distribution">分佈</th><th data-zh="處理變異" data-en="Variance handling">處理變異</th><th data-zh="特色" data-en="Notes">特色</th></tr></thead><tbody>
+<tr><td><strong>DESeq2</strong></td><td>Negative Binomial</td><td data-zh="empirical Bayes 收縮 dispersion" data-en="EB shrinkage on dispersion">EB 收縮 dispersion</td><td data-zh="預設工具；shrinkage LFC 適合排名" data-en="Default tool; shrinkage LFC ideal for ranking">預設工具</td></tr>
+<tr><td><strong>edgeR</strong></td><td>Negative Binomial</td><td data-zh="quasi-likelihood (QL) F 檢定" data-en="Quasi-likelihood (QL) F test">QL F 檢定</td><td data-zh="速度快、小樣本穩定" data-en="Fast, stable for small n">小樣本穩定</td></tr>
+<tr><td><strong>limma-voom</strong></td><td data-zh="log-CPM + 加權線性模型" data-en="log-CPM + weighted LM">log-CPM + 線性模型</td><td data-zh="voom 估觀測層級權重" data-en="Per-observation voom weights">最快</td><td data-zh="樣本 &gt; 20 時最高效率，可處理複雜設計" data-en="Most efficient for n &gt; 20; handles complex designs">大樣本</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label" data-zh="統計輸出" data-en="STATS">統計輸出</div>
+<h2 data-zh="解讀 DE 表格" data-en="Reading a DE Table">解讀 DE 表格</h2>
+<div class="card-grid cols-2">
+<div class="card"><h4>log2FoldChange (LFC)</h4><p data-lang="zh">對數轉換的倍數變化。<code>LFC = 1</code> 代表 2 倍上升，<code>LFC = -1</code> 代表減半。LFC shrinkage 會把低 counts 基因的高估倍數拉回真實值。</p><p data-lang="en">Log-transformed fold change. <code>LFC = 1</code> means 2× up, <code>LFC = -1</code> means half. LFC shrinkage tames inflated estimates from low-count genes.</p></div>
+<div class="card"><h4>p-value</h4><p data-lang="zh">在 H₀「無差異」下觀察到此差異的機率，<strong>未校正多重檢定</strong>。20,000 基因下，p &lt; 0.05 也有 1000 個假陽性。</p><p data-lang="en">Probability under H₀ "no change". <strong>Not multiple-testing corrected</strong>. With 20,000 genes, p &lt; 0.05 still yields ~1000 false positives.</p></div>
+<div class="card"><h4>padj (FDR)</h4><p data-lang="zh">經 BH 校正的調整 p 值。<strong>真正的「顯著」門檻通常用 padj &lt; 0.05 或 0.1</strong>。</p><p data-lang="en">BH-adjusted p-value. <strong>Use padj &lt; 0.05 or 0.1 for "significance"</strong>.</p></div>
+<div class="card"><h4>baseMean / AveExpr</h4><p data-lang="zh">該基因跨所有樣本的平均表達。極低 baseMean 的基因即使 LFC 很大也要謹慎。</p><p data-lang="en">Mean expression across samples. Be cautious about genes with very low baseMean even if LFC is large.</p></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
+<h2 data-zh="LFC 與 padj 門檻：DEG 數量怎麼變？" data-en="LFC / padj Thresholds vs. DEG Count">LFC 與 padj 門檻</h2>
+<div data-lang="zh"><p>調整 LFC 與 padj 門檻，看符合條件的 DEG 數量與「上升 / 下降」分佈：</p></div>
+<div data-lang="en"><p>Drag LFC and padj thresholds to see how many DEGs pass, split into up / down:</p></div>
+<div class="interactive-panel">
+<div class="slider-group"><label>|log2FC| ≥ <span id="valLFC">1.0</span></label><input type="range" id="sliderLFC" min="0" max="3" value="1" step="0.1"></div>
+<div class="slider-group"><label>padj &lt; <span id="valFDR">0.05</span></label><input type="range" id="sliderFDR" min="0.001" max="0.2" value="0.05" step="0.001"></div>
+<div class="stat-row">
+<div class="stat-box"><div class="sb-num" id="totDeg" style="color:var(--c-accent-dark)">--</div><div class="sb-lbl">Total DEGs</div></div>
+<div class="stat-box"><div class="sb-num" id="upDeg" style="color:#d05a3a;">--</div><div class="sb-lbl">Up</div></div>
+<div class="stat-box"><div class="sb-num" id="dnDeg" style="color:#2e7eba;">--</div><div class="sb-lbl">Down</div></div>
+</div>
+<div class="chart-container" style="height:330px;"><canvas id="volcano"></canvas></div>
+</div>
+<div class="callout tip"><span class="callout-icon">💡</span><div data-lang="zh"><strong>業界慣例：</strong>「DEG」常定義為 <code>padj &lt; 0.05 且 |LFC| &gt; 1</code>。但門檻沒有絕對標準——大樣本可放寬 LFC、小樣本則必收緊 padj。</div><div data-lang="en"><strong>Field convention:</strong> "DEG" is often <code>padj &lt; 0.05 and |LFC| &gt; 1</code>. There's no universal cutoff — relax LFC with large n; tighten padj with small n.</div></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="程式碼" data-en="CODE">程式碼</div>
+<h2 data-zh="完整 DE 流程" data-en="Complete DE Workflow">完整 DE 流程</h2>
+<div class="code-tabs"><div class="code-tab-btns">
+<button class="code-tab-btn active" onclick="switchTab(this,'ds2')">DESeq2</button>
+<button class="code-tab-btn" onclick="switchTab(this,'edge')">edgeR</button>
+<button class="code-tab-btn" onclick="switchTab(this,'limma')">limma-voom</button>
+</div>
+<div class="code-tab-content active" id="ds2"><pre><span class="kw">library</span>(DESeq2)
+<span class="comment"># 1. 建 dds 物件</span>
+dds &lt;- <span class="func">DESeqDataSetFromMatrix</span>(countData = cts,
+                              colData   = coldata,
+                              design    = <span class="kw">~</span> batch + condition)
+<span class="comment"># 2. 過濾低 counts（可選但建議）</span>
+dds &lt;- dds[<span class="func">rowSums</span>(<span class="func">counts</span>(dds)) &gt;= <span class="num">10</span>, ]
+<span class="comment"># 3. 跑 DE（size factor、dispersion、Wald test 一次到位）</span>
+dds &lt;- <span class="func">DESeq</span>(dds)
+res &lt;- <span class="func">results</span>(dds, contrast = <span class="func">c</span>(<span class="str">"condition"</span>, <span class="str">"treated"</span>, <span class="str">"control"</span>),
+               alpha = <span class="num">0.05</span>)
+<span class="comment"># 4. LFC shrinkage（推薦：給排名用）</span>
+res_s &lt;- <span class="func">lfcShrink</span>(dds, coef = <span class="str">"condition_treated_vs_control"</span>, type = <span class="str">"apeglm"</span>)
+<span class="func">summary</span>(res_s)</pre></div>
+<div class="code-tab-content" id="edge"><pre><span class="kw">library</span>(edgeR)
+y &lt;- <span class="func">DGEList</span>(counts = cts, group = grp)
+keep &lt;- <span class="func">filterByExpr</span>(y, group = grp)
+y &lt;- y[keep, , keep.lib.sizes = <span class="kw">FALSE</span>]
+y &lt;- <span class="func">calcNormFactors</span>(y, method = <span class="str">"TMM"</span>)
+design &lt;- <span class="func">model.matrix</span>(<span class="kw">~</span> batch + condition)
+y &lt;- <span class="func">estimateDisp</span>(y, design)
+fit &lt;- <span class="func">glmQLFit</span>(y, design)
+qlf &lt;- <span class="func">glmQLFTest</span>(fit, coef = <span class="str">"conditiontreated"</span>)
+tt  &lt;- <span class="func">topTags</span>(qlf, n = <span class="kw">Inf</span>)$table</pre></div>
+<div class="code-tab-content" id="limma"><pre><span class="kw">library</span>(limma); <span class="kw">library</span>(edgeR)
+dge &lt;- <span class="func">DGEList</span>(cts)
+keep &lt;- <span class="func">filterByExpr</span>(dge, group = grp)
+dge &lt;- dge[keep, , keep.lib.sizes = <span class="kw">FALSE</span>]
+dge &lt;- <span class="func">calcNormFactors</span>(dge)
+design &lt;- <span class="func">model.matrix</span>(<span class="kw">~</span> batch + condition)
+v   &lt;- <span class="func">voom</span>(dge, design, plot = <span class="kw">TRUE</span>)
+fit &lt;- <span class="func">lmFit</span>(v, design)
+fit &lt;- <span class="func">eBayes</span>(fit)
+tt  &lt;- <span class="func">topTable</span>(fit, coef = <span class="str">"conditiontreated"</span>, n = <span class="kw">Inf</span>)</pre></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="進階" data-en="ADVANCED">進階</div>
+<h2 data-zh="複雜實驗設計" data-en="Complex Designs">複雜實驗設計</h2>
+<div class="card-grid cols-2">
+<div class="card"><h4 data-zh="批次校正" data-en="Batch correction">批次校正</h4><p data-lang="zh">把 batch 放進 <code>design</code>（如 <code>~ batch + condition</code>），DESeq2/limma 會在模型內校正。若僅作視覺化，可用 <code>limma::removeBatchEffect()</code>。</p><p data-lang="en">Put batch in <code>design</code> (e.g., <code>~ batch + condition</code>) — DESeq2/limma adjust for it. For viz only, use <code>limma::removeBatchEffect()</code>.</p></div>
+<div class="card"><h4 data-zh="多組比較與交互作用" data-en="Multi-level & interactions">多組比較與交互作用</h4><p data-lang="zh">用 <code>contrast = c(...)</code> 對任意組合取差異。交互作用以 <code>~ genotype * treatment</code> 編碼。</p><p data-lang="en">Use <code>contrast = c(...)</code> for any pairwise comparison. Interactions via <code>~ genotype * treatment</code>.</p></div>
+<div class="card"><h4 data-zh="配對 / 重複測量" data-en="Paired / repeated">配對 / 重複測量</h4><p data-lang="zh">配對樣本：<code>~ subject + condition</code>。limma 可用 <code>duplicateCorrelation()</code> 處理。</p><p data-lang="en">Paired samples: <code>~ subject + condition</code>. In limma, use <code>duplicateCorrelation()</code>.</p></div>
+<div class="card"><h4 data-zh="hidden confounder" data-en="Hidden confounders">隱藏干擾</h4><p data-lang="zh">用 <code>sva</code> 或 <code>RUVSeq</code> 偵測未記錄的批次源。把推得的 surrogate variables 加進 design。</p><p data-lang="en">Use <code>sva</code> or <code>RUVSeq</code> to find unrecorded batch sources; add the SVs into the design.</p></div>
+</div>
+</section>
+
+<section class="quiz-section"><h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
+<div class="quiz-q" data-answer="1"><p data-lang="zh">RNA-seq counts 的「過度離散」是指？</p><p data-lang="en">"Over-dispersion" in RNA-seq counts means?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 樣本之間的 library size 差異</span><span data-lang="en">A. Library-size differences between samples</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. variance 遠大於 mean，違反 Poisson 假設</span><span data-lang="en">B. Variance ≫ mean, violating Poisson assumption</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 高表達基因比低表達基因多</span><span data-lang="en">C. More highly than lowly expressed genes</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 偵測到太多 DEG</span><span data-lang="en">D. Too many DEGs detected</span></div>
+</div><div class="quiz-feedback" id="fb1"></div></div>
+<div class="quiz-q" data-answer="2"><p data-lang="zh">何時最該使用 DESeq2 的 <code>lfcShrink()</code>？</p><p data-lang="en">When is DESeq2's <code>lfcShrink()</code> most useful?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 取代 p-value 校正</span><span data-lang="en">A. To replace p-value adjustment</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 增加 DEG 數量</span><span data-lang="en">B. To increase DEG count</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 在依 LFC 排名挑 top 基因時，減低低 counts 基因的假象高 LFC</span><span data-lang="en">C. When ranking by LFC — tame inflated LFCs from low-count genes</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 改善樣本對齊率</span><span data-lang="en">D. Improves sample alignment rate</span></div>
+</div><div class="quiz-feedback" id="fb2"></div></div>
+</section>
+
+<nav class="page-nav"><a href="normalization.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 4：Normalization" data-en="Step 4: Normalization">Step 4：Normalization</span></a><a href="visualization.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 6：視覺化" data-en="Step 6: Visualization">Step 6：視覺化</span></a></nav>
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="../i18n.js"></script>
+<script>
+window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
+function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
+// Synthesize volcano data
+const NG=1500;const points=[];for(let i=0;i<NG;i++){const lfc=(Math.random()*2-1)*3*(Math.random()<.15?2:1);const pa=Math.random()<.1?Math.random()*0.01:0.05+Math.random()*0.95;points.push({lfc,pa,nlp:-Math.log10(pa)});}
+const volcano=new Chart(document.getElementById('volcano'),{type:'scatter',data:{datasets:[
+  {label:'Up',data:[],backgroundColor:'rgba(208,90,58,0.6)',pointRadius:2.5},
+  {label:'Down',data:[],backgroundColor:'rgba(46,126,186,0.6)',pointRadius:2.5},
+  {label:'NS',data:[],backgroundColor:'rgba(160,160,160,0.35)',pointRadius:2}
+]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{title:{display:true,text:'log2 fold change'}},y:{title:{display:true,text:'-log10(padj)'}}},plugins:{legend:{position:'bottom'}}}});
+function upDE(){
+  const L=+document.getElementById('sliderLFC').value;const F=+document.getElementById('sliderFDR').value;
+  document.getElementById('valLFC').textContent=L.toFixed(1);document.getElementById('valFDR').textContent=F.toFixed(3);
+  const up=[],dn=[],ns=[];let nu=0,nd=0;
+  points.forEach(p=>{const pt={x:p.lfc,y:p.nlp};if(p.pa<F&&p.lfc>=L){up.push(pt);nu++;}else if(p.pa<F&&p.lfc<=-L){dn.push(pt);nd++;}else{ns.push(pt);}});
+  document.getElementById('totDeg').textContent=nu+nd;document.getElementById('upDeg').textContent=nu;document.getElementById('dnDeg').textContent=nd;
+  volcano.data.datasets[0].data=up;volcano.data.datasets[1].data=dn;volcano.data.datasets[2].data=ns;volcano.update('none');
+}
+['sliderLFC','sliderFDR'].forEach(id=>document.getElementById(id).addEventListener('input',upDE));upDE();
+window._QF={zh:{q1_y:'過度離散指 variance &gt; mean；負二項分佈可建模這種離散度。',q1_n:'答案是 B。',q2_y:'shrinkage 把低 counts 基因高估的 LFC 拉回，特別適合 LFC 排名與 GSEA。',q2_n:'答案是 C：用於排名時校正低 counts 的高估 LFC。'},en:{q1_y:'Over-dispersion: variance &gt; mean; the negative binomial models it.',q1_n:'Answer is B.',q2_y:'Shrinkage tames inflated LFCs from low-count genes — useful for ranking and GSEA.',q2_n:'Answer is C: shrinkage for ranking, fixing low-count inflation.'}};
+const QF=window._QF||{};document.querySelectorAll(".quiz-q").forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll(".quiz-opt").forEach(o=>{o.addEventListener("click",()=>{if(q.classList.contains("answered"))return;q.classList.add("answered");const fb=document.getElementById("fb"+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?"correct":"wrong");if(!ok)q.querySelectorAll(".quiz-opt")[ans].classList.add("correct");const Lg=I18n.get();fb.className="quiz-feedback show "+(ok?"correct-fb":"wrong-fb");fb.textContent=(ok?"✅ ":"❌ ")+(QF[Lg]&&QF[Lg]["q"+(qi+1)+"_"+(ok?"y":"n")]||"");});});});
+</script></body></html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Visualization — Bulk RNA-seq</title>
+<link rel="stylesheet" href="../styles.css"></head><body class="theme-bulk">
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
+  <ul class="top-nav-links">
+    <li><a href="index.html">Bulk RNA</a></li><li><a href="qc-trim.html">QC</a></li><li><a href="alignment.html">Align</a></li><li><a href="quantification.html">Quant</a></li><li><a href="normalization.html">Norm</a></li><li><a href="de.html">DE</a></li><li><a href="visualization.html" class="active">Viz</a></li><li><a href="gsea.html">GSEA</a></li>
+  </ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">STEP 6 / 7</div><h1 data-zh="結果視覺化" data-en="Result Visualization">結果視覺化</h1><p class="subtitle" data-lang="zh">五張必畫的圖——每張回答一個不同的問題，串起來就是一個完整的 RNA-seq 故事。</p><p class="subtitle" data-lang="en">Five must-have plots — each answers a different question; together they tell a complete RNA-seq story.</p></header><main class="content-wrap">
+
+<section class="section"><div class="section-label" data-zh="圖表選擇" data-en="PLOT SELECTION">圖表選擇</div>
+<h2 data-zh="哪張圖回答哪個問題？" data-en="Which plot for which question?">哪張圖回答哪個問題？</h2>
+<table class="comp-table"><thead><tr><th data-zh="圖表" data-en="Plot">圖表</th><th data-zh="回答的問題" data-en="Question">回答的問題</th><th data-zh="推薦套件" data-en="Tool">推薦套件</th></tr></thead><tbody>
+<tr><td><strong>PCA</strong></td><td data-zh="樣本之間的整體關係？批次?" data-en="Overall sample relationships? Batches?">樣本關係 / 批次</td><td>DESeq2 plotPCA</td></tr>
+<tr><td><strong>Volcano</strong></td><td data-zh="DEG 的整體分佈與門檻切點？" data-en="Overall DEG distribution & cutoffs?">DEG 整體分佈</td><td>EnhancedVolcano</td></tr>
+<tr><td><strong>MA-plot</strong></td><td data-zh="表達強度與差異強度的關係？是否有 LFC 偏移？" data-en="Intensity vs. difference; any LFC bias?">表達強度 vs LFC</td><td>DESeq2 plotMA</td></tr>
+<tr><td><strong>Heatmap</strong></td><td data-zh="top DEGs 在每個樣本的表達模式？" data-en="Per-sample expression of top DEGs?">top DEGs 樣本模式</td><td>pheatmap, ComplexHeatmap</td></tr>
+<tr><td><strong>Box / Violin</strong></td><td data-zh="某幾個關鍵基因的表達分佈？" data-en="Distribution of key genes?">key gene 表達分佈</td><td>ggplot2</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
+<h2 data-zh="PCA：批次效應 vs 條件效應" data-en="PCA: Batch vs Condition">PCA：批次效應 vs 條件效應</h2>
+<div data-lang="zh"><p>切換情境，觀察 PCA 在不同變異來源下的樣貌：</p></div>
+<div data-lang="en"><p>Toggle scenarios to see PCA shapes under different variance sources:</p></div>
+<div class="interactive-panel">
+<div class="toggle-row">
+<button class="toggle-btn active" data-mode="cond">Condition 主導</button>
+<button class="toggle-btn" data-mode="batch">Batch 主導</button>
+<button class="toggle-btn" data-mode="mix">混合干擾</button>
+</div>
+<div class="chart-container" style="height:340px;"><canvas id="pcaPlot"></canvas></div>
+<div id="pcaTip" style="font-size:.9rem;color:var(--c-ink-light);margin-top:8px;"></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="圖表說明" data-en="PLOTS">圖表說明</div>
+<h2 data-zh="五張圖怎麼看" data-en="Reading the Five Plots">五張圖怎麼看</h2>
+<div class="card-grid cols-2">
+<div class="card"><h4>📍 PCA</h4><p data-lang="zh">前兩個主成分軸的點圖。同條件聚成一團 = 好；條件夾雜批次 = 需校正。</p><p data-lang="en">Scatter on first two PCs. Same-condition cluster = good; condition mixed with batch = needs correction.</p></div>
+<div class="card"><h4>🌋 Volcano</h4><p data-lang="zh">X = log2FC、Y = -log10(padj)。右上 = 顯著上調、左上 = 顯著下調、底部 = 不顯著。</p><p data-lang="en">X = log2FC, Y = -log10(padj). Upper right = significant up; upper left = significant down; bottom = NS.</p></div>
+<div class="card"><h4>🦋 MA-plot</h4><p data-lang="zh">X = log mean expression、Y = LFC。理想情境下，多數點應聚在 LFC = 0 附近，DEG 散落兩側。</p><p data-lang="en">X = log mean expression, Y = LFC. Ideally most points cluster around LFC = 0; DEGs scatter above/below.</p></div>
+<div class="card"><h4>🔥 Heatmap</h4><p data-lang="zh">取 vst/rlog 後選 top 50–100 DEGs；列 z-score (row scaling)，看樣本間表達模式。</p><p data-lang="en">vst/rlog values, top 50–100 DEGs, row z-score; reveals per-sample patterns.</p></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="程式碼" data-en="CODE">程式碼</div>
+<h2 data-zh="實作範例" data-en="Code Examples">實作範例</h2>
+<div class="code-tabs"><div class="code-tab-btns">
+<button class="code-tab-btn active" onclick="switchTab(this,'pca')">PCA</button>
+<button class="code-tab-btn" onclick="switchTab(this,'volc')">Volcano</button>
+<button class="code-tab-btn" onclick="switchTab(this,'ma')">MA-plot</button>
+<button class="code-tab-btn" onclick="switchTab(this,'heat')">Heatmap</button>
+</div>
+<div class="code-tab-content active" id="pca"><pre>vsd &lt;- <span class="func">vst</span>(dds, blind = <span class="kw">FALSE</span>)
+<span class="func">plotPCA</span>(vsd, intgroup = <span class="func">c</span>(<span class="str">"condition"</span>, <span class="str">"batch"</span>))
+<span class="comment"># 自訂 ggplot</span>
+pcaData &lt;- <span class="func">plotPCA</span>(vsd, intgroup = <span class="str">"condition"</span>, returnData = <span class="kw">TRUE</span>)
+<span class="func">ggplot</span>(pcaData, <span class="func">aes</span>(PC1, PC2, color = condition)) + <span class="func">geom_point</span>(size = <span class="num">3</span>)</pre></div>
+<div class="code-tab-content" id="volc"><pre><span class="kw">library</span>(EnhancedVolcano)
+<span class="func">EnhancedVolcano</span>(res,
+  lab        = <span class="func">rownames</span>(res),
+  x          = <span class="str">"log2FoldChange"</span>,
+  y          = <span class="str">"padj"</span>,
+  pCutoff    = <span class="num">0.05</span>,
+  FCcutoff   = <span class="num">1</span>,
+  labSize    = <span class="num">3</span>)</pre></div>
+<div class="code-tab-content" id="ma"><pre><span class="func">plotMA</span>(res, ylim = <span class="func">c</span>(-<span class="num">3</span>, <span class="num">3</span>))
+<span class="comment"># shrinkage 後的 MA-plot 更乾淨</span>
+res_s &lt;- <span class="func">lfcShrink</span>(dds, coef = <span class="str">"condition_treated_vs_control"</span>, type = <span class="str">"apeglm"</span>)
+<span class="func">plotMA</span>(res_s)</pre></div>
+<div class="code-tab-content" id="heat"><pre><span class="kw">library</span>(pheatmap)
+top &lt;- <span class="func">head</span>(<span class="func">order</span>(res$padj), <span class="num">50</span>)
+mat &lt;- <span class="func">assay</span>(vsd)[top, ]
+mat &lt;- mat - <span class="func">rowMeans</span>(mat)   <span class="comment"># row centering</span>
+<span class="func">pheatmap</span>(mat,
+  scale         = <span class="str">"row"</span>,
+  cluster_cols  = <span class="kw">TRUE</span>,
+  annotation_col = info[, <span class="str">"condition"</span>, drop = <span class="kw">FALSE</span>])</pre></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="陷阱" data-en="PITFALLS">陷阱</div>
+<h2 data-zh="常見錯誤" data-en="Common Mistakes">常見錯誤</h2>
+<div class="callout danger"><span class="callout-icon">🚫</span><div data-lang="zh"><strong>用 raw count 畫 PCA：</strong>variance 由 library size 主導，PCA 只反映 library size。請先 vst/rlog。</div><div data-lang="en"><strong>PCA on raw counts:</strong> variance is dominated by library size; the PCA only reflects depth. Always vst/rlog first.</div></div>
+<div class="callout danger"><span class="callout-icon">🚫</span><div data-lang="zh"><strong>Heatmap 沒做 row scaling：</strong>高表達基因永遠紅、低表達永遠藍，看不出模式。請用 <code>scale = "row"</code>。</div><div data-lang="en"><strong>Heatmap without row scaling:</strong> high expressors always red, lows always blue; no pattern visible. Use <code>scale = "row"</code>.</div></div>
+<div class="callout danger"><span class="callout-icon">🚫</span><div data-lang="zh"><strong>Volcano 用 p-value 而非 padj：</strong>未校正多重比較，門檻線會嚴重低估假陽性。</div><div data-lang="en"><strong>Volcano on raw p-values:</strong> not multiple-test corrected; cutoff lines drastically understate false positives.</div></div>
+</section>
+
+<nav class="page-nav"><a href="de.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 5：DE 分析" data-en="Step 5: DE Analysis">Step 5：DE 分析</span></a><a href="gsea.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 7：GSEA" data-en="Step 7: GSEA">Step 7：GSEA</span></a></nav>
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="../i18n.js"></script>
+<script>
+window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
+function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
+// PCA simulation
+function gen(n,cx,cy,sx,sy){const a=[];for(let i=0;i<n;i++)a.push({x:cx+(Math.random()-0.5)*sx,y:cy+(Math.random()-0.5)*sy});return a;}
+const modes={
+  cond:{title_zh:'條件主導：PC1 完美分開 case vs control。',title_en:'Condition-driven: PC1 cleanly separates case vs control.',data:()=>([
+    {label:'Ctrl-B1',data:gen(4,-3,0.5,1.5,1.2),backgroundColor:'rgba(26,94,138,0.7)'},
+    {label:'Ctrl-B2',data:gen(4,-3,-0.5,1.5,1.2),backgroundColor:'rgba(26,94,138,0.45)'},
+    {label:'Case-B1',data:gen(4,3,0.5,1.5,1.2),backgroundColor:'rgba(208,90,58,0.7)'},
+    {label:'Case-B2',data:gen(4,3,-0.5,1.5,1.2),backgroundColor:'rgba(208,90,58,0.45)'}
+  ])},
+  batch:{title_zh:'批次主導：PC1 沿 batch 分群，case/ctrl 在每個 batch 內混合，需校正！',title_en:'Batch-driven: PC1 follows batch; case/ctrl mixed within batches — needs correction!',data:()=>([
+    {label:'Ctrl-B1',data:gen(4,-3,0,1.5,1.2),backgroundColor:'rgba(26,94,138,0.7)'},
+    {label:'Case-B1',data:gen(4,-3,0,1.5,1.2),backgroundColor:'rgba(208,90,58,0.7)'},
+    {label:'Ctrl-B2',data:gen(4,3,0,1.5,1.2),backgroundColor:'rgba(26,94,138,0.45)'},
+    {label:'Case-B2',data:gen(4,3,0,1.5,1.2),backgroundColor:'rgba(208,90,58,0.45)'}
+  ])},
+  mix:{title_zh:'混合干擾：條件與批次交織。需要把 batch 放進模型 (~batch + condition)。',title_en:'Mixed: condition and batch are entangled. Include batch in the model (~batch + condition).',data:()=>([
+    {label:'Ctrl-B1',data:gen(4,-2,2,2,2),backgroundColor:'rgba(26,94,138,0.7)'},
+    {label:'Ctrl-B2',data:gen(4,-2,-2,2,2),backgroundColor:'rgba(26,94,138,0.45)'},
+    {label:'Case-B1',data:gen(4,2,1,2,2),backgroundColor:'rgba(208,90,58,0.7)'},
+    {label:'Case-B2',data:gen(4,2,-1,2,2),backgroundColor:'rgba(208,90,58,0.45)'}
+  ])}
+};
+const pcaPlot=new Chart(document.getElementById('pcaPlot'),{type:'scatter',data:{datasets:[]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{title:{display:true,text:'PC1'}},y:{title:{display:true,text:'PC2'}}},plugins:{legend:{position:'bottom'}}}});
+function setMode(m){
+  document.querySelectorAll('.toggle-btn').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
+  pcaPlot.data.datasets=modes[m].data();pcaPlot.update('none');
+  document.getElementById('pcaTip').textContent=I18n.get()==='zh'?modes[m].title_zh:modes[m].title_en;
+}
+document.querySelectorAll('.toggle-btn').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));
+document.addEventListener('langchange',()=>{const m=document.querySelector('.toggle-btn.active').dataset.mode;setMode(m);});
+setMode('cond');
+</script></body></html>

@@ -1,0 +1,114 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Preprocessing — Variant Calling</title>
+<link rel="stylesheet" href="../styles.css"></head><body class="theme-variant">
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
+  <ul class="top-nav-links">
+    <li><a href="index.html">Variant</a></li><li><a href="preprocessing.html" class="active">Preproc</a></li><li><a href="calling.html">Calling</a></li><li><a href="filtering.html">Filter</a></li><li><a href="annotation.html">Annot</a></li>
+  </ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">STEP 1 / 5</div><h1 data-zh="Read 預處理" data-en="Read Preprocessing">Read 預處理</h1><p class="subtitle" data-lang="zh">BWA-MEM 比對、MarkDuplicates、BQSR——把原始 reads 變成「分析就緒」的 BAM。</p><p class="subtitle" data-lang="en">BWA-MEM, MarkDuplicates, BQSR — turn raw reads into an "analysis-ready" BAM.</p></header><main class="content-wrap">
+
+<section class="section"><div class="section-label" data-zh="三大步驟" data-en="THREE STEPS">三大步驟</div>
+<h2 data-zh="預處理三步曲" data-en="The Three Preprocessing Steps">預處理三步曲</h2>
+<div class="card-grid cols-3">
+<div class="card"><div class="card-icon">🎯</div><h4 data-zh="1. 比對 (BWA-MEM)" data-en="1. Align (BWA-MEM)">1. 比對</h4><p data-lang="zh">BWA-MEM 是 70 bp+ short read 對人類基因組的事實標準。輸出 BAM 含座標。</p><p data-lang="en">BWA-MEM is the de facto standard for 70 bp+ short reads on human genome. Outputs coordinate-sorted BAM.</p></div>
+<div class="card"><div class="card-icon">🔁</div><h4 data-zh="2. 標記重複" data-en="2. Mark duplicates">2. 標記重複</h4><p data-lang="zh">PCR / optical 重複是 false positive 的主要來源。用 <code>picard MarkDuplicates</code> 或 GATK4 <code>MarkDuplicatesSpark</code>。</p><p data-lang="en">PCR / optical duplicates are a major false-positive source. Use <code>picard MarkDuplicates</code> or GATK4 <code>MarkDuplicatesSpark</code>.</p></div>
+<div class="card"><div class="card-icon">📏</div><h4 data-zh="3. BQSR" data-en="3. BQSR">3. BQSR</h4><p data-lang="zh">BaseRecalibrator + ApplyBQSR：用已知 SNP 資料庫，學習機器與化學造成的鹼基品質偏差並重新校正。</p><p data-lang="en">BaseRecalibrator + ApplyBQSR: learn machine + chemistry bias from known SNPs, then recalibrate base qualities.</p></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="比對策略" data-en="ALIGNMENT">比對策略</div>
+<h2 data-zh="BWA-MEM 用法要點" data-en="BWA-MEM Usage">BWA-MEM 用法要點</h2>
+<div class="code-tabs"><div class="code-tab-btns"><button class="code-tab-btn active" onclick="switchTab(this,'bwa')">BWA-MEM</button></div>
+<div class="code-tab-content active" id="bwa"><pre><span class="comment"># 1. 建索引（一次性，約 30 GB 記憶體）</span>
+bwa index -p GRCh38 -a bwtsw GRCh38.fa
+
+<span class="comment"># 2. 加 ReadGroup 並比對（最重要：RG！）</span>
+bwa mem -t <span class="num">16</span> -M \
+  -R <span class="str">"@RG\tID:lib1\tSM:patient_01\tLB:lib1\tPL:ILLUMINA"</span> \
+  GRCh38 R1.fq.gz R2.fq.gz \
+  | samtools sort -@ <span class="num">8</span> -o aligned.bam -
+
+samtools index aligned.bam</pre></div>
+</div>
+<div class="callout warn"><span class="callout-icon">⚠️</span><div data-lang="zh"><strong>ReadGroup (RG) 是必填：</strong>下游 GATK 工具讀 RG 識別樣本身份。漏掉 RG 會在 HaplotypeCaller 出錯。最少需 <code>ID, SM, LB, PL</code>。</div><div data-lang="en"><strong>ReadGroup (RG) is mandatory:</strong> GATK tools read RG to identify samples. Missing RG breaks HaplotypeCaller. Minimum: <code>ID, SM, LB, PL</code>.</div></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="MarkDuplicates" data-en="MARKDUP">MarkDuplicates</div>
+<h2 data-zh="為什麼要標記重複？" data-en="Why mark duplicates?">為什麼要標記重複？</h2>
+<div data-lang="zh"><p>PCR 把同一個 DNA 片段擴增多份，定序到的「多個 read」其實源自同一原始分子。若不標記、計算 allele depth 時會把同一突變算多次 → 過度自信、假陽性。</p></div>
+<div data-lang="en"><p>PCR amplifies the same fragment many-fold; the resulting "reads" come from one original molecule. Without marking, allele depth double-counts the same mutation → over-confidence and false positives.</p></div>
+<div class="code-tabs"><div class="code-tab-btns"><button class="code-tab-btn active" onclick="switchTab(this,'md')">MarkDuplicates</button></div>
+<div class="code-tab-content active" id="md"><pre><span class="comment"># Picard 版（穩定）</span>
+picard MarkDuplicates \
+  I=aligned.bam \
+  O=dedup.bam \
+  M=dedup_metrics.txt \
+  REMOVE_DUPLICATES=<span class="kw">false</span>   <span class="comment"># 只標記不移除（推薦）</span>
+
+samtools index dedup.bam</pre></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="BQSR" data-en="BQSR">BQSR</div>
+<h2 data-zh="鹼基品質再校正" data-en="Base Quality Score Recalibration">鹼基品質再校正</h2>
+<div data-lang="zh"><p>定序機回報的 Phred 分數與「真實錯誤率」之間有系統性偏差（受循環次數、context、機器型號影響）。BQSR 利用已知 SNP（如 dbSNP）作為「不會錯」的訓練集，學習偏差並校正其他位置的分數。</p></div>
+<div data-lang="en"><p>Reported Phred quality vs true error rate has systematic bias (cycle, context, instrument). BQSR uses known SNPs (dbSNP) as a "ground truth" training set, learns the bias, and recalibrates everywhere else.</p></div>
+<div class="code-tabs"><div class="code-tab-btns"><button class="code-tab-btn active" onclick="switchTab(this,'bqsr')">BQSR</button></div>
+<div class="code-tab-content active" id="bqsr"><pre><span class="comment"># Step 1: 建立 recalibration table</span>
+gatk BaseRecalibrator \
+  -I dedup.bam -R GRCh38.fa \
+  --known-sites dbsnp.vcf.gz \
+  --known-sites Mills_indels.vcf.gz \
+  -O recal_table.txt
+
+<span class="comment"># Step 2: 套用校正</span>
+gatk ApplyBQSR \
+  -I dedup.bam -R GRCh38.fa \
+  --bqsr-recal-file recal_table.txt \
+  -O analysis_ready.bam</pre></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
+<h2 data-zh="Duplicate Rate 與 SNV 偵測力" data-en="Duplicate Rate vs SNV Power">Duplicate Rate 與 SNV 偵測力</h2>
+<div data-lang="zh"><p>調整 duplicate rate 與定序深度，看實際 unique coverage 與 SNV 偵測力的關係：</p></div>
+<div data-lang="en"><p>Adjust duplicate rate and sequencing depth — see unique coverage and SNV detection power:</p></div>
+<div class="interactive-panel">
+<div class="slider-group"><label data-lang="zh">原始定序深度 (X)<span id="valD">30</span></label><label data-lang="en">Raw depth (X)<span id="valDEn">30</span></label><input type="range" id="sliderD" min="5" max="80" value="30" step="1"></div>
+<div class="slider-group"><label data-lang="zh">Duplicate rate (%)<span id="valDup">15</span></label><label data-lang="en">Duplicate rate (%)<span id="valDupEn">15</span></label><input type="range" id="sliderDup" min="0" max="60" value="15" step="1"></div>
+<div class="stat-row">
+<div class="stat-box"><div class="sb-num" id="uniqD">--</div><div class="sb-lbl" data-zh="Unique 深度" data-en="Unique depth">Unique 深度</div></div>
+<div class="stat-box"><div class="sb-num" id="snvP">--</div><div class="sb-lbl" data-zh="SNV 偵測力" data-en="SNV power">SNV 偵測力</div></div>
+<div class="stat-box"><div class="sb-num" id="recommend">--</div><div class="sb-lbl" data-zh="建議" data-en="Advice">建議</div></div>
+</div>
+</div>
+<div class="callout tip"><span class="callout-icon">📏</span><div data-lang="zh"><strong>業界基準：</strong>Germline WGS 通常需 30× unique；WES 需 100× on-target；somatic（腫瘤） 70-100× unique 才能可靠偵測 VAF &lt; 10% 變異。</div><div data-lang="en"><strong>Benchmarks:</strong> Germline WGS typically 30× unique; WES 100× on-target; somatic (tumor) 70-100× unique to reliably detect VAF &lt; 10%.</div></div>
+</section>
+
+<nav class="page-nav"><a href="index.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Variant 總覽" data-en="Variant Overview">Variant 總覽</span></a><a href="calling.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 2：Calling" data-en="Step 2: Calling">Step 2：Calling</span></a></nav>
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
+<script src="../i18n.js"></script>
+<script>
+window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
+function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
+function up(){
+  const d=+document.getElementById('sliderD').value;const dup=+document.getElementById('sliderDup').value;
+  document.getElementById('valD').textContent=d;document.getElementById('valDEn').textContent=d;
+  document.getElementById('valDup').textContent=dup;document.getElementById('valDupEn').textContent=dup;
+  const uniq=d*(1-dup/100);
+  document.getElementById('uniqD').textContent=uniq.toFixed(1)+'×';
+  const L=I18n.get();
+  let p,advice;
+  if(uniq>=30){p=L==='zh'?'優':'High';advice=L==='zh'?'Germline WGS 足夠；可放心執行下游分析':'Sufficient for germline WGS; proceed';}
+  else if(uniq>=20){p=L==='zh'?'可':'OK';advice=L==='zh'?'germline 可用，somatic 略嫌不足':'OK for germline; thin for somatic';}
+  else if(uniq>=10){p=L==='zh'?'弱':'Low';advice=L==='zh'?'考慮 top-up 加深定序':'Consider top-up sequencing';}
+  else{p=L==='zh'?'差':'Reject';advice=L==='zh'?'⚠ 深度過低，不建議分析':'⚠ Too shallow; do not analyze';}
+  document.getElementById('snvP').textContent=p;
+  document.getElementById('recommend').textContent=advice;
+}
+['sliderD','sliderDup'].forEach(id=>document.getElementById(id).addEventListener('input',up));document.addEventListener('langchange',up);up();
+</script></body></html>

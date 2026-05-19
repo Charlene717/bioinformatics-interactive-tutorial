@@ -1,0 +1,48 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Microbiome — Bioinformatics Tutorial</title>
+<link rel="stylesheet" href="../styles.css"></head><body class="theme-microbiome">
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
+  <ul class="top-nav-links">
+    <li><a href="../index.html">Hub</a></li><li><a href="index.html" class="active">Microbiome</a></li><li><a href="amplicon.html">Amplicon</a></li><li><a href="metagenomics.html">Metagenomics</a></li><li><a href="function.html">Function</a></li>
+  </ul>
+</div></nav>
+<header class="page-hero"><div class="step-badge">TRACK 5 · MICROBIOME</div><h1 data-zh="微生物群體學" data-en="Microbiome / Metagenomics">微生物群體學</h1><p class="subtitle" data-lang="zh">從 16S 條碼到 shotgun 全基因組組裝——揭開微生物群落的組成與功能。</p><p class="subtitle" data-lang="en">From 16S barcoding to shotgun whole-genome assembly — uncovering microbial composition and function.</p></header><main class="content-wrap">
+
+<section class="section"><div class="section-label" data-zh="總覽" data-en="OVERVIEW">總覽</div>
+<h2 data-zh="兩大路線" data-en="Two Approaches">兩大路線</h2>
+<div class="card-grid cols-2">
+<div class="card"><div class="card-icon">🔬</div><h4>16S / ITS Amplicon</h4><p data-lang="zh">PCR 擴增 16S rRNA (細菌) 或 ITS (真菌) 的可變區，定序後分類。<strong>優：</strong>便宜、樣本量大。<strong>限：</strong>只到 genus / species 級、無功能資訊。</p><p data-lang="en">PCR-amplify 16S rRNA (bacteria) or ITS (fungi) variable regions, sequence, classify. <strong>Pro:</strong> cheap, scalable. <strong>Con:</strong> genus/species resolution at best; no function info.</p></div>
+<div class="card"><div class="card-icon">🧬</div><h4>Shotgun Metagenomics</h4><p data-lang="zh">隨機定序所有 DNA，含全基因組覆蓋。<strong>優：</strong>strain-level、含功能基因、可組裝 MAG。<strong>限：</strong>每樣本成本高、計算量大。</p><p data-lang="en">Random sequencing of all DNA. <strong>Pro:</strong> strain-level, functional genes, MAG assembly. <strong>Con:</strong> high per-sample cost, compute-heavy.</p></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="章節" data-en="CHAPTERS">章節</div>
+<h2 data-zh="三章節學習路徑" data-en="Three-chapter Path">三章節學習路徑</h2>
+<div class="hub-steps-grid">
+  <a href="amplicon.html" class="hub-card"><div class="hub-emoji">📏</div><span class="step-num">Step 1</span><h3 data-zh="16S / ITS Amplicon" data-en="16S / ITS Amplicon">16S / ITS Amplicon</h3><p data-lang="zh">DADA2 vs QIIME2、ASV vs OTU、分類器與 alpha/beta diversity。</p><p data-lang="en">DADA2 vs QIIME2, ASV vs OTU, classifiers, and alpha/beta diversity.</p></a>
+  <a href="metagenomics.html" class="hub-card"><div class="hub-emoji">🧬</div><span class="step-num">Step 2</span><h3 data-zh="Shotgun Metagenomics" data-en="Shotgun Metagenomics">Shotgun Metagenomics</h3><p data-lang="zh">Kraken2 + Bracken classification、metaSPAdes 組裝、binning (MetaBAT2)、MAG 評估 (CheckM2)。</p><p data-lang="en">Kraken2 + Bracken classification, metaSPAdes assembly, binning (MetaBAT2), MAG QC (CheckM2).</p></a>
+  <a href="function.html" class="hub-card"><div class="hub-emoji">⚙️</div><span class="step-num">Step 3</span><h3 data-zh="功能性分析" data-en="Functional Profiling">功能性分析</h3><p data-lang="zh">HUMAnN3 pathway 分析、PICRUSt2 從 16S 推 KO、宏代謝重建。</p><p data-lang="en">HUMAnN3 pathway analysis, PICRUSt2 KO inference from 16S, metabolic reconstruction.</p></a>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="關鍵概念" data-en="KEY CONCEPTS">關鍵概念</div>
+<h2 data-zh="必懂三個概念" data-en="Three Must-knows">必懂三個概念</h2>
+<div class="card-grid cols-3">
+<div class="card"><h4>Alpha diversity</h4><p data-lang="zh">單一樣本內物種豐富度與均勻度。常用：Shannon、Simpson、Faith's PD。</p><p data-lang="en">Within-sample richness + evenness. Common: Shannon, Simpson, Faith's PD.</p></div>
+<div class="card"><h4>Beta diversity</h4><p data-lang="zh">樣本間群落結構差異。常用：Bray-Curtis、UniFrac (weighted/unweighted)。</p><p data-lang="en">Between-sample compositional differences. Common: Bray-Curtis, UniFrac (weighted/unweighted).</p></div>
+<div class="card"><h4>Compositionality</h4><p data-lang="zh">微生物相對豐度為「比例資料」，總和為 1。傳統統計（t-test、Pearson r）會誤導；應用 CLR 轉換 + ALDEx2 / ANCOM。</p><p data-lang="en">Microbial relative abundances are compositional (sum to 1). Traditional stats (t-test, Pearson) mislead; use CLR + ALDEx2 / ANCOM.</p></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="範例資料" data-en="DATASETS">範例資料</div>
+<h2 data-zh="公開資料集" data-en="Public Datasets">公開資料集</h2>
+<div data-lang="zh"><ul style="margin-left:24px;color:var(--c-ink-light);"><li><strong>Human Microbiome Project (HMP)</strong>：18 個身體部位的健康人 16S + WGS 基準資料。</li><li><strong>American Gut Project</strong>：超過 25,000 個樣本，含 lifestyle metadata。</li><li><strong>EBI MGnify</strong>：歐洲微生物群體公開資料庫。</li><li><strong>QIITA</strong>：QIIME2 社群的開放微生物群體平台。</li><li><strong>NCBI SRA + ENA</strong>：原始 reads 公開資料庫。</li></ul></div>
+<div data-lang="en"><ul style="margin-left:24px;color:var(--c-ink-light);"><li><strong>Human Microbiome Project (HMP)</strong>: 16S + WGS from healthy humans, 18 body sites.</li><li><strong>American Gut Project</strong>: 25,000+ samples with lifestyle metadata.</li><li><strong>EBI MGnify</strong>: European microbiome reference resource.</li><li><strong>QIITA</strong>: QIIME2 community microbiome platform.</li><li><strong>NCBI SRA + ENA</strong>: raw reads archives.</li></ul></div>
+</section>
+
+<nav class="page-nav"><a href="../index.html"><span class="nav-dir" data-zh="← 返回" data-en="← Back">← 返回</span><span class="nav-title" data-zh="主頁" data-en="Hub">主頁</span></a><a href="amplicon.html"><span class="nav-dir" data-zh="開始 →" data-en="Start →">開始 →</span><span class="nav-title" data-zh="Step 1：Amplicon" data-en="Step 1: Amplicon">Step 1：Amplicon</span></a></nav>
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
+<script src="../i18n.js"></script>
+</body></html>

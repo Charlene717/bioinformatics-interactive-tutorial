@@ -1,0 +1,131 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>16S Amplicon — Microbiome</title>
+<link rel="stylesheet" href="../styles.css"></head><body class="theme-microbiome">
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
+  <ul class="top-nav-links">
+    <li><a href="index.html">Microbiome</a></li><li><a href="amplicon.html" class="active">Amplicon</a></li><li><a href="metagenomics.html">Metagenomics</a></li><li><a href="function.html">Function</a></li>
+  </ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">STEP 1 / 3</div><h1 data-zh="16S / ITS Amplicon 分析" data-en="16S / ITS Amplicon Analysis">16S / ITS Amplicon</h1><p class="subtitle" data-lang="zh">最普及的微生物群體調查方式——用一段保守基因當條碼識別細菌或真菌。</p><p class="subtitle" data-lang="en">The most popular microbiome survey — use a conserved gene as a barcode for bacteria or fungi.</p></header><main class="content-wrap">
+
+<section class="section"><div class="section-label" data-zh="基本概念" data-en="BASICS">基本概念</div>
+<h2 data-zh="16S rRNA 結構" data-en="16S rRNA Structure">16S rRNA 結構</h2>
+<div data-lang="zh"><p>16S rRNA 是所有細菌都有、約 1500 bp 的核醣體 RNA 基因。它有 9 個可變區 (V1-V9) 與保守區交替。常見策略是只 PCR 一兩個可變區：</p></div>
+<div data-lang="en"><p>16S rRNA is a ~1500 bp ribosomal RNA gene present in all bacteria, with 9 variable regions (V1-V9) interleaved with conserved regions. Common strategy: PCR-amplify 1-2 variable regions:</p></div>
+<table class="comp-table"><thead><tr><th data-zh="目標區段" data-en="Region">目標區段</th><th>primer</th><th data-zh="解析度" data-en="Resolution">解析度</th><th data-zh="特色" data-en="Notes">特色</th></tr></thead><tbody>
+<tr><td>V3-V4</td><td>341F / 806R</td><td data-zh="genus 較佳" data-en="Decent at genus">中等</td><td data-zh="Illumina MiSeq 最常見" data-en="Most popular on Illumina MiSeq">最普及</td></tr>
+<tr><td>V4</td><td>515F / 806R</td><td data-zh="phylum / genus" data-en="Phylum / genus">中</td><td data-zh="Earth Microbiome Project 標準" data-en="Earth Microbiome Project standard">EMP 標準</td></tr>
+<tr><td>V1-V9 (全長)</td><td data-zh="長讀 PCR" data-en="Long-read PCR">全長</td><td>species</td><td data-zh="PacBio HiFi；解析度最高" data-en="PacBio HiFi; best resolution">PacBio</td></tr>
+<tr><td>ITS1 / ITS2</td><td>ITS1F / ITS2R</td><td data-zh="真菌 species" data-en="Fungal species">真菌</td><td data-zh="真菌專用，比 18S 解析度高" data-en="Fungal-specific; higher resolution than 18S">真菌</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label" data-zh="OTU vs ASV" data-en="OTU vs ASV">OTU vs ASV</div>
+<h2 data-zh="OTU vs ASV：從聚類到「精確序列」" data-en="OTU vs ASV: from clustering to exact sequences">OTU vs ASV</h2>
+<div class="card-grid cols-2">
+<div class="card"><div class="card-icon">🟡</div><h4>OTU (Operational Taxonomic Unit)</h4><p data-lang="zh">傳統做法：把相似度 ≥ 97% 的序列聚類成一個 OTU。優：耐受定序錯誤；限：丟失子物種精度，且 OTU 邊界不穩定。</p><p data-lang="en">Traditional: cluster sequences ≥ 97% similarity into one OTU. Pro: tolerates seq errors. Con: loses sub-species detail; OTU boundaries unstable.</p></div>
+<div class="card"><div class="card-icon">🟢</div><h4>ASV (Amplicon Sequence Variant)</h4><p data-lang="zh">2017 後主流：用 denoising 模型 (DADA2、Deblur) 把錯誤從序列「校正回真實」，每個唯一序列即一個 ASV。優：解析到單鹼基；可跨研究比較。</p><p data-lang="en">Post-2017 standard: denoising models (DADA2, Deblur) "correct errors back to truth"; each unique sequence = one ASV. Pro: single-base resolution; cross-study comparable.</p></div>
+</div>
+<div class="callout tip"><span class="callout-icon">💡</span><div data-lang="zh"><strong>當代建議：</strong>新分析一律用 ASV (DADA2)。OTU 主要用於回溯老資料或計算量考量。</div><div data-lang="en"><strong>Modern recommendation:</strong> Use ASV (DADA2) for new analyses. OTU is mainly for legacy data or compute constraints.</div></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="工具" data-en="TOOLS">工具</div>
+<h2 data-zh="主流流程" data-en="Mainstream Pipelines">主流流程</h2>
+<div class="tool-pills"><span class="tool-pill">DADA2 (R)</span><span class="tool-pill">QIIME2</span><span class="tool-pill">mothur</span><span class="tool-pill">vsearch</span><span class="tool-pill">PICRUSt2</span></div>
+<div class="code-tabs"><div class="code-tab-btns">
+<button class="code-tab-btn active" onclick="switchTab(this,'dada')">DADA2</button>
+<button class="code-tab-btn" onclick="switchTab(this,'qiime')">QIIME2</button>
+</div>
+<div class="code-tab-content active" id="dada"><pre><span class="kw">library</span>(dada2)
+path &lt;- <span class="str">"raw_fastqs/"</span>
+fnF &lt;- <span class="func">sort</span>(<span class="func">list.files</span>(path, pattern = <span class="str">"_R1.fastq.gz"</span>))
+fnR &lt;- <span class="func">sort</span>(<span class="func">list.files</span>(path, pattern = <span class="str">"_R2.fastq.gz"</span>))
+filtF &lt;- <span class="func">file.path</span>(<span class="str">"filt"</span>, <span class="func">basename</span>(fnF))
+filtR &lt;- <span class="func">file.path</span>(<span class="str">"filt"</span>, <span class="func">basename</span>(fnR))
+
+<span class="comment"># 1. 品質過濾</span>
+<span class="func">filterAndTrim</span>(fnF, filtF, fnR, filtR,
+              truncLen   = <span class="func">c</span>(<span class="num">240</span>, <span class="num">200</span>),
+              maxEE      = <span class="func">c</span>(<span class="num">2</span>, <span class="num">2</span>),
+              truncQ     = <span class="num">2</span>,
+              rm.phix    = <span class="kw">TRUE</span>, multithread = <span class="kw">TRUE</span>)
+
+<span class="comment"># 2. 估計錯誤率 + 主流程</span>
+errF &lt;- <span class="func">learnErrors</span>(filtF, multithread = <span class="kw">TRUE</span>)
+errR &lt;- <span class="func">learnErrors</span>(filtR, multithread = <span class="kw">TRUE</span>)
+ddF  &lt;- <span class="func">dada</span>(filtF, err = errF, multithread = <span class="kw">TRUE</span>)
+ddR  &lt;- <span class="func">dada</span>(filtR, err = errR, multithread = <span class="kw">TRUE</span>)
+mrg  &lt;- <span class="func">mergePairs</span>(ddF, filtF, ddR, filtR)
+seqtab &lt;- <span class="func">makeSequenceTable</span>(mrg)
+
+<span class="comment"># 3. 去 chimera + 分類</span>
+seqtab.nc &lt;- <span class="func">removeBimeraDenovo</span>(seqtab, method = <span class="str">"consensus"</span>)
+tax &lt;- <span class="func">assignTaxonomy</span>(seqtab.nc, <span class="str">"silva_nr99_v138_train_set.fa.gz"</span>)</pre></div>
+<div class="code-tab-content" id="qiime"><pre><span class="comment"># QIIME2 完整流程</span>
+qiime tools import --type <span class="str">'SampleData[PairedEndSequencesWithQuality]'</span> \
+  --input-path manifest.csv \
+  --input-format PairedEndFastqManifestPhred33V2 \
+  --output-path demux.qza
+
+qiime dada2 denoise-paired \
+  --i-demultiplexed-seqs demux.qza \
+  --p-trunc-len-f <span class="num">240</span> --p-trunc-len-r <span class="num">200</span> \
+  --p-n-threads <span class="num">8</span> \
+  --o-table table.qza --o-representative-sequences rep-seqs.qza --o-denoising-stats stats.qza
+
+qiime feature-classifier classify-sklearn \
+  --i-classifier silva-138-99-nb-classifier.qza \
+  --i-reads rep-seqs.qza \
+  --o-classification taxonomy.qza</pre></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
+<h2 data-zh="Alpha Diversity：Shannon Index" data-en="Alpha Diversity: Shannon Index">Shannon Index</h2>
+<div data-lang="zh"><p>調整三個物種的相對豐度，看 Shannon 指數變化。最大值出現在「均勻分佈」時。</p></div>
+<div data-lang="en"><p>Tune three species' relative abundances; see Shannon. Maximized at perfect evenness.</p></div>
+<div class="interactive-panel">
+<div class="slider-group"><label>Species A (%) <span id="valA">50</span></label><input type="range" id="sliderA" min="0" max="100" value="50" step="1"></div>
+<div class="slider-group"><label>Species B (%) <span id="valB">30</span></label><input type="range" id="sliderB" min="0" max="100" value="30" step="1"></div>
+<div class="slider-group"><label>Species C (%) <span id="valC">20</span></label><input type="range" id="sliderC" min="0" max="100" value="20" step="1"></div>
+<div class="stat-row">
+<div class="stat-box"><div class="sb-num" id="shannon">--</div><div class="sb-lbl">Shannon H'</div></div>
+<div class="stat-box"><div class="sb-num" id="simpson">--</div><div class="sb-lbl">Simpson D</div></div>
+<div class="stat-box"><div class="sb-num" id="evenness">--</div><div class="sb-lbl">Evenness J'</div></div>
+</div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="下游分析" data-en="DOWNSTREAM">下游分析</div>
+<h2 data-zh="核心下游分析" data-en="Core Downstream">核心下游分析</h2>
+<div class="card-grid cols-2">
+<div class="card"><h4 data-zh="Alpha / Beta diversity" data-en="Alpha / Beta diversity">Alpha / Beta diversity</h4><p data-lang="zh">用 phyloseq、vegan、scikit-bio。Alpha 比較組間多樣性；Beta + PERMANOVA 比較群落結構差異。</p><p data-lang="en">phyloseq, vegan, scikit-bio. Alpha compares diversity across groups; Beta + PERMANOVA tests composition shifts.</p></div>
+<div class="card"><h4 data-zh="差異豐度分析" data-en="Differential abundance">差異豐度</h4><p data-lang="zh">微生物比例資料專用：ALDEx2、ANCOM-BC、MaAsLin2、LEfSe。避免直接用 t-test。</p><p data-lang="en">Compositional-aware tools: ALDEx2, ANCOM-BC, MaAsLin2, LEfSe. Avoid t-test on raw proportions.</p></div>
+<div class="card"><h4 data-zh="物種網絡" data-en="Microbial networks">物種網絡</h4><p data-lang="zh">SparCC、SPIEC-EASI 建立物種共生網絡，找微生物社群結構。</p><p data-lang="en">SparCC, SPIEC-EASI build co-occurrence networks to reveal microbial communities.</p></div>
+<div class="card"><h4 data-zh="功能預測" data-en="Function prediction">功能預測</h4><p data-lang="zh">PICRUSt2 從 16S 推估 KO 與 pathway——詳見 Step 3。</p><p data-lang="en">PICRUSt2 infers KOs & pathways from 16S — see Step 3.</p></div>
+</div>
+</section>
+
+<nav class="page-nav"><a href="index.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Microbiome 總覽" data-en="Microbiome Overview">Microbiome 總覽</span></a><a href="metagenomics.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 2：Metagenomics" data-en="Step 2: Metagenomics">Step 2：Metagenomics</span></a></nav>
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
+<script src="../i18n.js"></script>
+<script>
+window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
+function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
+function up(){
+  let a=+document.getElementById('sliderA').value;let b=+document.getElementById('sliderB').value;let c=+document.getElementById('sliderC').value;
+  document.getElementById('valA').textContent=a;document.getElementById('valB').textContent=b;document.getElementById('valC').textContent=c;
+  const s=a+b+c;if(s===0){a=1;}
+  const p=[a/(a+b+c||1),b/(a+b+c||1),c/(a+b+c||1)];
+  const H=-p.filter(x=>x>0).reduce((acc,x)=>acc+x*Math.log(x),0);
+  const D=1-p.reduce((acc,x)=>acc+x*x,0);
+  const J=H/Math.log(3);
+  document.getElementById('shannon').textContent=H.toFixed(3);
+  document.getElementById('simpson').textContent=D.toFixed(3);
+  document.getElementById('evenness').textContent=J.toFixed(3);
+}
+['sliderA','sliderB','sliderC'].forEach(id=>document.getElementById(id).addEventListener('input',up));up();
+</script></body></html>

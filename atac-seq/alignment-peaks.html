@@ -1,0 +1,134 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Alignment & Peaks — ATAC-seq</title>
+<link rel="stylesheet" href="../styles.css"></head><body class="theme-atac">
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
+  <ul class="top-nav-links">
+    <li><a href="index.html">ATAC</a></li><li><a href="principles.html">原理</a></li><li><a href="alignment-peaks.html" class="active">Peaks</a></li><li><a href="motif.html">Motif</a></li><li><a href="integration.html">Integ</a></li>
+  </ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">STEP 2 / 4</div><h1 data-zh="Alignment、Peak Calling 與 QC" data-en="Alignment, Peak Calling, and QC">Alignment、Peak Calling 與 QC</h1><p class="subtitle" data-lang="zh">把 reads 對齊到基因組、找出開放區域 (peaks)、並用標準指標評估資料品質。</p><p class="subtitle" data-lang="en">Align reads, find open regions (peaks), and benchmark data quality with standard metrics.</p></header><main class="content-wrap">
+
+<section class="section"><div class="section-label" data-zh="工具選擇" data-en="TOOLS">工具選擇</div>
+<h2 data-zh="Alignment 與 Peak Calling 工具" data-en="Alignment & Peak Calling Tools">Alignment 與 Peak Calling</h2>
+<table class="comp-table"><thead><tr><th data-zh="階段" data-en="Stage">階段</th><th data-zh="工具" data-en="Tool">工具</th><th data-zh="特色" data-en="Notes">特色</th></tr></thead><tbody>
+<tr><td data-zh="比對" data-en="Alignment" rowspan="2">比對</td><td><strong>Bowtie2 --very-sensitive</strong></td><td data-zh="ENCODE ATAC-seq 標準" data-en="ENCODE ATAC-seq standard">ENCODE 標準</td></tr>
+<tr><td>BWA-MEM</td><td data-zh="長讀適合；通用性高" data-en="Better for longer reads; general-purpose">通用</td></tr>
+<tr><td data-zh="Peak Calling" data-en="Peak Calling" rowspan="3">Peak Calling</td><td><strong>MACS2 / MACS3</strong></td><td data-zh="最普及；ATAC 用 <code>-f BAMPE --nomodel --shift -75 --extsize 150</code>" data-en="Most popular; for ATAC use <code>-f BAMPE --nomodel --shift -75 --extsize 150</code>">最普及</td></tr>
+<tr><td>Genrich</td><td data-zh="ATAC 友好、無需事先 shift；可同時處理多 replicates" data-en="ATAC-friendly; no shift needed; handles replicates jointly">ATAC 友好</td></tr>
+<tr><td>HMMRATAC</td><td data-zh="同時辨識 NFR / nucleosome；隱馬可夫模型" data-en="HMM-based; identifies NFR / nucleosome jointly">HMM</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label" data-zh="關鍵 QC" data-en="QC METRICS">關鍵 QC</div>
+<h2 data-zh="ENCODE 推薦 QC 指標" data-en="ENCODE Recommended QC">ENCODE 推薦 QC</h2>
+<div class="card-grid cols-2">
+<div class="card"><h4>TSS Enrichment</h4><p data-lang="zh">TSS 周圍 ±2 kb 訊號 / 背景訊號比。<strong>&gt; 7 為高品質、5-7 可接受、&lt; 5 低品質</strong>。是 ATAC 最重要的單一指標。</p><p data-lang="en">Signal at TSS ±2 kb / background. <strong>&gt; 7 high quality, 5-7 acceptable, &lt; 5 low</strong>. The single most important ATAC metric.</p></div>
+<div class="card"><h4>FRiP (Fraction of Reads in Peaks)</h4><p data-lang="zh">落在 peaks 內的 read 比例。<strong>ENCODE 建議 &gt; 0.3</strong>；超過 0.5 已是優秀。</p><p data-lang="en">Read fraction in peaks. <strong>ENCODE recommends &gt; 0.3</strong>; &gt; 0.5 is excellent.</p></div>
+<div class="card"><h4 data-zh="Library complexity / PBC" data-en="Library complexity / PBC">Library 複雜度</h4><p data-lang="zh">PBC1 = unique positions / mapped positions。<strong>&gt; 0.7</strong> 良好；過低代表 PCR 過頭或樣本不足。</p><p data-lang="en">PBC1 = unique / mapped positions. <strong>&gt; 0.7</strong> good; lower indicates PCR over-amplification or too few cells.</p></div>
+<div class="card"><h4 data-zh="Peak 數量" data-en="Peak count">Peak 數</h4><p data-lang="zh">大多數人類樣本 ~50,000 - 150,000 peaks (q &lt; 0.05)。過少代表 under-tagmented 或品質差。</p><p data-lang="en">Human samples typically 50,000 - 150,000 peaks (q &lt; 0.05). Too few indicates under-tagmentation or poor quality.</p></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
+<h2 data-zh="TSS Enrichment 形狀" data-en="TSS Enrichment Shape">TSS Enrichment 形狀</h2>
+<div data-lang="zh"><p>調整品質參數，看 TSS 周圍 ±2 kb coverage 曲線：</p></div>
+<div data-lang="en"><p>Tune quality; see the ±2 kb coverage profile around TSSs:</p></div>
+<div class="interactive-panel">
+<div class="slider-group"><label data-lang="zh">樣本品質<span id="valQ">7</span></label><label data-lang="en">Sample quality<span id="valQEn">7</span></label><input type="range" id="sliderQ" min="1" max="15" value="7" step="0.5"></div>
+<div class="stat-row">
+<div class="stat-box"><div class="sb-num" id="tssScore">--</div><div class="sb-lbl">TSS Enrichment</div></div>
+<div class="stat-box"><div class="sb-num" id="qLabel">--</div><div class="sb-lbl" data-zh="評估" data-en="Verdict">評估</div></div>
+</div>
+<div class="chart-container" style="height:280px;"><canvas id="tssChart"></canvas></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="程式碼" data-en="CODE">程式碼</div>
+<h2 data-zh="完整流程" data-en="Full Pipeline">完整流程</h2>
+<div class="code-tabs"><div class="code-tab-btns">
+<button class="code-tab-btn active" onclick="switchTab(this,'macs')">MACS3 peak calling</button>
+<button class="code-tab-btn" onclick="switchTab(this,'genrich')">Genrich</button>
+<button class="code-tab-btn" onclick="switchTab(this,'qc')">QC 指標</button>
+</div>
+<div class="code-tab-content active" id="macs"><pre><span class="comment"># MACS3 (or MACS2) 對 ATAC paired-end 推薦設定</span>
+macs3 callpeak \
+  -f BAMPE -t shifted.bam \
+  -g hs -n sample1 \
+  --nomodel --shift -<span class="num">75</span> --extsize <span class="num">150</span> \
+  -q <span class="num">0.05</span> \
+  --keep-dup all \
+  --outdir macs3_out/</pre></div>
+<div class="code-tab-content" id="genrich"><pre><span class="comment"># Genrich 內建 ATAC 模式，無需手動 shift</span>
+samtools sort -n shifted.bam -o sorted_qname.bam
+Genrich -t sorted_qname.bam \
+  -j -y -r -e chrM \
+  -o sample1.narrowPeak \
+  -k sample1.pileup.bedgraph</pre></div>
+<div class="code-tab-content" id="qc"><pre><span class="comment"># FRiP（落在 peaks 的 read 比例）</span>
+in_peak=$(bedtools intersect -u -a shifted.bam -b sample1.narrowPeak | samtools view -c -)
+total=$(samtools view -c shifted.bam)
+echo <span class="str">"FRiP = $(echo "scale=3; $in_peak / $total" | bc)"</span>
+
+<span class="comment"># TSS enrichment（deepTools）</span>
+computeMatrix reference-point \
+  -S sample1.bw -R tss.bed \
+  --referencePoint TSS -a <span class="num">2000</span> -b <span class="num">2000</span> \
+  --outFileName tss_matrix.gz
+
+plotProfile -m tss_matrix.gz -o tss_profile.png \
+  --regionsLabel <span class="str">"TSS"</span> --plotTitle <span class="str">"TSS Enrichment"</span></pre></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="進階" data-en="ADVANCED">進階</div>
+<h2 data-zh="差異開放區域 (DAR)" data-en="Differential Accessible Regions (DAR)">差異開放區域 (DAR)</h2>
+<div data-lang="zh"><p>類似 RNA-seq 的 DE，可以找出兩組樣本間 peak 開放度不同的區域：</p></div>
+<div data-lang="en"><p>Similar to RNA-seq DE — find peaks differentially open between groups:</p></div>
+<div class="code-tabs"><div class="code-tab-btns">
+<button class="code-tab-btn active" onclick="switchTab(this,'dbn')">DiffBind</button>
+<button class="code-tab-btn" onclick="switchTab(this,'cs')">csaw</button>
+</div>
+<div class="code-tab-content active" id="dbn"><pre><span class="kw">library</span>(DiffBind)
+samples &lt;- <span class="func">dba</span>(sampleSheet = <span class="str">"samples.csv"</span>)
+samples &lt;- <span class="func">dba.count</span>(samples, summits = <span class="num">200</span>)
+samples &lt;- <span class="func">dba.normalize</span>(samples)
+samples &lt;- <span class="func">dba.contrast</span>(samples, categories = DBA_CONDITION)
+samples &lt;- <span class="func">dba.analyze</span>(samples)
+db &lt;- <span class="func">dba.report</span>(samples, th = <span class="num">0.05</span>)</pre></div>
+<div class="code-tab-content" id="cs"><pre><span class="kw">library</span>(csaw)
+counts &lt;- <span class="func">windowCounts</span>(bam.files, width = <span class="num">150</span>, ext = <span class="num">200</span>)
+counts &lt;- <span class="func">filterWindowsGlobal</span>(counts)
+counts &lt;- <span class="func">normFactors</span>(counts)
+fit &lt;- <span class="func">glmQLFit</span>(counts, design = design)
+res &lt;- <span class="func">glmQLFTest</span>(fit, contrast = c.matrix)</pre></div>
+</div>
+</section>
+
+<nav class="page-nav"><a href="principles.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 1：原理" data-en="Step 1: Principles">Step 1：原理</span></a><a href="motif.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 3：Motif" data-en="Step 3: Motif">Step 3：Motif</span></a></nav>
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="../i18n.js"></script>
+<script>
+window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
+function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
+const xs=Array.from({length:81},(_,i)=>(i-40)*50);
+const ch=new Chart(document.getElementById('tssChart'),{type:'line',data:{labels:xs,datasets:[{label:'signal',data:[],borderColor:'#c66a1e',backgroundColor:'rgba(198,106,30,0.18)',fill:true,borderWidth:2,pointRadius:0,tension:0.3}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{title:{display:true,text:'distance from TSS (bp)'}},y:{title:{display:true,text:'normalized signal'}}},plugins:{legend:{display:false}}}});
+function upT(){
+  const q=+document.getElementById('sliderQ').value;
+  document.getElementById('valQ').textContent=q.toFixed(1);document.getElementById('valQEn').textContent=q.toFixed(1);
+  const data=xs.map(x=>{return 1+(q-1)*Math.exp(-(x**2)/(2*250**2));});
+  ch.data.datasets[0].data=data;ch.update('none');
+  document.getElementById('tssScore').textContent=q.toFixed(1);
+  const L=I18n.get();
+  let label;
+  if(q>=7)label=L==='zh'?'優':'High';
+  else if(q>=5)label=L==='zh'?'可':'OK';
+  else if(q>=3)label=L==='zh'?'差':'Low';
+  else label=L==='zh'?'不可用':'Reject';
+  document.getElementById('qLabel').textContent=label;
+}
+document.getElementById('sliderQ').addEventListener('input',upT);document.addEventListener('langchange',upT);upT();
+</script></body></html>

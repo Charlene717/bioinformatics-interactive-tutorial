@@ -1,0 +1,106 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Platforms — Spatial Transcriptomics</title>
+<link rel="stylesheet" href="../styles.css"></head><body class="theme-spatial">
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
+  <ul class="top-nav-links">
+    <li><a href="index.html">Spatial</a></li><li><a href="platforms.html" class="active">Platforms</a></li><li><a href="preprocessing.html">Preproc</a></li><li><a href="spatial-analysis.html">Analysis</a></li><li><a href="deconvolution.html">Deconv</a></li><li><a href="interactions.html">Comms</a></li>
+  </ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">STEP 1 / 5</div><h1 data-zh="平台與技術" data-en="Platforms & Technologies">平台與技術</h1><p class="subtitle" data-lang="zh">六大主流空間轉錄組學技術——解析度、通量、價格、適用場景的權衡。</p><p class="subtitle" data-lang="en">Six major spatial transcriptomics platforms — trade-offs in resolution, throughput, cost, and use cases.</p></header><main class="content-wrap">
+
+<section class="section"><div class="section-label" data-zh="兩大派別" data-en="TWO FAMILIES">兩大派別</div>
+<h2 data-zh="Array-based vs Imaging-based" data-en="Array-based vs Imaging-based">兩大派別</h2>
+<div class="card-grid cols-2">
+<div class="card"><div class="card-icon">🟢</div><h4 data-zh="Array-based (NGS 流程)" data-en="Array-based (NGS workflow)">Array-based</h4><p data-lang="zh">在玻片上固定大量 barcoded 寡核苷酸，捕捉組織釋放的 mRNA，再用 short-read 定序讀取。<strong>優：</strong>全轉錄組、流程接近 scRNA-seq。<strong>限制：</strong>解析度受 barcode 大小限制。</p><p data-lang="en">Barcoded oligo arrays on a glass slide capture released mRNA; short-read sequencing reads them out. <strong>Pro:</strong> whole transcriptome, scRNA-like workflow. <strong>Limit:</strong> resolution capped by barcode size.</p><p data-lang="zh"><strong>代表：</strong>Visium、Visium HD、Slide-seq V2、Stereo-seq、HDST。</p><p data-lang="en"><strong>Tools:</strong> Visium, Visium HD, Slide-seq V2, Stereo-seq, HDST.</p></div>
+<div class="card"><div class="card-icon">🟣</div><h4 data-zh="Imaging-based (smFISH 流程)" data-en="Imaging-based (smFISH)">Imaging-based</h4><p data-lang="zh">針對預設基因 panel 設計多輪 FISH 探針，逐輪拍照、用組合編碼解讀基因身份。<strong>優：</strong>亞細胞、保留原位形貌。<strong>限制：</strong>panel 通常 100-1000 基因，非全轉錄組。</p><p data-lang="en">Pre-designed gene-panel FISH probes are imaged in multiple rounds; combinatorial codes decode gene identity. <strong>Pro:</strong> sub-cellular, preserves morphology. <strong>Limit:</strong> 100–1000 gene panels, not whole transcriptome.</p><p data-lang="zh"><strong>代表：</strong>MERFISH、Xenium、CosMx、STARmap、seqFISH+。</p><p data-lang="en"><strong>Tools:</strong> MERFISH, Xenium, CosMx, STARmap, seqFISH+.</p></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="平台比較" data-en="COMPARISON">平台比較</div>
+<h2 data-zh="關鍵指標一覽" data-en="Key Metrics at a Glance">關鍵指標一覽</h2>
+<table class="comp-table"><thead><tr><th>Platform</th><th data-zh="原理" data-en="Principle">原理</th><th data-zh="解析度" data-en="Resolution">解析度</th><th data-zh="基因數" data-en="Genes">基因數</th><th data-zh="特色" data-en="Notes">特色</th></tr></thead><tbody>
+<tr><td><strong>Visium</strong></td><td>poly-T array</td><td>55 μm (~1-10 cells)</td><td>~20,000 (whole-Tx)</td><td data-zh="商品化最成熟；FFPE 也支援" data-en="Most mature commercial; FFPE supported">最成熟</td></tr>
+<tr><td><strong>Visium HD</strong></td><td>2 μm bin array</td><td>2 μm (sub-cell)</td><td>~20,000</td><td data-zh="2023 推出；近單細胞解析度" data-en="Released 2023; near single-cell">2 μm bins</td></tr>
+<tr><td><strong>Slide-seq V2</strong></td><td>bead array</td><td>10 μm</td><td>~20,000</td><td data-zh="解析度高、捕獲率較低" data-en="Higher resolution; lower capture">捕獲率較低</td></tr>
+<tr><td><strong>Stereo-seq</strong></td><td>DNB chip</td><td data-zh="奈米級 (220 nm)" data-en="Nano (220 nm)">奈米級</td><td>~20,000</td><td data-zh="大組織面積 (cm 等級)；BGI 平台" data-en="cm-scale tissue area; BGI">大面積</td></tr>
+<tr><td><strong>10x Xenium</strong></td><td>imaging FISH</td><td>亞細胞</td><td>300-5000 panel</td><td data-zh="原位、FFPE 友好" data-en="In-situ, FFPE-friendly">FFPE 強</td></tr>
+<tr><td><strong>MERFISH</strong></td><td>combinatorial FISH</td><td>亞細胞</td><td>100-1000 panel</td><td data-zh="學術社群成熟、自製可行" data-en="Mature academic protocol">學術開源</td></tr>
+<tr><td><strong>CosMx</strong></td><td>imaging FISH</td><td>亞細胞</td><td>1000-6000 panel</td><td data-zh="NanoString 商品；含蛋白通道" data-en="NanoString commercial; protein channels">含蛋白</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label" data-zh="互動決策" data-en="INTERACTIVE">互動決策</div>
+<h2 data-zh="選平台的決策樹" data-en="Platform Decision Tree">選平台的決策樹</h2>
+<div class="interactive-panel">
+<div class="toggle-row">
+<button class="toggle-btn active" data-key="genes">基因覆蓋</button>
+<button class="toggle-btn" data-key="res">解析度</button>
+<button class="toggle-btn" data-key="sample">樣本類型</button>
+<button class="toggle-btn" data-key="cost">預算/通量</button>
+</div>
+<div id="decisionBox" style="min-height:180px;padding:18px;background:var(--c-surface-alt);border-radius:8px;font-size:.95rem;color:var(--c-ink);"></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="實務考量" data-en="PRACTICAL">實務考量</div>
+<h2 data-zh="選擇技術時的五個關鍵問題" data-en="Five Questions Before Choosing">五個關鍵問題</h2>
+<div class="decision-tree"><h4>🌳 <span data-zh="思考順序" data-en="Decision order">思考順序</span></h4>
+<div data-lang="zh">
+<div class="dt-node"><span class="dt-q">1.</span><div>樣本是 FFPE 還是 fresh-frozen？FFPE → Visium FFPE / Xenium / CosMx。</div></div>
+<div class="dt-node"><span class="dt-q">2.</span><div>需要全轉錄組嗎？要 → array-based (Visium / Stereo-seq)；不要 → imaging-based 可獲更高解析。</div></div>
+<div class="dt-node"><span class="dt-q">3.</span><div>需要單細胞層級嗎？要 → Xenium / MERFISH / Visium HD 或結合 deconvolution。</div></div>
+<div class="dt-node"><span class="dt-q">4.</span><div>組織面積多大？大面積（&gt; 1 cm²） → Stereo-seq；標準 → Visium 6.5×6.5 mm。</div></div>
+<div class="dt-node"><span class="dt-q">5.</span><div>多模態需求（蛋白、染色）？CosMx / Visium + IF 可同時偵測蛋白。</div></div>
+</div>
+<div data-lang="en">
+<div class="dt-node"><span class="dt-q">1.</span><div>FFPE or fresh-frozen? FFPE → Visium FFPE / Xenium / CosMx.</div></div>
+<div class="dt-node"><span class="dt-q">2.</span><div>Need whole transcriptome? Yes → array-based (Visium / Stereo-seq); no → imaging-based for higher resolution.</div></div>
+<div class="dt-node"><span class="dt-q">3.</span><div>Need single-cell? Yes → Xenium / MERFISH / Visium HD or pair with deconvolution.</div></div>
+<div class="dt-node"><span class="dt-q">4.</span><div>Large tissue (&gt; 1 cm²)? → Stereo-seq; standard → Visium 6.5×6.5 mm.</div></div>
+<div class="dt-node"><span class="dt-q">5.</span><div>Multimodal (protein, IF)? CosMx / Visium + IF for simultaneous protein detection.</div></div>
+</div>
+</div>
+</section>
+
+<section class="quiz-section"><h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
+<div class="quiz-q" data-answer="2"><p data-lang="zh">Visium 一個 spot 大約涵蓋多少細胞？</p><p data-lang="en">A Visium spot covers approximately how many cells?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 1 個（亞細胞）</span><span data-lang="en">A. 1 (sub-cellular)</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 0.5 個</span><span data-lang="en">B. 0.5</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 1-10 個</span><span data-lang="en">C. 1-10</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 100 個以上</span><span data-lang="en">D. 100+</span></div>
+</div><div class="quiz-feedback" id="fb1"></div></div>
+<div class="quiz-q" data-answer="1"><p data-lang="zh">下列何者屬於 imaging-based 空間轉錄組學？</p><p data-lang="en">Which is an imaging-based spatial platform?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. Visium</span><span data-lang="en">A. Visium</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. MERFISH</span><span data-lang="en">B. MERFISH</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. Slide-seq</span><span data-lang="en">C. Slide-seq</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. Stereo-seq</span><span data-lang="en">D. Stereo-seq</span></div>
+</div><div class="quiz-feedback" id="fb2"></div></div>
+</section>
+
+<nav class="page-nav"><a href="index.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Spatial 總覽" data-en="Spatial Overview">Spatial 總覽</span></a><a href="preprocessing.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 2：Preprocessing" data-en="Step 2: Preprocessing">Step 2：Preprocessing</span></a></nav>
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
+<script src="../i18n.js"></script>
+<script>
+window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
+const advice={
+  genes:{zh:'<strong>需要全轉錄組（無偏向探索）</strong> → Visium / Stereo-seq。<br><strong>已有先驗 panel 想加解析度</strong> → Xenium / MERFISH / CosMx。',
+        en:'<strong>Whole transcriptome (hypothesis-free)</strong> → Visium / Stereo-seq.<br><strong>Known gene panel + higher resolution</strong> → Xenium / MERFISH / CosMx.'},
+  res:{zh:'<strong>多細胞 spot OK</strong> → Visium (55 μm)。<br><strong>近單細胞</strong> → Visium HD (2 μm) / Slide-seq V2 (10 μm)。<br><strong>亞細胞 / 多輪 FISH</strong> → Xenium / MERFISH / CosMx。',
+       en:'<strong>Multi-cell spots OK</strong> → Visium (55 μm).<br><strong>Near single-cell</strong> → Visium HD (2 μm) / Slide-seq V2 (10 μm).<br><strong>Sub-cellular / multi-round FISH</strong> → Xenium / MERFISH / CosMx.'},
+  sample:{zh:'<strong>FFPE 切片</strong> → Visium CytAssist (FFPE 模式) / Xenium / CosMx。<br><strong>新鮮冷凍</strong> → 全平台支援；Visium 與 Stereo-seq 是常見起點。',
+         en:'<strong>FFPE</strong> → Visium CytAssist (FFPE) / Xenium / CosMx.<br><strong>Fresh-frozen</strong> → All platforms; Visium and Stereo-seq are common starting points.'},
+  cost:{zh:'<strong>單樣本快速試水</strong> → Visium (per-slide 約 $2,000-3,000)。<br><strong>大量臨床樣本</strong> → CytAssist 流程 + 自動化。<br><strong>大組織面積</strong> → Stereo-seq 一張 chip 即可。',
+       en:'<strong>Single sample, quick start</strong> → Visium (~$2,000-3,000 per slide).<br><strong>Large clinical batch</strong> → CytAssist + automation.<br><strong>Large tissue area</strong> → Stereo-seq one-chip coverage.'}
+};
+function setKey(k){
+  document.querySelectorAll('.toggle-btn').forEach(b=>b.classList.toggle('active',b.dataset.key===k));
+  const L=I18n.get();document.getElementById('decisionBox').innerHTML=advice[k][L];
+}
+document.querySelectorAll('.toggle-btn').forEach(b=>b.addEventListener('click',()=>setKey(b.dataset.key)));
+document.addEventListener('langchange',()=>{const k=document.querySelector('.toggle-btn.active').dataset.key;setKey(k);});setKey('genes');
+window._QF={zh:{q1_y:'Visium spot 55 μm，依組織密度約涵蓋 1-10 個細胞。',q1_n:'答案是 C：1-10 個細胞。',q2_y:'MERFISH 是 multi-round combinatorial FISH，屬 imaging-based。',q2_n:'答案是 B：MERFISH。'},en:{q1_y:'Visium spot is 55 μm — typically 1–10 cells depending on tissue density.',q1_n:'Answer is C: 1–10 cells.',q2_y:'MERFISH is multi-round combinatorial FISH — imaging-based.',q2_n:'Answer is B: MERFISH.'}};
+const QF=window._QF||{};document.querySelectorAll(".quiz-q").forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll(".quiz-opt").forEach(o=>{o.addEventListener("click",()=>{if(q.classList.contains("answered"))return;q.classList.add("answered");const fb=document.getElementById("fb"+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?"correct":"wrong");if(!ok)q.querySelectorAll(".quiz-opt")[ans].classList.add("correct");const L=I18n.get();fb.className="quiz-feedback show "+(ok?"correct-fb":"wrong-fb");fb.textContent=(ok?"✅ ":"❌ ")+(QF[L]&&QF[L]["q"+(qi+1)+"_"+(ok?"y":"n")]||"");});});});
+</script></body></html>

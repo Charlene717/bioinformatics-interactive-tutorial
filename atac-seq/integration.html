@@ -1,0 +1,112 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Multi-omics Integration — ATAC-seq</title>
+<link rel="stylesheet" href="../styles.css"></head><body class="theme-atac">
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
+  <ul class="top-nav-links">
+    <li><a href="index.html">ATAC</a></li><li><a href="principles.html">原理</a></li><li><a href="alignment-peaks.html">Peaks</a></li><li><a href="motif.html">Motif</a></li><li><a href="integration.html" class="active">Integ</a></li>
+  </ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">STEP 4 / 4</div><h1 data-zh="ATAC × RNA-seq 多體學整合" data-en="ATAC × RNA Multi-omics Integration">ATAC × RNA-seq 多體學整合</h1><p class="subtitle" data-lang="zh">把開放性與表達量串起來——找到 enhancer-gene 聯結、推導 gene regulatory network。</p><p class="subtitle" data-lang="en">Link accessibility to expression — find enhancer-gene pairs and infer gene regulatory networks.</p></header><main class="content-wrap">
+
+<section class="section"><div class="section-label" data-zh="兩種情境" data-en="TWO SCENARIOS">兩種情境</div>
+<h2 data-zh="Bulk vs Single-cell 整合" data-en="Bulk vs Single-cell Integration">Bulk vs Single-cell 整合</h2>
+<div class="card-grid cols-2">
+<div class="card"><div class="card-icon">📦</div><h4 data-zh="Bulk: 不同樣本整合" data-en="Bulk: same samples, two assays">Bulk 整合</h4><p data-lang="zh">同一批樣本同時做 RNA-seq + ATAC-seq → 在條件差異 (case vs control) 中比較 DEG 與 DAR 的重疊。常用 footprint 變化 + TF target 的 RNA 變化做 GRN 推論。</p><p data-lang="en">Same samples run for RNA + ATAC → compare DEG vs DAR overlap across conditions. GRN inference combines footprint changes with target-gene RNA changes.</p></div>
+<div class="card"><div class="card-icon">🔬</div><h4 data-zh="Single-cell: 10x Multiome" data-en="Single-cell: 10x Multiome">scMultiome 整合</h4><p data-lang="zh">在「同一細胞」同時測 RNA + ATAC（10x Multiome）。每細胞同時有表達與開放性向量，可直接計算 peak-gene 相關。工具：Signac、ArchR、MUON。</p><p data-lang="en">RNA + ATAC in the SAME cell (10x Multiome). Every cell carries expression + accessibility vectors — direct peak-gene correlations. Tools: Signac, ArchR, MUON.</p></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="主流工具" data-en="TOOLS">主流工具</div>
+<h2 data-zh="工具比較" data-en="Tool Comparison">工具比較</h2>
+<table class="comp-table"><thead><tr><th>Tool</th><th data-zh="情境" data-en="Scenario">情境</th><th data-zh="特色" data-en="Notes">特色</th></tr></thead><tbody>
+<tr><td><strong>Signac</strong></td><td data-zh="scATAC / scMultiome" data-en="scATAC / scMultiome">scMultiome</td><td data-zh="Seurat 生態系；與 scRNA 整合無縫" data-en="Seurat ecosystem; seamless with scRNA">Seurat 系</td></tr>
+<tr><td><strong>ArchR</strong></td><td data-zh="scATAC / scMultiome" data-en="scATAC / scMultiome">scMultiome</td><td data-zh="大資料優化；HDF5 後端；整合 peak2gene、TF-motif" data-en="Scales to large data; HDF5 backend; peak2gene + TF motifs">大資料</td></tr>
+<tr><td><strong>SnapATAC2</strong></td><td>scATAC</td><td data-zh="bin-based；速度快、支援百萬細胞" data-en="Bin-based; fast; scales to millions of cells">速度快</td></tr>
+<tr><td><strong>MUON / muon</strong></td><td data-zh="泛 multi-omics" data-en="Generic multi-omics">multi-modal</td><td data-zh="MOFA+ 共因子分解；可結合 protein / 甲基化" data-en="MOFA+ joint factorization; can include protein / methylation">通用</td></tr>
+<tr><td>GLUE / scGLUE</td><td data-zh="非配對整合" data-en="Unpaired integration">unpaired</td><td data-zh="不同細胞的 RNA / ATAC 整合到同空間" data-en="Integrates non-matched RNA / ATAC into a joint space">非配對</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label" data-zh="peak2gene" data-en="PEAK-TO-GENE">peak2gene</div>
+<h2 data-zh="如何聯結 peak 與 gene？" data-en="How to link peaks to genes?">如何聯結 peak 與 gene？</h2>
+<div data-lang="zh"><p>典型方法有三種：</p></div>
+<div data-lang="en"><p>Three common approaches:</p></div>
+<div class="decision-tree"><h4>🌳 peak2gene strategies</h4>
+<div data-lang="zh">
+<div class="dt-node"><span class="dt-q">距離：</span><div>最簡單。peak 對應最近 TSS 或 ±100 kb 內所有基因。優點：快、無需資料；缺點：忽略真實生物學。</div></div>
+<div class="dt-node"><span class="dt-q">相關性：</span><div>scMultiome：對每對 (peak, gene) 算跨細胞的相關係數。優：資料驅動；缺：需大量細胞。</div></div>
+<div class="dt-node"><span class="dt-q">3D 接觸：</span><div>結合 Hi-C / Capture-C / HiChIP 等 chromatin loop 資料；最生物學可信，但實驗成本最高。</div></div>
+</div>
+<div data-lang="en">
+<div class="dt-node"><span class="dt-q">Distance:</span><div>Simplest. Link peak to nearest TSS or all genes within ±100 kb. Fast; no extra data; ignores biology.</div></div>
+<div class="dt-node"><span class="dt-q">Correlation:</span><div>In scMultiome: per (peak, gene) pair, correlate across cells. Data-driven; needs many cells.</div></div>
+<div class="dt-node"><span class="dt-q">3D contact:</span><div>Use Hi-C / Capture-C / HiChIP chromatin loops. Most biological; costly experimentally.</div></div>
+</div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
+<h2 data-zh="ATAC 開放度與 RNA 表達" data-en="Accessibility vs Expression">ATAC 開放度 vs RNA 表達</h2>
+<div data-lang="zh"><p>給定 1000 個 (peak, gene) 對，調整真實相關性，看擬合線與雜訊樣貌：</p></div>
+<div data-lang="en"><p>1000 (peak, gene) pairs; tune true correlation; see the fit line and noise:</p></div>
+<div class="interactive-panel">
+<div class="slider-group"><label data-lang="zh">真實相關性 r<span id="valR">0.5</span></label><label data-lang="en">True correlation r<span id="valREn">0.5</span></label><input type="range" id="sliderR" min="-1" max="1" value="0.5" step="0.05"></div>
+<div class="stat-row">
+<div class="stat-box"><div class="sb-num" id="calcR">--</div><div class="sb-lbl">Pearson r (sim.)</div></div>
+<div class="stat-box"><div class="sb-num" id="calcN">--</div><div class="sb-lbl" data-zh="顯著 pair 數" data-en="Sig. pairs">顯著 pair 數</div></div>
+</div>
+<div class="chart-container" style="height:330px;"><canvas id="prChart"></canvas></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="程式碼" data-en="CODE">程式碼</div>
+<h2 data-zh="實作範例" data-en="Code Examples">實作範例</h2>
+<div class="code-tabs"><div class="code-tab-btns">
+<button class="code-tab-btn active" onclick="switchTab(this,'signac')">Signac</button>
+<button class="code-tab-btn" onclick="switchTab(this,'archR')">ArchR</button>
+</div>
+<div class="code-tab-content active" id="signac"><pre><span class="kw">library</span>(Signac); <span class="kw">library</span>(Seurat)
+mu &lt;- <span class="func">CreateSeuratObject</span>(counts = rna_counts, assay = <span class="str">"RNA"</span>)
+mu[[<span class="str">"ATAC"</span>]] &lt;- <span class="func">CreateChromatinAssay</span>(counts = atac_counts, sep = <span class="func">c</span>(<span class="str">":"</span>, <span class="str">"-"</span>),
+                                          fragments = <span class="str">"fragments.tsv.gz"</span>)
+
+<span class="comment"># Peak-gene linking</span>
+mu &lt;- <span class="func">LinkPeaks</span>(mu, peak.assay = <span class="str">"ATAC"</span>, expression.assay = <span class="str">"RNA"</span>,
+                   genes.use = <span class="func">c</span>(<span class="str">"GATA1"</span>, <span class="str">"TAL1"</span>))
+<span class="func">CoveragePlot</span>(mu, region = <span class="str">"GATA1"</span>, features = <span class="str">"GATA1"</span>,
+             expression.assay = <span class="str">"RNA"</span>, peaks = <span class="kw">TRUE</span>)</pre></div>
+<div class="code-tab-content" id="archR"><pre><span class="kw">library</span>(ArchR)
+proj &lt;- <span class="func">addPeak2GeneLinks</span>(ArchRProj = proj,
+                            reducedDims = <span class="str">"IterativeLSI"</span>,
+                            useMatrix = <span class="str">"GeneExpressionMatrix"</span>)
+p2g &lt;- <span class="func">getPeak2GeneLinks</span>(proj, corCutOff = <span class="num">0.45</span>, resolution = <span class="num">1</span>)
+<span class="func">plotPeak2GeneHeatmap</span>(ArchRProj = proj, groupBy = <span class="str">"Clusters"</span>)</pre></div>
+</div>
+</section>
+
+<nav class="page-nav"><a href="motif.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 3：Motif" data-en="Step 3: Motif">Step 3：Motif</span></a><a href="../index.html"><span class="nav-dir" data-zh="完成 ✓" data-en="Done ✓">完成 ✓</span><span class="nav-title" data-zh="返回 Hub" data-en="Back to Hub">返回 Hub</span></a></nav>
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="../i18n.js"></script>
+<script>
+window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
+function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
+function rnorm(){let u=Math.random(),v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+const ch=new Chart(document.getElementById('prChart'),{type:'scatter',data:{datasets:[{label:'(peak, gene)',data:[],backgroundColor:'rgba(198,106,30,0.45)',pointRadius:2.5}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{title:{display:true,text:'ATAC openness (z)'}},y:{title:{display:true,text:'RNA expression (z)'}}},plugins:{legend:{display:false}}}});
+function upPR(){
+  const r=+document.getElementById('sliderR').value;
+  document.getElementById('valR').textContent=r.toFixed(2);document.getElementById('valREn').textContent=r.toFixed(2);
+  const N=600;const pts=[];let sxx=0,syy=0,sxy=0,sx=0,sy=0;
+  for(let i=0;i<N;i++){const x=rnorm();const y=r*x+Math.sqrt(1-r*r)*rnorm();pts.push({x,y});sxx+=x*x;syy+=y*y;sxy+=x*y;sx+=x;sy+=y;}
+  const mx=sx/N,my=sy/N;const cor=(sxy-N*mx*my)/Math.sqrt((sxx-N*mx*mx)*(syy-N*my*my));
+  document.getElementById('calcR').textContent=cor.toFixed(2);
+  const t=cor*Math.sqrt(N-2)/Math.sqrt(1-cor*cor);
+  const sig=Math.abs(t)>2?Math.round(N*0.7):Math.round(N*0.1);
+  document.getElementById('calcN').textContent=sig;
+  ch.data.datasets[0].data=pts;ch.update('none');
+}
+document.getElementById('sliderR').addEventListener('input',upPR);upPR();
+</script></body></html>

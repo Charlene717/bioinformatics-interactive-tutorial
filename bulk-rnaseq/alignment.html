@@ -1,0 +1,160 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Alignment — Bulk RNA-seq</title>
+<link rel="stylesheet" href="../styles.css"></head><body class="theme-bulk">
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
+  <ul class="top-nav-links">
+    <li><a href="index.html">Bulk RNA</a></li><li><a href="qc-trim.html">QC</a></li><li><a href="alignment.html" class="active">Align</a></li><li><a href="quantification.html">Quant</a></li><li><a href="normalization.html">Norm</a></li><li><a href="de.html">DE</a></li><li><a href="visualization.html">Viz</a></li><li><a href="gsea.html">GSEA</a></li>
+  </ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">STEP 2 / 7</div><h1 data-zh="比對到參考基因組" data-en="Alignment to Reference">比對到參考基因組</h1><p class="subtitle" data-lang="zh">把 reads 對應到基因組或轉錄組的位置——是 RNA-seq 流程中計算成本最高、結果影響最大的一步。</p><p class="subtitle" data-lang="en">Map reads to genome / transcriptome positions — the most compute-intensive, results-defining step of RNA-seq.</p></header><main class="content-wrap">
+
+<section class="section"><div class="section-label" data-zh="核心概念" data-en="CONCEPT">核心概念</div>
+<h2 data-zh="兩大派別" data-en="Two Approaches">兩大派別</h2>
+<div data-lang="zh"><p>現代 RNA-seq 量化大致分為兩類：</p></div>
+<div data-lang="en"><p>Modern RNA-seq quantification splits into two families:</p></div>
+<div class="card-grid cols-2">
+<div class="card"><div class="card-icon">🎯</div><h4 data-zh="拼接式比對 (Splice-aware Alignment)" data-en="Splice-aware Alignment">拼接式比對</h4><p data-lang="zh">把每條 read 確切定位到基因組 BAM。代表：<strong>STAR</strong>、<strong>HISAT2</strong>。輸出 BAM 可用於變異偵測、視覺化 (IGV)、SJ 分析等下游。</p><p data-lang="en">Maps every read to genome coordinates as BAM. Tools: <strong>STAR</strong>, <strong>HISAT2</strong>. BAM enables variant calling, IGV visualization, splice junction analysis.</p></div>
+<div class="card"><div class="card-icon">⚡</div><h4 data-zh="偽比對 (Pseudo-alignment)" data-en="Pseudo-alignment">偽比對</h4><p data-lang="zh">只記 read 屬於哪個轉錄本，不算精確位置。代表：<strong>Salmon</strong>、<strong>kallisto</strong>。速度快 10–100×、記憶體小，直接輸出表達量。</p><p data-lang="en">Only records which transcripts each read could come from, not exact positions. Tools: <strong>Salmon</strong>, <strong>kallisto</strong>. 10–100× faster, low memory, direct quantification.</p></div>
+</div>
+<div class="flow-chain">
+  <span class="fc-step">FASTQ</span><span class="fc-arrow">→</span>
+  <span class="fc-step">STAR / HISAT2</span><span class="fc-arrow">→</span>
+  <span class="fc-step">BAM</span><span class="fc-arrow">→</span>
+  <span class="fc-step">featureCounts</span><span class="fc-arrow">→</span>
+  <span class="fc-step">counts</span>
+</div>
+<div class="flow-chain" style="background:var(--c-accent-light);">
+  <span class="fc-step">FASTQ</span><span class="fc-arrow">→</span>
+  <span class="fc-step">Salmon / kallisto</span><span class="fc-arrow">→</span>
+  <span class="fc-step">quant.sf / abundance</span><span class="fc-arrow">→</span>
+  <span class="fc-step">tximport</span><span class="fc-arrow">→</span>
+  <span class="fc-step">DESeq2</span>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="工具比較" data-en="COMPARISON">工具比較</div>
+<h2 data-zh="STAR vs HISAT2 vs Salmon" data-en="STAR vs HISAT2 vs Salmon">STAR vs HISAT2 vs Salmon</h2>
+<table class="comp-table"><thead><tr><th>Tool</th><th data-zh="演算法" data-en="Algorithm">演算法</th><th data-zh="速度" data-en="Speed">速度</th><th data-zh="記憶體" data-en="Memory">記憶體</th><th data-zh="特色" data-en="Notes">特色</th></tr></thead><tbody>
+<tr><td><strong>STAR</strong></td><td>Suffix Array</td><td>★★★★</td><td>~30 GB</td><td data-zh="ENCODE 標準；輸出最精準的 splice junctions" data-en="ENCODE standard; best splice junction accuracy">ENCODE 標準；SJ 最精準</td></tr>
+<tr><td><strong>HISAT2</strong></td><td>Graph-FM Index</td><td>★★★★</td><td>~8 GB</td><td data-zh="記憶體小；支援 graph genome" data-en="Low memory; graph genome support">記憶體小</td></tr>
+<tr><td><strong>Salmon</strong></td><td data-zh="selective alignment + EM" data-en="Selective alignment + EM">selective alignment + EM</td><td>★★★★★</td><td>~4 GB</td><td data-zh="GC / 位置偏差校正；轉錄本層級" data-en="GC / positional bias correction; transcript-level">GC bias 校正</td></tr>
+<tr><td><strong>kallisto</strong></td><td>k-mer / TBWT</td><td>★★★★★</td><td>~4 GB</td><td data-zh="最早的 pseudo-alignment；穩定快速" data-en="Original pseudo-aligner; fast & stable">最早的 pseudo-aligner</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
+<h2 data-zh="比對率對 DEG 偵測的影響" data-en="Mapping Rate vs DEG Recovery">比對率對 DEG 偵測的影響</h2>
+<div data-lang="zh"><p>調整 unique mapping rate（唯一比對率）與 duplicate rate，看可用 reads 數變化：</p></div>
+<div data-lang="en"><p>Drag mapping rate and duplicate rate sliders to see usable reads change:</p></div>
+<div class="interactive-panel">
+<div class="slider-group"><label data-lang="zh">總 reads (M)<span id="valTot">30</span></label><label data-lang="en">Total reads (M)<span id="valTotEn">30</span></label><input type="range" id="sliderTot" min="5" max="100" value="30" step="1"></div>
+<div class="slider-group"><label data-lang="zh">唯一比對率 (%)<span id="valUmap">85</span></label><label data-lang="en">Unique mapping rate (%)<span id="valUmapEn">85</span></label><input type="range" id="sliderUmap" min="40" max="98" value="85" step="1"></div>
+<div class="slider-group"><label data-lang="zh">重複率 (%)<span id="valDup">12</span></label><label data-lang="en">Duplicate rate (%)<span id="valDupEn">12</span></label><input type="range" id="sliderDup" min="0" max="60" value="12" step="1"></div>
+<div class="stat-row">
+<div class="stat-box"><div class="sb-num" id="usable">--</div><div class="sb-lbl" data-zh="可用 reads (M)" data-en="Usable reads (M)">可用 reads (M)</div></div>
+<div class="stat-box"><div class="sb-num" id="quality">--</div><div class="sb-lbl" data-zh="品質評估" data-en="Quality">品質評估</div></div>
+<div class="stat-box"><div class="sb-num" id="degCap">--</div><div class="sb-lbl" data-zh="DEG 偵測力" data-en="DEG Power">DEG 偵測力</div></div>
+</div>
+<div id="advice" style="font-size:.9rem;color:var(--c-ink-light);"></div>
+</div>
+<div class="callout tip"><span class="callout-icon">📏</span><div data-lang="zh"><strong>業界基準：</strong>RNA-seq 樣本通常需要至少 <strong>20 M usable reads</strong>（去除 rRNA、重複後）才能可靠偵測中低表達基因；ENCODE 建議 30 M paired-end。</div><div data-lang="en"><strong>Field benchmark:</strong> Reliable detection of mid-low expressors typically needs ≥ <strong>20 M usable reads</strong> per sample after rRNA / dup removal; ENCODE recommends 30 M PE.</div></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="程式碼" data-en="CODE">程式碼</div><h2 data-zh="實作範例" data-en="Code Examples">實作範例</h2>
+<div class="code-tabs"><div class="code-tab-btns">
+<button class="code-tab-btn active" onclick="switchTab(this,'star')">STAR</button>
+<button class="code-tab-btn" onclick="switchTab(this,'hisat')">HISAT2</button>
+<button class="code-tab-btn" onclick="switchTab(this,'salmon')">Salmon</button>
+</div>
+<div class="code-tab-content active" id="star"><pre><span class="comment"># 1. 建索引（一次性）</span>
+STAR --runMode genomeGenerate \
+  --genomeDir star_idx/ \
+  --genomeFastaFiles GRCh38.fa \
+  --sjdbGTFfile gencode.v44.gtf \
+  --sjdbOverhang <span class="num">100</span> --runThreadN <span class="num">12</span>
+
+<span class="comment"># 2. 比對</span>
+STAR --runThreadN <span class="num">12</span> \
+  --genomeDir star_idx/ \
+  --readFilesIn R1.fq.gz R2.fq.gz \
+  --readFilesCommand zcat \
+  --outSAMtype BAM SortedByCoordinate \
+  --quantMode GeneCounts \
+  --outFileNamePrefix sample1.</pre></div>
+<div class="code-tab-content" id="hisat"><pre><span class="comment"># 建索引（從 UCSC 預建可省時）</span>
+hisat2-build GRCh38.fa hisat_idx
+
+<span class="comment"># 比對 + sort</span>
+hisat2 -p <span class="num">12</span> -x hisat_idx \
+  -<span class="num">1</span> R1.fq.gz -<span class="num">2</span> R2.fq.gz \
+  --rna-strandness RF \
+  --summary-file sample1.summary.txt \
+  | samtools sort -@ <span class="num">8</span> -o sample1.bam -</pre></div>
+<div class="code-tab-content" id="salmon"><pre><span class="comment"># 1. 建轉錄本索引（含 decoy）</span>
+salmon index -t gentrome.fa --decoys decoys.txt \
+  -i salmon_idx -k <span class="num">31</span> --threads <span class="num">12</span>
+
+<span class="comment"># 2. 量化（自動偵測 library type）</span>
+salmon quant -i salmon_idx -l A \
+  -<span class="num">1</span> R1.fq.gz -<span class="num">2</span> R2.fq.gz \
+  --validateMappings \
+  --gcBias --seqBias \
+  -p <span class="num">12</span> -o sample1_salmon</pre></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="進階" data-en="ADVANCED">進階</div>
+<h2 data-zh="比對品質指標" data-en="Alignment Quality Metrics">比對品質指標</h2>
+<div class="card-grid cols-3">
+<div class="card"><h4>Uniquely mapped %</h4><p data-lang="zh">良好樣本應 &gt; 75%。若 &lt; 60%，常見原因：rRNA 汙染、宿主／非預期生物汙染、index 錯誤。</p><p data-lang="en">Healthy samples &gt;75%. Below 60% often means rRNA contamination, foreign-organism content, or wrong reference.</p></div>
+<div class="card"><h4>% mapped to too many loci</h4><p data-lang="zh">&gt; 5% 表示 rRNA 或重複序列汙染。</p><p data-lang="en">&gt;5% suggests rRNA or repetitive content.</p></div>
+<div class="card"><h4 data-zh="3' / 5' 偏差" data-en="3' / 5' bias">3' / 5' 偏差</h4><p data-lang="zh">用 Picard CollectRnaSeqMetrics。3' bias 高 → RNA 降解嚴重；建議 RIN ≥ 7。</p><p data-lang="en">Use Picard CollectRnaSeqMetrics. High 3' bias → severe RNA degradation; aim for RIN ≥ 7.</p></div>
+</div>
+</section>
+
+<section class="quiz-section"><h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
+<div class="quiz-q" data-answer="2"><p data-lang="zh">下列何者輸出 BAM 檔，可用於下游 IGV 視覺化與變異偵測？</p><p data-lang="en">Which produces BAM suitable for IGV and variant calling?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. Salmon</span><span data-lang="en">A. Salmon</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. kallisto</span><span data-lang="en">B. kallisto</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. STAR</span><span data-lang="en">C. STAR</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. FastQC</span><span data-lang="en">D. FastQC</span></div>
+</div><div class="quiz-feedback" id="fb1"></div></div>
+<div class="quiz-q" data-answer="0"><p data-lang="zh">Salmon 中的 <code>--gcBias</code> 旗標主要校正什麼？</p><p data-lang="en">What does Salmon's <code>--gcBias</code> flag correct?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 片段 GC 含量造成的覆蓋偏差</span><span data-lang="en">A. Fragment-GC-content coverage bias</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 接頭汙染</span><span data-lang="en">B. Adapter contamination</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 批次效應</span><span data-lang="en">C. Batch effect</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. PCR 重複</span><span data-lang="en">D. PCR duplicates</span></div>
+</div><div class="quiz-feedback" id="fb2"></div></div>
+</section>
+
+<nav class="page-nav"><a href="qc-trim.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 1：QC 與 Trimming" data-en="Step 1: QC & Trimming">Step 1：QC 與 Trimming</span></a><a href="quantification.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 3：Quantification" data-en="Step 3: Quantification">Step 3：Quantification</span></a></nav>
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
+<script src="../i18n.js"></script>
+<script>
+window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
+function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
+function upMap(){
+  const tot=+document.getElementById('sliderTot').value;const umap=+document.getElementById('sliderUmap').value;const dup=+document.getElementById('sliderDup').value;
+  document.getElementById('valTot').textContent=tot;document.getElementById('valTotEn').textContent=tot;
+  document.getElementById('valUmap').textContent=umap;document.getElementById('valUmapEn').textContent=umap;
+  document.getElementById('valDup').textContent=dup;document.getElementById('valDupEn').textContent=dup;
+  const usable=tot*(umap/100)*(1-dup/100);
+  document.getElementById('usable').textContent=usable.toFixed(1);
+  const L=I18n.get();
+  let q,deg,advice;
+  if(usable>=25){q=L==='zh'?'優':'Great';deg=L==='zh'?'高':'High';advice=L==='zh'?'樣本品質良好，可放心進入定量與 DE 分析。':'Sample is in good shape — proceed to quantification & DE.';}
+  else if(usable>=15){q=L==='zh'?'可':'OK';deg=L==='zh'?'中':'Mid';advice=L==='zh'?'可以分析，但低豐度基因的偵測會受限。':'Workable, but detection of low-abundance genes will be limited.';}
+  else if(usable>=8){q=L==='zh'?'弱':'Weak';deg=L==='zh'?'弱':'Low';advice=L==='zh'?'建議增加定序深度或檢查 rRNA 汙染。':'Consider deeper sequencing or check for rRNA contamination.';}
+  else{q=L==='zh'?'不足':'Poor';deg=L==='zh'?'極低':'Very low';advice=L==='zh'?'⚠ usable reads 不足以做可靠的 DE 分析。':'⚠ Usable reads too low for reliable DE analysis.';}
+  document.getElementById('quality').textContent=q;
+  document.getElementById('degCap').textContent=deg;
+  document.getElementById('advice').innerHTML=advice;
+}
+['sliderTot','sliderUmap','sliderDup'].forEach(id=>document.getElementById(id).addEventListener('input',upMap));
+document.addEventListener('langchange',upMap);upMap();
+window._QF={zh:{q1_y:'STAR 與 HISAT2 是基因組比對器，輸出 BAM。Salmon/kallisto 不輸出位置資訊。',q1_n:'答案是 C：STAR 輸出 BAM。',q2_y:'GC bias 來自 PCR / 片段化偏好，--gcBias 進行片段層級的偏差校正。',q2_n:'答案是 A：GC bias 是片段 GC 含量引起的覆蓋偏差。'},en:{q1_y:'STAR/HISAT2 are genome aligners producing BAM. Salmon/kallisto do not output coordinates.',q1_n:'Answer is C: STAR outputs BAM.',q2_y:'GC bias arises from PCR / fragmentation; --gcBias performs fragment-level correction.',q2_n:'Answer is A: GC bias is a coverage bias due to fragment GC content.'}};
+const QF=window._QF||{};document.querySelectorAll(".quiz-q").forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll(".quiz-opt").forEach(o=>{o.addEventListener("click",()=>{if(q.classList.contains("answered"))return;q.classList.add("answered");const fb=document.getElementById("fb"+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?"correct":"wrong");if(!ok)q.querySelectorAll(".quiz-opt")[ans].classList.add("correct");const L=I18n.get();fb.className="quiz-feedback show "+(ok?"correct-fb":"wrong-fb");fb.textContent=(ok?"✅ ":"❌ ")+(QF[L]&&QF[L]["q"+(qi+1)+"_"+(ok?"y":"n")]||"");});});});
+</script></body></html>

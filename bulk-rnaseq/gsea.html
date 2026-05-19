@@ -1,0 +1,164 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>GSEA — Bulk RNA-seq</title>
+<link rel="stylesheet" href="../styles.css"></head><body class="theme-bulk">
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
+  <ul class="top-nav-links">
+    <li><a href="index.html">Bulk RNA</a></li><li><a href="qc-trim.html">QC</a></li><li><a href="alignment.html">Align</a></li><li><a href="quantification.html">Quant</a></li><li><a href="normalization.html">Norm</a></li><li><a href="de.html">DE</a></li><li><a href="visualization.html">Viz</a></li><li><a href="gsea.html" class="active">GSEA</a></li>
+  </ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">STEP 7 / 7</div><h1 data-zh="功能富集與 GSEA" data-en="Functional Enrichment & GSEA">功能富集 / GSEA</h1><p class="subtitle" data-lang="zh">從「一堆 DEG」躍升到「哪些生物路徑被影響」——讓結果有可解讀的生物學意義。</p><p class="subtitle" data-lang="en">Move from "a list of DEGs" to "which biological pathways are affected" — the bridge to biological meaning.</p></header><main class="content-wrap">
+
+<section class="section"><div class="section-label" data-zh="核心概念" data-en="CONCEPT">核心概念</div>
+<h2 data-zh="ORA vs GSEA" data-en="ORA vs GSEA">ORA vs GSEA</h2>
+<div class="card-grid cols-2">
+<div class="card"><div class="card-icon">🎯</div><h4>Over-Representation Analysis (ORA)</h4><p data-lang="zh">先用 padj/LFC 取出 DEG 列表，再問：「這個 DEG list 是否富集某個基因集（如 GO、KEGG）？」用 hypergeometric (Fisher's exact) 檢定。</p><p data-lang="en">Take a DEG list using padj/LFC, ask: "Is this DEG list enriched for a gene set (GO, KEGG)?" Uses hypergeometric (Fisher's exact) test.</p></div>
+<div class="card"><div class="card-icon">📈</div><h4>Gene Set Enrichment Analysis (GSEA)</h4><p data-lang="zh">不切門檻，把所有基因依 stat (LFC × sign(LFC)) 排序，看某 gene set 是否「聚」在排名兩端。用 Kolmogorov–Smirnov-style enrichment score + 置換檢定。</p><p data-lang="en">No cutoff — rank all genes by a stat (LFC × sign), test whether a gene set clusters at the top/bottom of the ranked list with a KS-style score + permutation test.</p></div>
+</div>
+<div class="callout tip"><span class="callout-icon">💡</span><div data-lang="zh"><strong>選擇原則：</strong>有明確 DEG list（如 padj &lt; 0.05、|LFC| &gt; 1）→ ORA；想知道整體趨勢（即使少有顯著 DEG）→ GSEA。實務上兩個都做。</div><div data-lang="en"><strong>Rule of thumb:</strong> Have a clear DEG list (padj &lt; 0.05, |LFC| &gt; 1)? → ORA. Want overall trends even without strong DEGs? → GSEA. In practice, do both.</div></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="資料庫" data-en="DATABASES">資料庫</div>
+<h2 data-zh="主流基因集" data-en="Major Gene Set Collections">主流基因集</h2>
+<table class="comp-table"><thead><tr><th data-zh="資料庫" data-en="DB">資料庫</th><th data-zh="內容" data-en="Content">內容</th><th data-zh="特色" data-en="Notes">特色</th></tr></thead><tbody>
+<tr><td><strong>GO (BP/MF/CC)</strong></td><td data-zh="生物過程 / 分子功能 / 細胞組分" data-en="Biological Process / Molecular Function / Cellular Component">三大本體論</td><td data-zh="最全面，但 term 間有層級重複" data-en="Most comprehensive but redundant hierarchy">最廣泛</td></tr>
+<tr><td><strong>KEGG</strong></td><td data-zh="代謝 + 訊號傳遞路徑" data-en="Metabolic + signaling pathways">代謝＋訊號</td><td data-zh="細胞層級流程圖；商業授權限制" data-en="Cell-level diagrams; commercial licensing">圖示清楚</td></tr>
+<tr><td><strong>Reactome</strong></td><td data-zh="細胞反應與訊號的精細層級" data-en="Fine-grained reactions/signaling">細胞反應</td><td data-zh="比 KEGG 更精細，免費" data-en="More granular than KEGG; free">免費精細</td></tr>
+<tr><td><strong>MSigDB Hallmark</strong></td><td>50 個精選 hallmark</td><td data-zh="抽出生物學最穩健的訊號" data-en="Distilled, robust biological signals">最穩健訊號</td></tr>
+<tr><td><strong>WikiPathways</strong></td><td>社群編輯路徑</td><td data-zh="可貢獻可下載" data-en="Community-editable, downloadable">社群</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
+<h2 data-zh="GSEA running enrichment score" data-en="GSEA Running Enrichment Score">GSEA Enrichment Score</h2>
+<div data-lang="zh"><p>依 LFC 將所有基因排序後，從左到右走訪：屬於 gene set 就 +、否則 -。曲線最高點就是 enrichment score (ES)。拖滑桿改變 gene set 集中度：</p></div>
+<div data-lang="en"><p>Rank all genes by LFC; walk left-to-right adding + for gene-set members, - otherwise. The peak is the enrichment score (ES). Drag slider to change concentration:</p></div>
+<div class="interactive-panel">
+<div class="slider-group"><label data-lang="zh">Gene set 集中於 top 排名的程度<span id="valConc">0.7</span></label><label data-lang="en">Concentration of gene set near top<span id="valConcEn">0.7</span></label><input type="range" id="sliderConc" min="0" max="1" value="0.7" step="0.05"></div>
+<div class="stat-row">
+<div class="stat-box"><div class="sb-num" id="esStat">--</div><div class="sb-lbl">ES (peak)</div></div>
+<div class="stat-box"><div class="sb-num" id="nesStat">--</div><div class="sb-lbl">NES (sim.)</div></div>
+<div class="stat-box"><div class="sb-num" id="pvalStat">--</div><div class="sb-lbl">p (sim.)</div></div>
+</div>
+<div class="chart-container" style="height:280px;"><canvas id="esChart"></canvas></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="程式碼" data-en="CODE">程式碼</div>
+<h2 data-zh="實作範例" data-en="Code Examples">實作範例</h2>
+<div class="code-tabs"><div class="code-tab-btns">
+<button class="code-tab-btn active" onclick="switchTab(this,'cp')">clusterProfiler</button>
+<button class="code-tab-btn" onclick="switchTab(this,'fgsea')">fgsea</button>
+<button class="code-tab-btn" onclick="switchTab(this,'py')">Python (gseapy)</button>
+</div>
+<div class="code-tab-content active" id="cp"><pre><span class="kw">library</span>(clusterProfiler); <span class="kw">library</span>(org.Hs.eg.db)
+<span class="comment"># --- ORA (GO BP) ---</span>
+deg &lt;- res[res$padj &lt; <span class="num">0.05</span> &amp; <span class="func">abs</span>(res$log2FoldChange) &gt; <span class="num">1</span>, ]
+ora &lt;- <span class="func">enrichGO</span>(gene = <span class="func">rownames</span>(deg),
+                universe = <span class="func">rownames</span>(res),
+                OrgDb    = org.Hs.eg.db,
+                keyType  = <span class="str">"SYMBOL"</span>,
+                ont      = <span class="str">"BP"</span>,
+                qvalueCutoff = <span class="num">0.05</span>)
+<span class="func">dotplot</span>(ora, showCategory = <span class="num">15</span>)
+
+<span class="comment"># --- GSEA (KEGG, ranked list) ---</span>
+ranks &lt;- res$log2FoldChange
+<span class="func">names</span>(ranks) &lt;- res$ENTREZ
+ranks &lt;- <span class="func">sort</span>(ranks, decreasing = <span class="kw">TRUE</span>)
+gsea &lt;- <span class="func">gseKEGG</span>(geneList = ranks, organism = <span class="str">"hsa"</span>,
+                 nPerm = <span class="num">10000</span>, minGSSize = <span class="num">15</span>)
+<span class="func">gseaplot2</span>(gsea, geneSetID = <span class="num">1</span>)</pre></div>
+<div class="code-tab-content" id="fgsea"><pre><span class="kw">library</span>(fgsea); <span class="kw">library</span>(msigdbr)
+<span class="comment"># MSigDB Hallmark gene sets</span>
+h &lt;- <span class="func">msigdbr</span>(species = <span class="str">"Homo sapiens"</span>, category = <span class="str">"H"</span>)
+sets &lt;- <span class="func">split</span>(h$gene_symbol, h$gs_name)
+ranks &lt;- <span class="func">sort</span>(<span class="func">setNames</span>(res$stat, <span class="func">rownames</span>(res)), decreasing = <span class="kw">TRUE</span>)
+fg &lt;- <span class="func">fgsea</span>(pathways = sets, stats = ranks,
+            minSize = <span class="num">15</span>, maxSize = <span class="num">500</span>)
+<span class="func">head</span>(fg[<span class="func">order</span>(padj), ], <span class="num">10</span>)</pre></div>
+<div class="code-tab-content" id="py"><pre><span class="kw">import</span> gseapy <span class="kw">as</span> gp
+<span class="comment"># 1. ORA: enrichr-style</span>
+gp.enrichr(gene_list=deg_symbols,
+           gene_sets=[<span class="str">"GO_Biological_Process_2023"</span>, <span class="str">"KEGG_2021_Human"</span>],
+           organism=<span class="str">"human"</span>, outdir=<span class="str">"enrichr_out"</span>)
+<span class="comment"># 2. GSEA (pre-ranked)</span>
+gp.prerank(rnk=ranked_df,
+           gene_sets=<span class="str">"MSigDB_Hallmark_2020"</span>,
+           outdir=<span class="str">"gsea_out"</span>, permutation_num=<span class="num">1000</span>)</pre></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="解讀" data-en="INTERPRETATION">解讀</div>
+<h2 data-zh="GSEA 結果指標" data-en="GSEA Output Metrics">GSEA 結果指標</h2>
+<div class="card-grid cols-3">
+<div class="card"><h4>ES / NES</h4><p data-lang="zh">Enrichment Score 與其經 size-correction 後的 NES。NES &gt; 0 = 富集於上調端、&lt; 0 = 下調端。|NES| 越大越強。</p><p data-lang="en">Enrichment Score and size-corrected NES. NES &gt; 0 = enriched in upregulated end; &lt; 0 = downregulated. Larger |NES| = stronger.</p></div>
+<div class="card"><h4>p / padj (FDR-q)</h4><p data-lang="zh">置換檢定 p 值與 BH 調整後的 q。常用門檻 padj &lt; 0.25（GSEA 原作建議；保守可用 0.05）。</p><p data-lang="en">Permutation p and BH-adjusted q. Common cutoff: padj &lt; 0.25 (GSEA paper recommendation; stricter use 0.05).</p></div>
+<div class="card"><h4>Leading edge</h4><p data-lang="zh">在 ES 峰值之前的「驅動基因」子集——是真正撐起該路徑富集的 gene list。</p><p data-lang="en">The "leading-edge" subset — the genes before the ES peak that actually drive the enrichment.</p></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="陷阱" data-en="PITFALLS">陷阱</div>
+<h2 data-zh="常見錯誤" data-en="Common Mistakes">常見錯誤</h2>
+<div class="callout danger"><span class="callout-icon">🚫</span><div data-lang="zh"><strong>ORA 用錯 background：</strong>universe 必須是「實驗中可被偵測的所有基因」，而非整個基因組或全部 KEGG 基因。用錯 background 會嚴重虛高 enrichment。</div><div data-lang="en"><strong>Wrong ORA background:</strong> universe must be "all genes detected in the experiment", not the whole genome or all KEGG genes. Wrong background inflates enrichment.</div></div>
+<div class="callout danger"><span class="callout-icon">🚫</span><div data-lang="zh"><strong>GSEA 用未排序、或包含 NA 的 stat：</strong>ranks 必須 sort（從正到負）並無 NA。亦避免用 padj 排——應用 LFC 或 limma <code>t</code>/DESeq2 <code>stat</code>。</div><div data-lang="en"><strong>Unsorted or NA ranks for GSEA:</strong> sort by descending stat and drop NAs. Don't rank by padj — use LFC or limma <code>t</code>/DESeq2 <code>stat</code>.</div></div>
+<div class="callout danger"><span class="callout-icon">🚫</span><div data-lang="zh"><strong>把上下調混在一起 ORA：</strong>建議分開 (up / down) 兩個 list 跑 ORA；GSEA 則保留方向資訊故無此問題。</div><div data-lang="en"><strong>Mixing up/down in ORA:</strong> split into up/down lists for ORA; GSEA preserves direction by design.</div></div>
+</section>
+
+<section class="quiz-section"><h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
+<div class="quiz-q" data-answer="1"><p data-lang="zh">下列何種情境較適合 GSEA 而非 ORA？</p><p data-lang="en">Which scenario favors GSEA over ORA?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 有明確的 100 個 DEG list</span><span data-lang="en">A. A clear list of 100 DEGs</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 沒有少數強訊號，但某 pathway 內基因整體略偏向上調</span><span data-lang="en">B. No few strong hits, but a pathway is collectively, mildly up-regulated</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 想知道單一基因表達</span><span data-lang="en">C. Single-gene expression query</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 樣本量極小 (n=2)</span><span data-lang="en">D. Very small n (n=2)</span></div>
+</div><div class="quiz-feedback" id="fb1"></div></div>
+<div class="quiz-q" data-answer="0"><p data-lang="zh">GSEA 的「leading edge」指的是？</p><p data-lang="en">What is GSEA's "leading edge"?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 在 ES 達峰前出現的基因——實際撐起 enrichment 的子集</span><span data-lang="en">A. Genes appearing before the ES peak — the subset actually driving enrichment</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 最大 LFC 的單一基因</span><span data-lang="en">B. The single highest LFC gene</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 所有 padj &lt; 0.05 的基因</span><span data-lang="en">C. All genes with padj &lt; 0.05</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. p &gt; 0.05 的所有基因</span><span data-lang="en">D. Genes with p &gt; 0.05</span></div>
+</div><div class="quiz-feedback" id="fb2"></div></div>
+</section>
+
+<nav class="page-nav"><a href="visualization.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 6：視覺化" data-en="Step 6: Visualization">Step 6：視覺化</span></a><a href="../index.html"><span class="nav-dir" data-zh="完成 ✓" data-en="Done ✓">完成 ✓</span><span class="nav-title" data-zh="返回 Hub" data-en="Back to Hub">返回 Hub</span></a></nav>
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="../i18n.js"></script>
+<script>
+window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
+function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
+// GSEA running ES simulation
+const Nr=500;
+function buildRanks(conc){
+  const inGS=new Array(Nr).fill(false);
+  // top end concentration
+  const top=Math.round(40+conc*60);
+  const idxs=[];for(let i=0;i<top;i++)idxs.push(Math.floor(Math.random()*Math.max(50,(1-conc)*Nr)));
+  idxs.forEach(i=>inGS[i]=true);
+  // random elsewhere
+  for(let i=0;i<25;i++)inGS[Math.floor(Math.random()*Nr)]=true;
+  // build running ES
+  const hits=inGS.filter(x=>x).length;const miss=Nr-hits;
+  const incHit=1/hits;const decMiss=1/miss;
+  const es=[];let cur=0;for(let i=0;i<Nr;i++){cur+=inGS[i]?incHit:-decMiss;es.push(cur);}
+  return {es,inGS,peak:Math.max(...es.map(Math.abs))*Math.sign(es[es.indexOf(Math.max(...es))])};
+}
+const ctx=document.getElementById('esChart');
+const esChart=new Chart(ctx,{type:'line',data:{labels:Array.from({length:Nr},(_,i)=>i),datasets:[{label:'Running ES',data:[],borderColor:'#1a6b5a',backgroundColor:'rgba(26,107,90,0.15)',borderWidth:2,pointRadius:0,fill:true,tension:0.1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{title:{display:true,text:'ES'}}}}});
+function upES(){
+  const c=+document.getElementById('sliderConc').value;
+  document.getElementById('valConc').textContent=c.toFixed(2);document.getElementById('valConcEn').textContent=c.toFixed(2);
+  const r=buildRanks(c);
+  esChart.data.datasets[0].data=r.es;esChart.update('none');
+  document.getElementById('esStat').textContent=r.peak.toFixed(2);
+  const nes=r.peak*1.3+(Math.random()-0.5)*0.1;
+  document.getElementById('nesStat').textContent=nes.toFixed(2);
+  const p=Math.max(0.0001,Math.exp(-Math.abs(nes)*3));
+  document.getElementById('pvalStat').textContent=p.toFixed(4);
+}
+document.getElementById('sliderConc').addEventListener('input',upES);upES();
+window._QF={zh:{q1_y:'GSEA 無門檻、看排序整體趨勢，捕捉「集體微幅變化」。',q1_n:'答案是 B：整體微幅變化是 GSEA 的強項。',q2_y:'leading edge 是 ES 達峰前的基因，等同於該 pathway 中真正驅動富集的子集。',q2_n:'答案是 A：ES 峰前的基因為 leading edge。'},en:{q1_y:'GSEA needs no cutoff and uses the full ranking — perfect for coordinated small changes.',q1_n:'Answer is B: coordinated mild changes are GSEAs strength.',q2_y:'Leading edge = genes before the ES peak — the actual drivers of the enrichment.',q2_n:'Answer is A: genes before the ES peak.'}};
+const QF=window._QF||{};document.querySelectorAll(".quiz-q").forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll(".quiz-opt").forEach(o=>{o.addEventListener("click",()=>{if(q.classList.contains("answered"))return;q.classList.add("answered");const fb=document.getElementById("fb"+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?"correct":"wrong");if(!ok)q.querySelectorAll(".quiz-opt")[ans].classList.add("correct");const L=I18n.get();fb.className="quiz-feedback show "+(ok?"correct-fb":"wrong-fb");fb.textContent=(ok?"✅ ":"❌ ")+(QF[L]&&QF[L]["q"+(qi+1)+"_"+(ok?"y":"n")]||"");});});});
+</script></body></html>
