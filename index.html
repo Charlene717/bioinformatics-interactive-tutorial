@@ -1,95 +1,164 @@
 <!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Bioinformatics Interactive Tutorial</title>
-<meta name="description" content="Comprehensive bilingual bioinformatics interactive tutorial covering bulk RNA-seq, spatial transcriptomics, ATAC-seq, variant calling, and microbiome analysis.">
+<title>Bioinformatics Interactive Tutorial — 生物資訊互動教學</title>
+<meta name="description" content="生物資訊互動教學首頁——前導介紹、基礎程式、體學分析路線（基因體 / 轉錄體 / 表觀基因體 / 蛋白體 / 微生物體）、整合與精準醫療應用。">
 <link rel="stylesheet" href="styles.css"></head><body>
-<nav class="top-nav"><div class="top-nav-inner">
-  <a href="index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊互動教學" data-en="Bioinformatics Tutorial">生物資訊互動教學</span></a>
-  <ul class="top-nav-links">
-    <li><a href="bulk-rnaseq/index.html">Bulk RNA</a></li>
-    <li><a href="spatial/index.html">Spatial</a></li>
-    <li><a href="atac-seq/index.html">ATAC</a></li>
-    <li><a href="variant/index.html">Variant</a></li>
-    <li><a href="microbiome/index.html">Microbiome</a></li>
-    <li><a href="references/index.html" style="font-weight:700" data-zh="📚 參考資料" data-en="📚 References">📚 參考資料</a></li>
-  </ul>
-</div></nav>
+<nav class="top-nav"><div class="top-nav-inner"></div></nav>
+
 <header class="hub-hero"><div style="position:relative;z-index:1;">
 <h1 data-zh="生物資訊互動式教學" data-en="Bioinformatics Interactive Tutorial">生物資訊互動式教學</h1>
-<p data-lang="zh">五大主題、二十多章節，從 raw reads 到生物學洞見——以圖表、決策樹、程式碼與互動模擬，帶你掌握當代體學分析。</p>
-<p data-lang="en">Five tracks, 20+ chapters — from raw reads to biological insights with charts, decision trees, code, and interactive simulations.</p>
+<p data-lang="zh">從前導概念、程式基礎，到全體學分析與精準醫療——一站式雙語體學學習地圖。</p>
+<p data-lang="en">From foundational concepts and programming basics to whole-omics analysis and precision medicine — a one-stop bilingual learning map.</p>
 </div></header>
 
-<h2 class="hub-section-title"><span>01</span> <span data-zh="體學分析路線" data-en="Omics Tracks">體學分析路線</span></h2>
-<div class="track-grid">
+<h2 class="hub-section-title"><span>00</span> <span data-zh="新手請從這裡開始" data-en="Start here">新手請從這裡開始</span></h2>
+<div class="hub-steps-grid">
+  <a href="intro/index.html" class="hub-card" style="border:2px solid var(--c-accent);"><div class="hub-emoji">🚀</div><span class="step-num">Foundations · Intro</span><h3 data-zh="生資前導介紹" data-en="Intro to Bioinformatics">生資前導介紹</h3><p data-lang="zh">中心法則、定序原理、reference genome、檔案格式、通用流程——所有 track 共用的基底。</p><p data-lang="en">Central dogma, sequencing, reference genomes, file formats, generic pipeline — the shared base for every track.</p></a>
+  <a href="foundations/info-math.html" class="hub-card"><div class="hub-emoji">📐</div><span class="step-num">Foundations</span><h3 data-zh="資訊與數學" data-en="Information & Math">資訊與數學</h3><p data-lang="zh">機率分佈、FDR、PCA/SVD、資訊理論小辭典——讀懂 DESeq2/MACS2 的鑰匙。</p></a>
+  <a href="foundations/linux.html" class="hub-card"><div class="hub-emoji">🐧</div><span class="step-num">Foundations</span><h3 data-zh="Linux 基礎" data-en="Linux Basics">Linux 基礎</h3><p data-lang="zh">20 個救命指令 + pipe + conda/mamba/Docker — 看懂所有 pipeline。</p></a>
+  <a href="foundations/r.html" class="hub-card"><div class="hub-emoji">📊</div><span class="step-num">Foundations</span><h3 data-zh="R 基礎" data-en="R Basics">R 基礎</h3><p data-lang="zh">Bioconductor、DESeq2、ggplot2、tidyverse——體學統計與視覺化主場。</p></a>
+  <a href="foundations/python.html" class="hub-card"><div class="hub-emoji">🐍</div><span class="step-num">Foundations</span><h3 data-zh="Python 基礎" data-en="Python Basics">Python 基礎</h3><p data-lang="zh">numpy/pandas/AnnData/scanpy——單細胞與深度學習的主力。</p></a>
+</div>
 
+<h2 class="hub-section-title"><span>01</span> <span data-zh="基因體學 — Genomics" data-en="Genomics">基因體學 — Genomics</span></h2>
+<div class="track-grid">
+  <a href="genomics/index.html" class="track-card track-variant">
+    <div class="track-emoji">🧬</div>
+    <span class="track-label">Block 1 · Overview</span>
+    <h3 data-zh="基因體學總論" data-en="Genomics Overview">基因體學總論</h3>
+    <p data-lang="zh">DNA 層次、reference 三代演進（GRCh38 → T2T → Pangenome）、變異尺度光譜。</p>
+    <div class="track-meta"><span>📊 Overview</span><span>🛠 GRCh38 · T2T · HPRC</span></div>
+  </a>
+  <a href="variant/index.html" class="track-card track-variant">
+    <div class="track-emoji">🧪</div>
+    <span class="track-label">Track · Variant Calling</span>
+    <h3 data-zh="變異偵測 (WGS / WES)" data-en="Variant Calling (WGS / WES)">變異偵測 (WGS / WES)</h3>
+    <p data-lang="zh">GATK Best Practice：BWA-MEM、MarkDup、BQSR、HaplotypeCaller、VQSR、VEP、體細胞變異。</p>
+    <div class="track-meta"><span>📊 <span data-zh="5 章" data-en="5 chapters">5 章</span></span><span>🛠 BWA · GATK4 · VEP</span></div>
+  </a>
+  <a href="longread/index.html" class="track-card track-variant">
+    <div class="track-emoji">🧵</div>
+    <span class="track-label">Track · Long-read</span>
+    <h3 data-zh="長讀定序" data-en="Long-read Sequencing">長讀定序</h3>
+    <p data-lang="zh">PacBio HiFi / Nanopore — SV、Iso-seq、直接讀甲基化、HLA 分型、T2T assembly。</p>
+    <div class="track-meta"><span>🛠 minimap2 · Sniffles2 · Clair3</span></div>
+  </a>
+  <a href="hic/index.html" class="track-card track-atac">
+    <div class="track-emoji">🧶</div>
+    <span class="track-label">Track · Hi-C / 3D</span>
+    <h3 data-zh="Hi-C 與 3D 基因組" data-en="Hi-C / 3D Genome">Hi-C 與 3D 基因組</h3>
+    <p data-lang="zh">Compartment、TAD、Loop；cooler / Juicer / Chromosight。</p>
+    <div class="track-meta"><span>🛠 HiC-Pro · cooltools · Juicer</span></div>
+  </a>
+  <a href="methylation/index.html" class="track-card track-atac">
+    <div class="track-emoji">🧷</div>
+    <span class="track-label">Track · Methylation</span>
+    <h3 data-zh="DNA 甲基化分析" data-en="Methylation / Bisulfite-seq">DNA 甲基化分析</h3>
+    <p data-lang="zh">WGBS / RRBS / EM-seq / 直接讀；Bismark、methylKit、DMR、Horvath clock。</p>
+    <div class="track-meta"><span>🛠 Bismark · methylKit · DSS</span></div>
+  </a>
+</div>
+
+<h2 class="hub-section-title"><span>02</span> <span data-zh="轉錄體學 — Transcriptomics" data-en="Transcriptomics">轉錄體學 — Transcriptomics</span></h2>
+<div class="track-grid">
   <a href="bulk-rnaseq/index.html" class="track-card track-bulk">
     <div class="track-emoji">🧬</div>
     <span class="track-label">Track 1 · Bulk RNA-seq</span>
     <h3 data-zh="Bulk RNA-seq 分析" data-en="Bulk RNA-seq Analysis">Bulk RNA-seq 分析</h3>
-    <p data-lang="zh">從 FASTQ 原始檔 → 對齊 → 定量 → DESeq2 / edgeR / limma-voom 差異表達 → GSEA 路徑分析。</p>
-    <p data-lang="en">From FASTQ → alignment → quantification → DESeq2 / edgeR / limma-voom DE → GSEA pathway analysis.</p>
-    <div class="track-meta"><span>📊 <span data-zh="7 章" data-en="7 chapters">7 章</span></span><span>⏱ <span data-zh="2-3 小時" data-en="2-3 hrs">2-3 小時</span></span><span>🛠 STAR · Salmon · DESeq2</span></div>
+    <p data-lang="zh">FASTQ → 對齊 → 定量 → DESeq2 / edgeR / limma-voom → GSEA 路徑分析。</p>
+    <div class="track-meta"><span>📊 <span data-zh="7 章" data-en="7 chapters">7 章</span></span><span>🛠 STAR · Salmon · DESeq2</span></div>
   </a>
-
+  <a href="scrna-seq/index.html" class="track-card track-spatial">
+    <div class="track-emoji">🔬</div>
+    <span class="track-label">Track · scRNA-seq</span>
+    <h3 data-zh="單細胞 RNA-seq" data-en="scRNA-seq (Single-cell)">單細胞 RNA-seq</h3>
+    <p data-lang="zh">10x / Smart-seq3；QC、Doublet、Normalization、Clustering、Annotation、Trajectory、Integration。</p>
+    <div class="track-meta"><span>🛠 Seurat · scanpy · scVI</span></div>
+  </a>
   <a href="spatial/index.html" class="track-card track-spatial">
     <div class="track-emoji">🗺️</div>
     <span class="track-label">Track 2 · Spatial</span>
     <h3 data-zh="空間轉錄組學" data-en="Spatial Transcriptomics">空間轉錄組學</h3>
-    <p data-lang="zh">10x Visium / Slide-seq / MERFISH / Xenium 平台介紹，空間聚類、SVG、deconvolution 與細胞通訊。</p>
-    <p data-lang="en">Visium / Slide-seq / MERFISH / Xenium platforms, spatial clustering, SVGs, deconvolution, and cell-cell communication.</p>
-    <div class="track-meta"><span>📊 <span data-zh="5 章" data-en="5 chapters">5 章</span></span><span>⏱ <span data-zh="2 小時" data-en="2 hrs">2 小時</span></span><span>🛠 Seurat · BayesSpace · cell2location</span></div>
+    <p data-lang="zh">Visium / Slide-seq / MERFISH / Xenium；空間聚類、SVG、deconvolution、細胞通訊。</p>
+    <div class="track-meta"><span>📊 <span data-zh="5 章" data-en="5 chapters">5 章</span></span><span>🛠 Seurat · BayesSpace · cell2location</span></div>
   </a>
+</div>
 
+<h2 class="hub-section-title"><span>03</span> <span data-zh="表觀基因體 — Epigenomics" data-en="Epigenomics">表觀基因體 — Epigenomics</span></h2>
+<div class="track-grid">
   <a href="atac-seq/index.html" class="track-card track-atac">
     <div class="track-emoji">📐</div>
     <span class="track-label">Track 3 · ATAC-seq</span>
-    <h3 data-zh="ATAC-seq / 表觀基因組" data-en="ATAC-seq / Epigenomics">ATAC-seq / 表觀基因組</h3>
-    <p data-lang="zh">Tn5 切位、Peak Calling (MACS2/3)、Motif 分析、Footprinting、與 RNA-seq 的多體學整合。</p>
-    <p data-lang="en">Tn5 mechanism, peak calling (MACS2/3), motif analysis, footprinting, and multi-omic integration with RNA-seq.</p>
-    <div class="track-meta"><span>📊 <span data-zh="4 章" data-en="4 chapters">4 章</span></span><span>⏱ <span data-zh="1.5 小時" data-en="1.5 hrs">1.5 小時</span></span><span>🛠 MACS2 · HOMER · chromVAR</span></div>
+    <h3 data-zh="ATAC-seq" data-en="ATAC-seq">ATAC-seq</h3>
+    <p data-lang="zh">Tn5、Peak Calling、Motif、Footprinting、與 RNA-seq 整合。</p>
+    <div class="track-meta"><span>📊 <span data-zh="4 章" data-en="4 chapters">4 章</span></span><span>🛠 MACS2 · HOMER · chromVAR</span></div>
   </a>
-
-  <a href="variant/index.html" class="track-card track-variant">
-    <div class="track-emoji">🧪</div>
-    <span class="track-label">Track 4 · Variant Calling</span>
-    <h3 data-zh="變異偵測 (WGS / WES)" data-en="Variant Calling (WGS / WES)">變異偵測 (WGS / WES)</h3>
-    <p data-lang="zh">GATK Best Practice：BWA-MEM、MarkDuplicates、BQSR、HaplotypeCaller、VQSR、VEP 註釋與體細胞變異。</p>
-    <p data-lang="en">GATK Best Practice: BWA-MEM, MarkDuplicates, BQSR, HaplotypeCaller, VQSR, VEP annotation, and somatic variants.</p>
-    <div class="track-meta"><span>📊 <span data-zh="5 章" data-en="5 chapters">5 章</span></span><span>⏱ <span data-zh="2 小時" data-en="2 hrs">2 小時</span></span><span>🛠 BWA · GATK4 · VEP</span></div>
+  <a href="chipseq/index.html" class="track-card track-atac">
+    <div class="track-emoji">📎</div>
+    <span class="track-label">Track · ChIP / CUT&Tag</span>
+    <h3 data-zh="ChIP-seq / CUT&amp;RUN / CUT&amp;Tag" data-en="ChIP-seq / CUT&RUN / CUT&Tag">ChIP-seq / CUT&amp;Tag</h3>
+    <p data-lang="zh">三代技術演進、SEACR、IDR、DiffBind、HOMER motif。</p>
+    <div class="track-meta"><span>🛠 MACS2 · SEACR · DiffBind</span></div>
   </a>
+</div>
 
+<h2 class="hub-section-title"><span>04</span> <span data-zh="蛋白體與微生物 — Proteomics & Microbiome" data-en="Proteomics & Microbiome">蛋白體與微生物 — Proteomics &amp; Microbiome</span></h2>
+<div class="track-grid">
+  <a href="proteomics/index.html" class="track-card track-microbiome">
+    <div class="track-emoji">⚗️</div>
+    <span class="track-label">Track · Proteomics</span>
+    <h3 data-zh="蛋白體 / 質譜分析" data-en="Proteomics / Mass-spec">蛋白體 / 質譜分析</h3>
+    <p data-lang="zh">DDA / DIA、MaxQuant / FragPipe / DIA-NN、Olink、磷酸化。</p>
+    <div class="track-meta"><span>🛠 MaxQuant · FragPipe · DIA-NN</span></div>
+  </a>
   <a href="microbiome/index.html" class="track-card track-microbiome">
     <div class="track-emoji">🦠</div>
     <span class="track-label">Track 5 · Microbiome</span>
     <h3 data-zh="微生物群體學" data-en="Microbiome / Metagenomics">微生物群體學</h3>
-    <p data-lang="zh">16S/ITS amplicon (DADA2、QIIME2)、shotgun metagenomics (Kraken2、MetaPhlAn)、function profiling (HUMAnN)。</p>
-    <p data-lang="en">16S/ITS amplicons (DADA2, QIIME2), shotgun metagenomics (Kraken2, MetaPhlAn), function profiling (HUMAnN).</p>
-    <div class="track-meta"><span>📊 <span data-zh="4 章" data-en="4 chapters">4 章</span></span><span>⏱ <span data-zh="1.5 小時" data-en="1.5 hrs">1.5 小時</span></span><span>🛠 DADA2 · Kraken2 · MetaPhlAn4</span></div>
+    <p data-lang="zh">16S/ITS amplicon、shotgun metagenomics、function profiling。</p>
+    <div class="track-meta"><span>📊 <span data-zh="4 章" data-en="4 chapters">4 章</span></span><span>🛠 DADA2 · Kraken2 · MetaPhlAn4</span></div>
   </a>
-
 </div>
 
-<h2 class="hub-section-title"><span>02</span> <span data-zh="使用建議" data-en="How to Use">使用建議</span></h2>
+<h2 class="hub-section-title"><span>05</span> <span data-zh="整合與臨床應用 — Integration & Clinical" data-en="Integration & Clinical">整合與臨床應用</span></h2>
+<div class="track-grid">
+  <a href="multiomics/index.html" class="track-card track-spatial">
+    <div class="track-emoji">🔗</div>
+    <span class="track-label">Application</span>
+    <h3 data-zh="Multi-omics 整合" data-en="Multi-omics Integration">Multi-omics 整合</h3>
+    <p data-lang="zh">CITE-seq、10x Multiome、MOFA、DIABLO、scVI/MultiVI、optimal transport。</p>
+    <div class="track-meta"><span>🛠 MOFA · DIABLO · MultiVI</span></div>
+  </a>
+  <a href="protein-structure/index.html" class="track-card track-spatial">
+    <div class="track-emoji">🧊</div>
+    <span class="track-label">Application</span>
+    <h3 data-zh="蛋白質結構預測" data-en="Protein Structure Prediction">蛋白質結構預測</h3>
+    <p data-lang="zh">AlphaFold2/3、ESMFold、RFdiffusion；AlphaMissense；新藥設計。</p>
+    <div class="track-meta"><span>🛠 AlphaFold3 · ESMFold · Boltz-1</span></div>
+  </a>
+  <a href="precision-medicine/index.html" class="track-card track-variant">
+    <div class="track-emoji">⚕️</div>
+    <span class="track-label">Application</span>
+    <h3 data-zh="精準醫療" data-en="Precision Medicine">精準醫療</h3>
+    <p data-lang="zh">ACMG 2025 點數、ClinVar、PRS、液態切片、PGx、AI/ML 報告標準。</p>
+    <div class="track-meta"><span>🛠 VEP · OncoKB · PRS-CS</span></div>
+  </a>
+</div>
+
+<h2 class="hub-section-title"><span>06</span> <span data-zh="參考資料與測驗" data-en="References & Quiz">參考資料與測驗</span></h2>
 <div class="hub-steps-grid">
-  <div class="hub-card"><div class="hub-emoji">🎯</div><span class="step-num">For Beginners</span><h3 data-zh="新手路線" data-en="Beginner Path">新手路線</h3><p data-lang="zh">建議先從 Bulk RNA-seq 開始，這是最經典的體學流程；接著看 Variant Calling 學習序列比對的另一面向，最後挑戰 Spatial 或 ATAC。</p><p data-lang="en">Start with Bulk RNA-seq, the most classical omics workflow. Then explore Variant Calling for another angle on alignment, before tackling Spatial or ATAC.</p></div>
-  <div class="hub-card"><div class="hub-emoji">⚡</div><span class="step-num">For Practitioners</span><h3 data-zh="實戰路線" data-en="Practitioner Path">實戰路線</h3><p data-lang="zh">直接跳到您感興趣的 track；每章皆附 R 與 Python 程式碼分頁，可作為實際分析時的快速查閱手冊。</p><p data-lang="en">Jump to the track you need. Every chapter has R / Python code tabs, usable as a quick-reference manual for real analysis.</p></div>
-  <div class="hub-card"><div class="hub-emoji">🌍</div><span class="step-num">Bilingual</span><h3 data-zh="雙語切換" data-en="Bilingual Switch">雙語切換</h3><p data-lang="zh">右上角的「中文 / EN」按鈕可隨時切換語言；偏好會記錄在瀏覽器中，下次開啟自動套用。</p><p data-lang="en">Toggle "中文 / EN" anytime via the top-right button; your preference is remembered in your browser.</p></div>
-  <div class="hub-card"><div class="hub-emoji">🔗</div><span class="step-num">Related</span><h3 data-zh="姊妹站台" data-en="Sister Tutorial">姊妹站台</h3><p data-lang="zh">單細胞 RNA-seq 已有獨立教程：<code>scrna-interactive-tutorial</code>，建議搭配 Bulk RNA-seq 一起看，對比 bulk vs. single-cell。</p><p data-lang="en">Single-cell RNA-seq has its own tutorial (<code>scrna-interactive-tutorial</code>) — pair it with Bulk RNA-seq to compare bulk vs. single-cell.</p></div>
+  <a href="references/index.html" class="hub-card" style="border:2px solid var(--c-accent);"><div class="hub-emoji">📚</div><span class="step-num">References</span><h3 data-zh="100+ 篇學術論文與資料庫" data-en="100+ Papers & Databases">100+ 篇學術論文與資料庫</h3><p data-lang="zh">5 大 Track 的原始論文、官方文件、benchmark、公開資料庫整理，附 DOI 連結與教學疑義注記。</p></a>
+  <a href="bioinfo-quiz/index.html" class="hub-card" style="border:2px solid var(--c-highlight);" target="_blank" rel="noopener"><div class="hub-emoji">📝</div><span class="step-num">Quiz</span><h3 data-zh="互動式考題" data-en="Interactive Quiz">互動式考題</h3><p data-lang="zh">單選、多選、是非題；練習 / 考試模式、錯題複習、隨機練習與多使用者進度。</p></a>
 </div>
 
-<h2 class="hub-section-title"><span>03</span> <span data-zh="共通基礎" data-en="Foundations">共通基礎</span></h2>
+<h2 class="hub-section-title"><span>07</span> <span data-zh="使用建議" data-en="How to Use">使用建議</span></h2>
 <div class="hub-steps-grid">
-  <div class="hub-card"><div class="hub-emoji">📄</div><h3 data-zh="檔案格式" data-en="File Formats">檔案格式</h3><p data-lang="zh">FASTQ、SAM/BAM/CRAM、VCF、BED、GFF/GTF、bigWig、HDF5/AnnData——理解檔案格式是讀懂 pipeline 的第一步。</p><p data-lang="en">FASTQ, SAM/BAM/CRAM, VCF, BED, GFF/GTF, bigWig, HDF5/AnnData — understanding file formats is step one to reading any pipeline.</p></div>
-  <div class="hub-card"><div class="hub-emoji">🧰</div><h3 data-zh="核心工具" data-en="Core Tools">核心工具</h3><p data-lang="zh">samtools、bcftools、bedtools、seqkit、IGV——所有體學分析都會用到的瑞士刀。</p><p data-lang="en">samtools, bcftools, bedtools, seqkit, IGV — the Swiss-army tools every omics analyst needs.</p></div>
-  <div class="hub-card"><div class="hub-emoji">📐</div><h3 data-zh="統計概念" data-en="Statistics">統計概念</h3><p data-lang="zh">負二項分佈、廣義線性模型、多重比較校正 (BH/FDR)、置換檢定——這些是讀懂 DESeq2、edgeR、MACS2 結果的關鍵。</p><p data-lang="en">Negative binomial, GLMs, multiple-test correction (BH/FDR), permutation tests — keys to interpreting DESeq2, edgeR, and MACS2 outputs.</p></div>
+  <div class="hub-card"><div class="hub-emoji">🎯</div><span class="step-num">For Beginners</span><h3 data-zh="新手路線" data-en="Beginner Path">新手路線</h3><p data-lang="zh">先讀「生資前導介紹」與「Linux / R / Python 基礎」，再從 Bulk RNA-seq 開始；接著 Variant、scRNA-seq、Spatial。</p></div>
+  <div class="hub-card"><div class="hub-emoji">⚡</div><span class="step-num">For Practitioners</span><h3 data-zh="實戰路線" data-en="Practitioner Path">實戰路線</h3><p data-lang="zh">直接跳到您感興趣的 track；每章皆附 R 與 Python 程式碼分頁，可作為實際分析時的快速查閱手冊。</p></div>
+  <div class="hub-card"><div class="hub-emoji">🌍</div><span class="step-num">Bilingual</span><h3 data-zh="雙語切換" data-en="Bilingual Switch">雙語切換</h3><p data-lang="zh">右上角的「中文 / EN」按鈕可隨時切換語言；偏好會記錄在瀏覽器中。</p></div>
+  <div class="hub-card"><div class="hub-emoji">🔗</div><span class="step-num">Related</span><h3 data-zh="姊妹站台" data-en="Sister Tutorial">姊妹站台</h3><p data-lang="zh">scRNA-seq 完整教學在獨立資料夾 <code>scrna-interactive-tutorial</code>；線性代數、ML、定量分析等也都有獨立 tutorial。</p></div>
 </div>
 
-<h2 class="hub-section-title"><span>04</span> <span data-zh="延伸學習" data-en="Further Learning">延伸學習</span></h2>
-<div class="hub-steps-grid">
-  <a href="references/index.html" class="hub-card" style="border:2px solid var(--c-accent);"><div class="hub-emoji">📚</div><span class="step-num">References</span><h3 data-zh="100+ 篇學術論文與資料庫" data-en="100+ Papers & Databases">100+ 篇學術論文與資料庫</h3><p data-lang="zh">5 大 Track 的原始論文、官方文件、benchmark、公開資料庫整理，附 DOI 連結與教學疑義注記。</p><p data-lang="en">Original papers, official docs, benchmarks, and public databases for all five tracks — with DOI links and tutorial errata notes.</p></a>
-  <a href="bioinfo-quiz/index.html" class="hub-card" style="border:2px solid var(--c-highlight);" target="_blank" rel="noopener"><div class="hub-emoji">📝</div><span class="step-num">Quiz</span><h3 data-zh="互動式考題" data-en="Interactive Quiz">互動式考題</h3><p data-lang="zh">涵蓋 5 大 Track 的單選、多選、是非題，內建練習 / 考試模式、錯題複習、隨機練習與多使用者進度。</p><p data-lang="en">Single-choice, multi-select, and true/false questions across five tracks, with Practice / Exam modes, wrong-answer review, random practice, and multi-user progress tracking.</p></a>
-</div>
 <div style="height:60px"></div>
-<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial · <span data-zh="姊妹站：scRNA-seq 教學" data-en="Sister site: scRNA-seq Tutorial">姊妹站：scRNA-seq 教學</span></footer>
-<script src="i18n.js"></script>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial · <span data-zh="6 大區塊、20+ 主題、5 大體學 + 整合應用" data-en="6 blocks, 20+ topics, 5 omics + applications">6 大區塊、20+ 主題、5 大體學 + 整合應用</span></footer>
+<script src="nav.js"></script><script src="i18n.js"></script>
 </body></html>

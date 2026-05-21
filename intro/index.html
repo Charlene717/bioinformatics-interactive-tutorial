@@ -1,0 +1,183 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Intro to Bioinformatics — 生資前導介紹</title>
+<meta name="description" content="生物資訊學的核心概念、中心法則、定序原理、reference genome、檔案格式與基本流程——進入體學分析前的全景圖。">
+<link rel="stylesheet" href="../styles.css">
+</head><body class="theme-bulk">
+<nav class="top-nav"><div class="top-nav-inner"></div></nav>
+
+<header class="page-hero"><div class="step-badge">FOUNDATIONS · 前導</div>
+<h1 data-zh="生物資訊前導介紹" data-en="Introduction to Bioinformatics">生物資訊前導介紹</h1>
+<p class="subtitle" data-lang="zh">在打開任何 pipeline 之前——先把「生物資訊到底在做什麼」想清楚。從 DNA → 定序 → 檔案 → 分析 → 生物學洞見。</p>
+<p class="subtitle" data-lang="en">Before opening any pipeline — let's get clear on what bioinformatics actually is. From DNA → sequencing → files → analysis → biological insight.</p>
+<div style="margin-top:18px"><span class="diff-chip beg">🟢 零基礎可讀</span><span class="diff-chip int">🟡 為後續所有 track 奠基</span></div>
+</header>
+
+<main class="content-wrap">
+
+<section class="section">
+<div class="section-label" data-zh="開場故事" data-en="MOTIVATION">開場故事</div>
+<h2 data-zh="為什麼要學生物資訊？" data-en="Why learn bioinformatics?">為什麼要學生物資訊？</h2>
+<div data-lang="zh">
+<p>1990 年代人類基因組計畫花了 <strong>13 年、30 億美元</strong> 才定序出 1 個人類基因組；今天，<strong>一台 Illumina NovaSeq X 一天</strong> 就能定序 20 個全基因組，成本不到 USD 200。資料量爆炸但問題也跟著放大——<em>怎麼從一座一座的 TB 級 FASTQ 山裡找出有意義的生物學？</em>這就是生物資訊（bioinformatics）的工作。</p>
+<p>本教學從體學分析最常見的工作流出發：<strong>raw reads → QC → 比對 → 量化 → 統計 → 生物學詮釋</strong>。掌握這條主軸後，所有體學（基因體、轉錄體、表觀基因體、蛋白體、微生物體）只是「換資料、換工具、共享邏輯」。</p>
+</div>
+<div data-lang="en">
+<p>The Human Genome Project took <strong>13 years and ~US $3 billion</strong> in the 1990s to sequence one genome. Today, a single Illumina NovaSeq X can produce <strong>~20 whole human genomes per day</strong> for under US $200 each. Data explosion brought new problems: <em>how do we extract meaningful biology from terabytes of FASTQ?</em> That's bioinformatics.</p>
+<p>This tutorial follows the canonical omics workflow: <strong>raw reads → QC → alignment → quantification → statistics → biological interpretation</strong>. Once this backbone is clear, every omics (genome, transcriptome, epigenome, proteome, microbiome) is "same logic, different data, different tools."</p>
+</div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="第一性原理" data-en="FIRST PRINCIPLES">第一性原理</div>
+<h2 data-zh="中心法則 (Central Dogma) — 一切的起點" data-en="The Central Dogma — where it all starts">中心法則 (Central Dogma) — 一切的起點</h2>
+<div class="flow-chain">
+  <span class="fc-step">DNA</span><span class="fc-arrow">→ 轉錄 (transcription)</span>
+  <span class="fc-step">RNA</span><span class="fc-arrow">→ 轉譯 (translation)</span>
+  <span class="fc-step">Protein</span>
+</div>
+<div data-lang="zh">
+<p>每一種體學量測，本質上都是切下「中心法則」中某一個層級或介面：</p>
+<ul style="margin-left:22px;color:var(--c-ink-light);line-height:2;">
+<li><strong>基因體學 (Genomics)：</strong>讀 DNA 序列——個體間有何變異？哪些變異致病？</li>
+<li><strong>表觀基因體學 (Epigenomics)：</strong>讀染色質狀態與 DNA 修飾——哪些基因「可以被表達」？</li>
+<li><strong>轉錄體學 (Transcriptomics)：</strong>讀 RNA 表達量——哪些基因「實際被表達」、多少？</li>
+<li><strong>蛋白體學 (Proteomics)：</strong>讀蛋白質豐度與修飾——細胞「實際在做什麼」？</li>
+<li><strong>代謝體學 (Metabolomics)：</strong>讀代謝物——細胞功能的最終讀數。</li>
+</ul>
+<p>每往中心法則下游走一層，<strong>資訊量增加（複雜度↑）但訊號穩定度下降</strong>——這是體學分析的核心 trade-off。</p>
+</div>
+<div data-lang="en">
+<p>Each omics measurement essentially slices a layer (or an interface) of the central dogma:</p>
+<ul style="margin-left:22px;color:var(--c-ink-light);line-height:2;">
+<li><strong>Genomics:</strong> DNA sequence — what varies between individuals? Which variants cause disease?</li>
+<li><strong>Epigenomics:</strong> chromatin state & DNA modifications — which genes are <em>eligible</em> for expression?</li>
+<li><strong>Transcriptomics:</strong> RNA levels — which genes are <em>actually</em> expressed, and how much?</li>
+<li><strong>Proteomics:</strong> protein abundance and modifications — what the cell is <em>doing</em>.</li>
+<li><strong>Metabolomics:</strong> small-molecule metabolites — the functional readout of cellular activity.</li>
+</ul>
+<p>Each downstream layer adds biological information but loses signal stability — this is the central trade-off of multi-omics.</p>
+</div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="技術核心" data-en="TECHNOLOGY">技術核心</div>
+<h2 data-zh="定序原理：四大平台對照" data-en="Sequencing platforms compared">定序原理：四大平台對照</h2>
+<table class="comp-table">
+<thead><tr>
+<th data-zh="平台" data-en="Platform">平台</th>
+<th data-zh="化學原理" data-en="Chemistry">化學原理</th>
+<th data-zh="讀長 / 準確度" data-en="Read length / accuracy">讀長 / 準確度</th>
+<th data-zh="典型用途" data-en="Typical use">典型用途</th>
+</tr></thead>
+<tbody>
+<tr><td><strong>Sanger</strong></td><td data-zh="ddNTP 連鎖終止" data-en="ddNTP chain termination">ddNTP 連鎖終止</td><td>~800 bp / Q40+</td><td data-zh="變異確認、小片段定序" data-en="Variant confirmation, small fragments">變異確認、小片段定序</td></tr>
+<tr><td><strong>Illumina</strong> (NovaSeq / NextSeq)</td><td data-zh="橋式擴增 + SBS" data-en="Bridge amp + SBS">橋式擴增 + SBS</td><td>2×150 bp / Q30+</td><td data-zh="WGS、WES、RNA-seq、ATAC" data-en="WGS, WES, RNA-seq, ATAC">WGS、WES、RNA-seq、ATAC（短讀主流）</td></tr>
+<tr><td><strong>PacBio</strong> HiFi (Revio)</td><td data-zh="SMRT + CCS 共識" data-en="SMRT + CCS consensus">SMRT + CCS 共識</td><td>15-25 kb / Q30+ (HiFi)</td><td data-zh="長讀 WGS、結構變異、isoform" data-en="Long-read WGS, SV, isoforms">長讀 WGS、結構變異、isoform、HLA 分型</td></tr>
+<tr><td><strong>Oxford Nanopore</strong> (R10.4.1, Dorado duplex)</td><td data-zh="奈米孔通過電流變化" data-en="Nanopore current shift">奈米孔通過電流變化</td><td>10 kb-1 Mb+ / Q20-Q30 (duplex)</td><td data-zh="長讀、即時定序、直接 5mC" data-en="Long-read, real-time, direct 5mC">超長讀、即時定序、直接讀取甲基化</td></tr>
+</tbody>
+</table>
+<div class="callout tip"><span class="callout-icon">💡</span><div data-lang="zh"><strong>第一個關鍵分辨：</strong>短讀（Illumina）每個 read 約 150 bp，準確但無法跨越重複區；長讀（PacBio、Nanopore）每個 read 數萬至百萬 bp，可解析結構變異與長 RNA isoform，但歷史上錯誤率較高（HiFi 與 duplex 已修正）。</div><div data-lang="en"><strong>The first dichotomy:</strong> short reads (Illumina) — ~150 bp, highly accurate, struggles with repeats. Long reads (PacBio, Nanopore) — kb to Mb, resolves structural variants and full isoforms, historically lower per-base accuracy (now solved by HiFi and duplex).</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="關鍵概念" data-en="KEY CONCEPT">關鍵概念</div>
+<h2 data-zh="Reference Genome——你比對的「底圖」" data-en="Reference Genome — the map you align to">Reference Genome——你比對的「底圖」</h2>
+<div data-lang="zh">
+<p>定序得到的 raw reads 像是把一本書撕成 10 億片碎紙；要還原原文，你需要一本「答案參考書」——這就是 <strong>reference genome</strong>。</p>
+<ul style="margin-left:22px;color:var(--c-ink-light);line-height:2">
+<li><strong>GRCh38 / hg38：</strong>2013 年迄今的人類標準參考基因組，含 ALT contigs（額外的單倍型）與 decoy 序列（避免錯誤比對）。</li>
+<li><strong>T2T-CHM13 (2022)：</strong>第一個「telomere-to-telomere」完整人類基因組——包含著絲粒、rDNA、Y 染色體完整序列，比 GRCh38 多 5% 序列。</li>
+<li><strong>Pangenome (HPRC, 2023)：</strong>不再用單一參考；用 47+ 個樣本建立 graph genome，減少 reference bias。</li>
+</ul>
+<p>選對 reference 很重要：對東亞族群做 WGS，<strong>用 T2T-CHM13 或加入族群特異變異</strong>能避免 reference bias 造成的假陰性。</p>
+</div>
+<div data-lang="en">
+<p>Raw reads are like a book torn into a billion confetti pieces; to reconstruct the original, you need an answer key — the <strong>reference genome</strong>.</p>
+<ul style="margin-left:22px;color:var(--c-ink-light);line-height:2">
+<li><strong>GRCh38 / hg38:</strong> The standard human reference since 2013; includes ALT contigs (alternate haplotypes) and decoy sequences to avoid misalignment.</li>
+<li><strong>T2T-CHM13 (2022):</strong> The first telomere-to-telomere complete human genome — covers centromeres, rDNA, and the full Y chromosome; adds 5% sequence over GRCh38.</li>
+<li><strong>Pangenome (HPRC, 2023):</strong> No single reference; a graph genome built from 47+ samples to reduce reference bias.</li>
+</ul>
+<p>Choosing the right reference matters: for East-Asian WGS, using T2T-CHM13 or adding population-specific variants prevents false-negative calls from reference bias.</p>
+</div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="檔案地圖" data-en="FILE MAP">檔案地圖</div>
+<h2 data-zh="體學六大檔案格式" data-en="Six essential file formats">體學六大檔案格式</h2>
+<div class="card-grid cols-2">
+  <div class="card"><div class="card-icon">🧬</div><h4>FASTQ</h4><p data-lang="zh"><code>@read_id</code> + 序列 + <code>+</code> + Phred 品質字串。每個 read 4 行；定序機原始輸出格式。</p><p data-lang="en"><code>@read_id</code> + sequence + <code>+</code> + Phred quality. 4 lines per read; raw sequencer output.</p></div>
+  <div class="card"><div class="card-icon">🗺️</div><h4>SAM / BAM / CRAM</h4><p data-lang="zh">read 對齊到 reference 後的結果。BAM 是 SAM 的壓縮二進位版；CRAM 進一步用 reference 壓縮，省 50% 空間。</p><p data-lang="en">Alignment of reads to a reference. BAM is the compressed binary form of SAM; CRAM compresses further by referencing the genome, saving ~50% space.</p></div>
+  <div class="card"><div class="card-icon">⚠️</div><h4>VCF</h4><p data-lang="zh">Variant Call Format。儲存單核苷酸變異 (SNV)、insertion/deletion、結構變異的標準格式。</p><p data-lang="en">Variant Call Format — stores SNVs, indels, and structural variants in a standardised tab-delimited form.</p></div>
+  <div class="card"><div class="card-icon">📏</div><h4>BED / BigWig</h4><p data-lang="zh">BED：基因組區間（chr + start + end）。BigWig：每個位點的數值訊號（如 coverage、ChIP signal）。</p><p data-lang="en">BED: genomic intervals (chr + start + end). BigWig: per-position numeric signal (coverage, ChIP signal).</p></div>
+  <div class="card"><div class="card-icon">📝</div><h4>GTF / GFF3</h4><p data-lang="zh">基因註釋——告訴你哪些 chr + 位置是基因、轉錄本、外顯子、UTR、CDS。</p><p data-lang="en">Gene annotations — tells you which chromosomal regions are genes, transcripts, exons, UTRs, CDSs.</p></div>
+  <div class="card"><div class="card-icon">📦</div><h4>HDF5 / AnnData / MTX</h4><p data-lang="zh">表達矩陣（細胞×基因或樣本×基因）。AnnData 是 scRNA 的主流格式；HDF5/MTX 是 10x 與 Bioconductor 常見輸出。</p><p data-lang="en">Expression matrices (cell × gene or sample × gene). AnnData is the de-facto scRNA format; HDF5/MTX are common in 10x Cell Ranger and Bioconductor.</p></div>
+</div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="通用流程" data-en="GENERIC PIPELINE">通用流程</div>
+<h2 data-zh="八步驟通用體學流程" data-en="The 8-step generic omics pipeline">八步驟通用體學流程</h2>
+<div class="workflow">
+  <div class="workflow-step" data-step="1"><h4 data-zh="① QC 品質檢查" data-en="① QC">① QC 品質檢查</h4><p data-zh="FastQC + MultiQC 看 Phred 分數、adapter、過度代表序列；garbage in, garbage out。" data-en="FastQC + MultiQC: inspect Phred scores, adapters, overrepresented sequences. Garbage in, garbage out.">FastQC + MultiQC 看 Phred 分數、adapter、過度代表序列；garbage in, garbage out。</p></div>
+  <div class="workflow-step" data-step="2"><h4 data-zh="② Trimming 修剪" data-en="② Trimming">② Trimming 修剪</h4><p data-zh="fastp / Trimmomatic / cutadapt 去除 adapter 與低品質鹼基。" data-en="fastp / Trimmomatic / cutadapt remove adapters and low-quality bases.">fastp / Trimmomatic / cutadapt 去除 adapter 與低品質鹼基。</p></div>
+  <div class="workflow-step" data-step="3"><h4 data-zh="③ Alignment 對齊" data-en="③ Alignment">③ Alignment 對齊</h4><p data-zh="BWA-MEM2 / STAR / minimap2 / Bowtie2——把每個 read 放到 reference 上正確的位置。" data-en="BWA-MEM2 / STAR / minimap2 / Bowtie2 — place each read on the right reference position.">BWA-MEM2（DNA）/ STAR（剪接 RNA）/ minimap2（長讀）/ Bowtie2（ATAC、ChIP）。</p></div>
+  <div class="workflow-step" data-step="4"><h4 data-zh="④ Post-alignment QC" data-en="④ Post-alignment QC">④ Post-alignment QC</h4><p data-zh="markdup（PCR 重複移除）、BQSR（鹼基品質校正，僅 DNA）、coverage 統計。" data-en="markdup (remove PCR duplicates), BQSR (DNA only), coverage statistics.">markdup（PCR 重複移除）、BQSR（鹼基品質校正，DNA）、coverage 統計。</p></div>
+  <div class="workflow-step" data-step="5"><h4 data-zh="⑤ 量化／呼叫" data-en="⑤ Quantification / Calling">⑤ 量化／呼叫</h4><p data-zh="Salmon/featureCounts（RNA）、HaplotypeCaller/DeepVariant（DNA）、MACS2/3（ATAC/ChIP）。" data-en="Salmon/featureCounts (RNA), HaplotypeCaller/DeepVariant (DNA), MACS2/3 (ATAC/ChIP).">Salmon / featureCounts（RNA）、HaplotypeCaller / DeepVariant（DNA）、MACS2/3（ATAC/ChIP）。</p></div>
+  <div class="workflow-step" data-step="6"><h4 data-zh="⑥ 統計建模" data-en="⑥ Statistical modelling">⑥ 統計建模</h4><p data-zh="DESeq2 / edgeR / limma-voom（RNA-seq DE）、VQSR/Mutect2（變異過濾）。" data-en="DESeq2 / edgeR / limma-voom (DE), VQSR/Mutect2 (variant filtering).">DESeq2 / edgeR / limma-voom（差異表達）、VQSR / Mutect2（變異過濾）。</p></div>
+  <div class="workflow-step" data-step="7"><h4 data-zh="⑦ 註釋與功能" data-en="⑦ Annotation & function">⑦ 註釋與功能</h4><p data-zh="VEP / SnpEff / ANNOVAR（變異註釋）、ClusterProfiler / GSEA（路徑分析）。" data-en="VEP / SnpEff / ANNOVAR (variant annotation), clusterProfiler / GSEA (pathway analysis).">VEP / SnpEff / ANNOVAR（變異註釋）、clusterProfiler / GSEA（路徑分析）。</p></div>
+  <div class="workflow-step" data-step="8"><h4 data-zh="⑧ 視覺化與報告" data-en="⑧ Visualisation & reporting">⑧ 視覺化與報告</h4><p data-zh="ggplot2 / matplotlib / IGV / UCSC——把數字變成可說故事的圖。" data-en="ggplot2 / matplotlib / IGV / UCSC — turn numbers into stories.">ggplot2 / matplotlib / IGV / UCSC——把數字變成可說故事的圖。</p></div>
+</div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="座標系統" data-en="COORDINATES">座標系統</div>
+<h2 data-zh="0-based vs 1-based — 害你發 bug 的元兇" data-en="0-based vs 1-based — the bug factory">0-based vs 1-based — 害你發 bug 的元兇</h2>
+<div class="callout warn"><span class="callout-icon">⚠️</span><div data-lang="zh"><strong>記住這張表，省下你三個月的 debug。</strong> 不同檔案格式用不同座標系統，混用就會 off-by-one。</div><div data-lang="en"><strong>Memorise this table — you'll save 3 months of debugging.</strong> Different formats use different coordinate systems; mixing them causes off-by-one bugs.</div></div>
+<table class="comp-table">
+<thead><tr><th>Format</th><th data-zh="起始" data-en="Start">起始</th><th data-zh="終點" data-en="End">終點</th><th data-zh="範例：第 1-10 個鹼基" data-en="Bases 1–10 example">範例：第 1-10 個鹼基</th></tr></thead>
+<tbody>
+<tr><td>BED</td><td>0-based</td><td data-zh="開區間" data-en="exclusive">開區間（exclusive）</td><td><code>chr1 0 10</code></td></tr>
+<tr><td>GFF / GTF</td><td>1-based</td><td data-zh="閉區間" data-en="inclusive">閉區間（inclusive）</td><td><code>chr1 1 10</code></td></tr>
+<tr><td>SAM / VCF</td><td>1-based</td><td data-zh="閉區間" data-en="inclusive">閉區間</td><td><code>POS=1</code> 起算</td></tr>
+<tr><td>FASTQ</td><td>—</td><td>—</td><td data-zh="無位置概念，每 read 獨立" data-en="No positions; each read is independent">無位置概念，每 read 獨立</td></tr>
+</tbody>
+</table>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="下一步" data-en="NEXT STEPS">下一步</div>
+<h2 data-zh="準備好了——選一個路線開始" data-en="Ready — pick a track">準備好了——選一個路線開始</h2>
+<div data-lang="zh">
+<p>本教學的其他 track 都從一個共同假設出發：<em>你已經知道 reads、reference、SAM/BAM/VCF 是什麼</em>。如果上述任何一個還沒掌握，建議再讀一次本頁，或翻到「📚 參考資料」找 review paper。</p>
+<p>推薦進入順序：</p>
+<ol style="margin-left:22px;color:var(--c-ink-light);line-height:2">
+<li>對 <strong>程式 / 環境</strong> 完全陌生 → 先讀「Linux 基礎」、「R 基礎」、「Python 基礎」。</li>
+<li>對 <strong>統計</strong> 不熟 → 讀「資訊與數學」。</li>
+<li>對體學 pipeline 完全沒概念 → 從 <strong>Bulk RNA-seq</strong> 開始（最完整、最經典）。</li>
+<li>已有臨床／遺傳背景 → 直接看 <strong>Variant Calling (WGS/WES)</strong>。</li>
+<li>對單細胞有興趣 → <strong>scRNA-seq</strong> 與 <strong>Spatial</strong>。</li>
+</ol>
+</div>
+<div data-lang="en">
+<p>The other tracks of this tutorial assume that you already know what reads, references, and SAM/BAM/VCF are. If any of those is fuzzy, re-read this page or check the "📚 References" for a primer review.</p>
+<p>Recommended order:</p>
+<ol style="margin-left:22px;color:var(--c-ink-light);line-height:2">
+<li>Brand-new to programming → start with Linux, R, and Python basics.</li>
+<li>Shaky on statistics → read "Information & Math".</li>
+<li>Brand-new to omics → start with <strong>Bulk RNA-seq</strong> (most complete and canonical).</li>
+<li>Coming from clinical/genetics → jump straight to <strong>Variant Calling (WGS/WES)</strong>.</li>
+<li>Interested in single-cell → <strong>scRNA-seq</strong> and <strong>Spatial</strong>.</li>
+</ol>
+</div>
+</section>
+
+<div class="page-nav">
+  <a href="../index.html"><span class="nav-dir" data-zh="← 回首頁" data-en="← Hub">← 回首頁</span><span class="nav-title" data-zh="所有路線總覽" data-en="All tracks overview">所有路線總覽</span></a>
+  <a href="../bulk-rnaseq/index.html"><span class="nav-dir" data-zh="開始學習 →" data-en="Start →">開始學習 →</span><span class="nav-title" data-zh="Bulk RNA-seq 分析" data-en="Bulk RNA-seq Analysis">Bulk RNA-seq 分析</span></a>
+</div>
+
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial · Intro</footer>
+<script src="../nav.js"></script><script src="../i18n.js"></script>
+</body></html>

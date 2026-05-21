@@ -1,0 +1,54 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Long-read Sequencing — Bioinformatics Tutorial</title>
+<link rel="stylesheet" href="../styles.css">
+</head><body class="theme-variant">
+<nav class="top-nav"><div class="top-nav-inner"></div></nav>
+<header class="page-hero"><div class="step-badge">GENOMICS · LONG-READ</div>
+<h1 data-zh="長讀定序 (PacBio HiFi / Nanopore)" data-en="Long-read Sequencing (PacBio HiFi / Nanopore)">長讀定序 (PacBio HiFi / Nanopore)</h1>
+<p class="subtitle" data-lang="zh">15 kb 起跳的 read 解開短讀無法跨越的重複區、結構變異、全長 isoform 與直接讀甲基化。</p>
+<p class="subtitle" data-lang="en">Reads of 15 kb+ resolve repeats, SVs, full-length isoforms, and direct methylation — what short reads cannot.</p>
+</header>
+<main class="content-wrap">
+
+<section class="section"><div class="section-label">PLATFORMS</div><h2 data-zh="① PacBio HiFi vs Nanopore" data-en="① PacBio HiFi vs Nanopore">① 兩大平台對照</h2>
+<table class="comp-table"><thead><tr><th></th><th>PacBio HiFi (Revio)</th><th>Oxford Nanopore (R10.4.1 + Dorado duplex)</th></tr></thead>
+<tbody>
+<tr><td data-zh="原理" data-en="Principle">原理</td><td data-zh="SMRT cell 即時偵測 + CCS 共識" data-en="SMRT + CCS consensus">SMRT cell 即時偵測 + CCS 共識</td><td data-zh="奈米孔電流變化" data-en="Nanopore current shifts">奈米孔電流變化</td></tr>
+<tr><td data-zh="讀長" data-en="Read length">讀長</td><td>15-25 kb (HiFi)</td><td>10 kb-2 Mb+</td></tr>
+<tr><td data-zh="準確度" data-en="Accuracy">準確度</td><td>Q30+ (HiFi)</td><td>Q20-Q30 (R10.4.1 duplex)</td></tr>
+<tr><td data-zh="甲基化" data-en="Methylation">甲基化</td><td>5mC + 6mA 同步</td><td>5mC + 5hmC + 6mA + N6-mA 同步</td></tr>
+<tr><td data-zh="通量 / cost" data-en="Throughput">通量</td><td>~360 Gb / Revio run</td><td>PromethION ~10 Tb / 48 flowcells</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label">PIPELINE</div><h2 data-zh="② 標準分析" data-en="② Standard pipeline">② 標準分析</h2>
+<div class="flow-chain">
+<span class="fc-step">HiFi BAM / Nanopore POD5</span><span class="fc-arrow">→</span>
+<span class="fc-step">minimap2 / pbmm2</span><span class="fc-arrow">→</span>
+<span class="fc-step">Variant: DeepVariant / Clair3 / PEPPER-MDV</span><span class="fc-arrow">→</span>
+<span class="fc-step">SV: Sniffles2 / pbsv / cuteSV</span><span class="fc-arrow">→</span>
+<span class="fc-step">Phasing: WhatsHap</span>
+</div>
+<ul style="margin-left:22px;color:var(--c-ink-light);line-height:2;margin-top:12px">
+<li><strong>Variant calling：</strong>DeepVariant（HiFi 推薦）、Clair3（Nanopore 推薦，2022 Zheng 等）、PEPPER-DeepVariant-Margin（ONT pipeline）。</li>
+<li><strong>SV detection：</strong>Sniffles2（2024 Smolka）、pbsv、cuteSV — 比短讀多偵測 30-50% SV，尤其複雜重排。</li>
+<li><strong>Phasing：</strong>WhatsHap、HiPhase — long-read 自然涵蓋多個 SNP，可建立完整單倍型。</li>
+<li><strong>Iso-seq / cDNA：</strong>IsoSeq3、FLAIR — 偵測 isoform、fusion、APA 終端。</li>
+<li><strong>Direct methylation：</strong>Nanopolish、DeepMod、Dorado（ONT）；jasmine、pb-CpG-tools（HiFi）。</li>
+</ul>
+</section>
+
+<section class="section"><div class="section-label">USE CASES</div><h2 data-zh="③ 什麼時候必須用 long-read？" data-en="③ When you must use long-read">③ 什麼時候必須用 long-read？</h2>
+<ul style="margin-left:22px;color:var(--c-ink-light);line-height:2">
+<li data-zh="🧬 結構變異未解的罕見疾病（FSHD、myotonic dystrophy 等重複擴增）" data-en="🧬 Repeat-expansion diseases (FSHD, myotonic dystrophy)">🧬 結構變異未解的罕見疾病（重複擴增疾病）</li>
+<li data-zh="🧬 HLA / 免疫基因座的高度多態區域" data-en="🧬 HLA / immune gene haplotyping">🧬 HLA / 免疫基因座的高度多態區域</li>
+<li data-zh="🧬 細胞癌中的複雜重排 (chromothripsis, neoloops)" data-en="🧬 Complex rearrangements in cancer (chromothripsis, neoloops)">🧬 癌症複雜重排（chromothripsis、neoloops）</li>
+<li data-zh="🧬 De novo assembly — T2T 與 HPRC pangenome 的核心技術" data-en="🧬 De novo assembly — backbone of T2T and HPRC pangenome">🧬 De novo assembly — T2T、HPRC pangenome 的核心</li>
+<li data-zh="🧬 直接甲基化（不需 bisulfite，保留 DNA 完整）" data-en="🧬 Direct methylation (no bisulfite conversion)">🧬 直接甲基化（不需 bisulfite）</li>
+</ul>
+</section>
+
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial · Long-read</footer>
+<script src="../nav.js"></script><script src="../i18n.js"></script>
+</body></html>

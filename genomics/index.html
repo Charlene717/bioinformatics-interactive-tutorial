@@ -1,0 +1,57 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Genomics 基因體學總論 — Bioinformatics Tutorial</title>
+<link rel="stylesheet" href="../styles.css">
+</head><body class="theme-variant">
+<nav class="top-nav"><div class="top-nav-inner"></div></nav>
+<header class="page-hero"><div class="step-badge">GENOMICS · 基因體學總論</div>
+<h1 data-zh="基因體學總論" data-en="Genomics Overview">基因體學總論</h1>
+<p class="subtitle" data-lang="zh">DNA 的形狀、基因組的層次、人類基因組計畫到 Pangenome——所有「基因體技術」的共同框架。</p>
+<p class="subtitle" data-lang="en">DNA structure, genome architecture, the Human Genome Project to Pangenome — the common framework behind every genomic technology.</p>
+</header>
+<main class="content-wrap">
+
+<section class="section"><div class="section-label">STRUCTURE</div><h2 data-zh="① 從鹼基到染色體" data-en="① From bases to chromosomes">① 從鹼基到染色體</h2>
+<div class="flow-chain">
+<span class="fc-step">鹼基 (A/T/G/C)</span><span class="fc-arrow">→</span>
+<span class="fc-step">基因 (Gene)</span><span class="fc-arrow">→</span>
+<span class="fc-step">染色體 (Chromosome)</span><span class="fc-arrow">→</span>
+<span class="fc-step">基因組 (Genome)</span>
+</div>
+<div data-lang="zh"><p>人類基因組約 <strong>3.1 Gb</strong>、23 對染色體、約 <strong>19,500-21,000 個編碼基因</strong>，但只佔基因組 ~1.5%；其餘是非編碼 RNA、調控元件、重複序列、transposon。</p></div>
+<div data-lang="en"><p>The human genome is ~3.1 Gb across 23 chromosome pairs with ~19,500–21,000 protein-coding genes — only ~1.5% of the genome. The rest is non-coding RNA, regulatory elements, repeats, and transposons.</p></div>
+</section>
+
+<section class="section"><div class="section-label">REFERENCE</div><h2 data-zh="② 三代參考基因組" data-en="② Three generations of references">② 三代參考基因組</h2>
+<table class="comp-table"><thead><tr><th>Reference</th><th data-zh="年份" data-en="Year">年份</th><th data-zh="關鍵特徵" data-en="Key feature">關鍵特徵</th></tr></thead>
+<tbody>
+<tr><td>GRCh37 / hg19</td><td>2009</td><td data-zh="廣泛使用，~3.1 Gb；TCGA、1000 Genomes phase 1" data-en="Widespread; TCGA, 1000 Genomes phase 1">廣泛使用，TCGA、1000 Genomes phase 1</td></tr>
+<tr><td><strong>GRCh38 / hg38</strong></td><td>2013</td><td data-zh="目前臨床標準；含 ALT contigs（單倍型） + decoy" data-en="Clinical standard; ALT contigs + decoy">臨床標準；含 ALT contigs（單倍型） + decoy</td></tr>
+<tr><td><strong>T2T-CHM13</strong></td><td>2022</td><td data-zh="完整 telomere-to-telomere；補上 200 Mb (5%) 包含著絲粒 / rDNA / Y" data-en="Complete T2T; +5% covering centromeres / rDNA / Y">補上 200 Mb (5%)：著絲粒、rDNA、Y</td></tr>
+<tr><td><strong>HPRC Pangenome</strong></td><td>2023</td><td data-zh="47 樣本 graph genome；減少 reference bias" data-en="47-sample graph genome; reduces reference bias">47 樣本 graph 基因組；減少 reference bias</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label">VARIATION</div><h2 data-zh="③ 變異的尺度光譜" data-en="③ The variation size spectrum">③ 變異的尺度光譜</h2>
+<table class="comp-table"><thead><tr><th data-zh="類型" data-en="Type">類型</th><th data-zh="尺度" data-en="Size">尺度</th><th data-zh="偵測平台" data-en="Detection">偵測平台</th></tr></thead>
+<tbody>
+<tr><td>SNV（單核苷酸變異）</td><td>1 bp</td><td>Illumina + GATK HaplotypeCaller / DeepVariant</td></tr>
+<tr><td>Indel（小型插入缺失）</td><td>1-50 bp</td><td>Illumina + HaplotypeCaller</td></tr>
+<tr><td>SV（結構變異）</td><td>&gt; 50 bp</td><td>Illumina + Manta / DELLY；長讀更精準（Sniffles2 / cuteSV）</td></tr>
+<tr><td>CNV（拷貝數）</td><td>kb-Mb</td><td>WGS + CNVkit / gCNV；SNP array / Optical mapping</td></tr>
+<tr><td>Aneuploidy（整條染色體）</td><td data-zh="整條" data-en="whole chr">整條染色體</td><td>Karyotype / aCGH / scWGS</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label">NEXT</div><h2 data-zh="④ 進入下一層" data-en="④ Go deeper">④ 進入下一層</h2>
+<div class="card-grid cols-2">
+<a class="hub-card" href="../variant/index.html"><div class="card-icon">🧪</div><h4>變異偵測 (WGS/WES)</h4><p data-lang="zh">GATK Best Practice、HaplotypeCaller、Mutect2、VEP 註釋。</p></a>
+<a class="hub-card" href="../longread/index.html"><div class="card-icon">🧵</div><h4>Long-read 定序</h4><p data-lang="zh">PacBio HiFi、Nanopore；SV、isoform、直接讀甲基化。</p></a>
+<a class="hub-card" href="../hic/index.html"><div class="card-icon">🧶</div><h4>Hi-C / 3D 基因組</h4><p data-lang="zh">TAD、Compartment、Loop；cooler、HiC-Pro。</p></a>
+<a class="hub-card" href="../methylation/index.html"><div class="card-icon">🧷</div><h4>甲基化分析</h4><p data-lang="zh">WGBS / RRBS / EM-seq；Bismark、methylKit、DMR。</p></a>
+</div>
+</section>
+
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial · Genomics</footer>
+<script src="../nav.js"></script><script src="../i18n.js"></script>
+</body></html>

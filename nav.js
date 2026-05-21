@@ -1,0 +1,212 @@
+/* nav.js — central dropdown navigation for the Bioinformatics Interactive Tutorial */
+(function(){
+  var TOPICS = [
+    { id:'foundations', zh:'前導基礎', en:'Foundations', items:[
+      { url:'intro/index.html',                zh:'生資前導介紹',     en:'Intro to Bioinformatics' },
+      { url:'foundations/info-math.html',      zh:'資訊與數學',       en:'Information & Math' },
+      { url:'foundations/linux.html',          zh:'Linux 基礎',       en:'Linux Basics' },
+      { url:'foundations/r.html',              zh:'R 基礎',           en:'R Basics' },
+      { url:'foundations/python.html',         zh:'Python 基礎',      en:'Python Basics' }
+    ]},
+    { id:'genomics', zh:'基因體學', en:'Genomics', items:[
+      { url:'genomics/index.html',             zh:'基因體學總論',     en:'Genomics Overview' },
+      { url:'variant/index.html',              zh:'變異偵測 (WGS/WES)', en:'Variant Calling (WGS/WES)' },
+      { url:'longread/index.html',             zh:'Long-read 定序',   en:'Long-read Sequencing' },
+      { url:'hic/index.html',                  zh:'Hi-C / 3D 基因組', en:'Hi-C / 3D Genome' },
+      { url:'methylation/index.html',          zh:'甲基化 / Bisulfite', en:'Methylation / Bisulfite-seq' }
+    ]},
+    { id:'transcriptomics', zh:'轉錄體學', en:'Transcriptomics', items:[
+      { url:'bulk-rnaseq/index.html',          zh:'Bulk RNA-seq',     en:'Bulk RNA-seq' },
+      { url:'scrna-seq/index.html',            zh:'scRNA-seq 單細胞', en:'scRNA-seq (Single-cell)' },
+      { url:'spatial/index.html',              zh:'空間轉錄組學',     en:'Spatial Transcriptomics' }
+    ]},
+    { id:'epigenomics', zh:'表觀基因體', en:'Epigenomics', items:[
+      { url:'atac-seq/index.html',             zh:'ATAC-seq',         en:'ATAC-seq' },
+      { url:'chipseq/index.html',              zh:'ChIP-seq / CUT&Tag', en:'ChIP-seq / CUT&RUN / CUT&Tag' }
+    ]},
+    { id:'proteo_microbe', zh:'蛋白體與微生物', en:'Proteomics & Microbiome', items:[
+      { url:'proteomics/index.html',           zh:'蛋白體 / Mass-spec', en:'Proteomics / Mass-spec' },
+      { url:'microbiome/index.html',           zh:'微生物群體學',     en:'Microbiome / Metagenomics' }
+    ]},
+    { id:'applications', zh:'整合與臨床應用', en:'Integration & Clinical', items:[
+      { url:'multiomics/index.html',           zh:'Multi-omics 整合', en:'Multi-omics Integration' },
+      { url:'protein-structure/index.html',    zh:'蛋白質結構預測',   en:'Protein Structure Prediction' },
+      { url:'precision-medicine/index.html',   zh:'精準醫療',         en:'Precision Medicine' }
+    ]},
+    { id:'resources', zh:'參考與測驗', en:'Resources', items:[
+      { url:'references/index.html',           zh:'參考資料',         en:'References' },
+      { url:'bioinfo-quiz/index.html',         zh:'互動考題',         en:'Interactive Quiz' }
+    ]}
+  ];
+
+  var TRACK_CHAPTERS = {
+    'bulk-rnaseq': [
+      { file:'index.html',          zh:'總覽',         en:'Overview' },
+      { file:'qc-trim.html',        zh:'QC 與修剪',    en:'QC & Trim' },
+      { file:'alignment.html',      zh:'對齊',         en:'Alignment' },
+      { file:'quantification.html', zh:'定量',         en:'Quantification' },
+      { file:'normalization.html',  zh:'歸一化',       en:'Normalization' },
+      { file:'de.html',             zh:'差異表達',     en:'DE' },
+      { file:'visualization.html',  zh:'視覺化',       en:'Visualization' },
+      { file:'gsea.html',           zh:'GSEA',         en:'GSEA' }
+    ],
+    'spatial': [
+      { file:'index.html',           zh:'總覽',     en:'Overview' },
+      { file:'platforms.html',       zh:'平台',     en:'Platforms' },
+      { file:'preprocessing.html',   zh:'前處理',   en:'Preprocessing' },
+      { file:'spatial-analysis.html',zh:'空間分析', en:'Spatial Analysis' },
+      { file:'deconvolution.html',   zh:'去卷積',   en:'Deconvolution' },
+      { file:'interactions.html',    zh:'細胞通訊', en:'Cell Comms' }
+    ],
+    'atac-seq': [
+      { file:'index.html',           zh:'總覽',         en:'Overview' },
+      { file:'principles.html',      zh:'原理',         en:'Principles' },
+      { file:'alignment-peaks.html', zh:'比對 + Peak', en:'Peaks' },
+      { file:'motif.html',           zh:'Motif',        en:'Motif' },
+      { file:'integration.html',     zh:'多體學整合',   en:'Integration' }
+    ],
+    'variant': [
+      { file:'index.html',         zh:'總覽',         en:'Overview' },
+      { file:'preprocessing.html', zh:'前處理',       en:'Preprocessing' },
+      { file:'calling.html',       zh:'Variant 呼叫', en:'Calling' },
+      { file:'filtering.html',     zh:'過濾',         en:'Filtering' },
+      { file:'annotation.html',    zh:'註釋',         en:'Annotation' },
+      { file:'sv-cnv.html',        zh:'SV / CNV',     en:'SV / CNV' }
+    ],
+    'microbiome': [
+      { file:'index.html',         zh:'總覽',         en:'Overview' },
+      { file:'amplicon.html',      zh:'16S Amplicon', en:'Amplicon' },
+      { file:'metagenomics.html',  zh:'Metagenomics', en:'Metagenomics' },
+      { file:'function.html',      zh:'功能分析',     en:'Function' }
+    ],
+    'foundations': [
+      { file:'info-math.html', zh:'資訊與數學', en:'Info & Math' },
+      { file:'linux.html',     zh:'Linux',      en:'Linux' },
+      { file:'r.html',         zh:'R',          en:'R' },
+      { file:'python.html',    zh:'Python',     en:'Python' }
+    ]
+  };
+
+  function getPrefix(){
+    var linkEl = document.querySelector('link[rel="stylesheet"][href$="styles.css"], link[rel="stylesheet"][href$="/styles.css"]');
+    if(!linkEl) return '';
+    var href = linkEl.getAttribute('href') || '';
+    return href.replace(/styles\.css$/, '');
+  }
+
+  function currentRelPath(){
+    var linkEl = document.querySelector('link[rel="stylesheet"][href$="styles.css"], link[rel="stylesheet"][href$="/styles.css"]');
+    var href = linkEl ? (linkEl.getAttribute('href') || '') : '';
+    var depth = (href.match(/\.\.\//g) || []).length;
+    var parts = window.location.pathname.split('/').filter(Boolean);
+    var rel = parts.slice(parts.length - depth - 1).join('/');
+    if(rel.endsWith('/')) rel += 'index.html';
+    if(!/\.[a-z]+$/i.test(rel.split('/').pop()||'')) rel += (rel?'/':'') + 'index.html';
+    return rel;
+  }
+
+  function esc(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+    });
+  }
+
+  function buildHTML(curPath){
+    var p = getPrefix();
+    var html = '';
+    html += '<a href="' + p + 'index.html" class="top-nav-brand"><span>&#129516;</span> <span data-zh="生資互動教學" data-en="Bioinformatics Tutorial">生資互動教學</span></a>';
+    html += '<button class="nav-burger" id="navBurger" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>';
+    html += '<ul class="top-nav-links" id="topNavLinks">';
+    var isHub = (curPath === 'index.html' || curPath === '');
+    html += '<li><a href="' + p + 'index.html"' + (isHub ? ' class="active"' : '') + '><span data-zh="首頁" data-en="Home">首頁</span></a></li>';
+    for(var i = 0; i < TOPICS.length; i++){
+      var topic = TOPICS[i];
+      var trackActive = topic.items.some(function(it){ return curPath === it.url; });
+      html += '<li class="has-dropdown' + (trackActive ? ' active' : '') + '">';
+      html += '<a class="dropdown-toggle" href="' + p + topic.items[0].url + '" aria-haspopup="true" aria-expanded="false">';
+      html += '<span data-zh="' + esc(topic.zh) + '" data-en="' + esc(topic.en) + '">' + esc(topic.zh) + '</span> <span class="caret">&#9662;</span></a>';
+      html += '<ul class="dropdown-menu" role="menu">';
+      for(var j = 0; j < topic.items.length; j++){
+        var it = topic.items[j];
+        var aCls = (curPath === it.url) ? ' class="active"' : '';
+        html += '<li><a href="' + p + it.url + '"' + aCls + '><span data-zh="' + esc(it.zh) + '" data-en="' + esc(it.en) + '">' + esc(it.zh) + '</span></a></li>';
+      }
+      html += '</ul></li>';
+    }
+    html += '</ul>';
+    return html;
+  }
+
+  function buildSubNav(curPath){
+    var parts = curPath.split('/');
+    if(parts.length < 2) return '';
+    var folder = parts[0], file = parts[1];
+    var chapters = TRACK_CHAPTERS[folder];
+    if(!chapters) return '';
+    var html = '<div class="track-subnav"><div class="track-subnav-inner"><ul>';
+    for(var i = 0; i < chapters.length; i++){
+      var ch = chapters[i];
+      var cls = (ch.file === file) ? ' class="active"' : '';
+      html += '<li><a href="' + ch.file + '"' + cls + '><span data-zh="' + esc(ch.zh) + '" data-en="' + esc(ch.en) + '">' + esc(ch.zh) + '</span></a></li>';
+    }
+    html += '</ul></div></div>';
+    return html;
+  }
+
+  function wireDropdowns(){
+    var toggles = document.querySelectorAll('.top-nav-links .has-dropdown > .dropdown-toggle');
+    toggles.forEach(function(a){
+      a.addEventListener('click', function(e){
+        if(window.innerWidth <= 880){
+          e.preventDefault();
+          var li = a.parentElement;
+          var open = li.classList.toggle('open');
+          a.setAttribute('aria-expanded', open ? 'true' : 'false');
+        }
+      });
+    });
+    var burger = document.getElementById('navBurger');
+    var list = document.getElementById('topNavLinks');
+    if(burger && list){
+      burger.addEventListener('click', function(){
+        var open = list.classList.toggle('show');
+        burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+    }
+    document.addEventListener('click', function(e){
+      if(!e.target.closest('.top-nav-links') && !e.target.closest('.nav-burger')){
+        document.querySelectorAll('.top-nav-links .has-dropdown.open').forEach(function(li){
+          li.classList.remove('open');
+        });
+        if(list) list.classList.remove('show');
+        if(burger) burger.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
+
+  function inject(){
+    var topNav = document.querySelector('.top-nav');
+    var inner = document.querySelector('.top-nav-inner');
+    if(!inner || !topNav) return;
+    var cur = currentRelPath();
+    inner.innerHTML = buildHTML(cur);
+    var oldSub = document.querySelector('.track-subnav');
+    if(oldSub) oldSub.remove();
+    var subHTML = buildSubNav(cur);
+    if(subHTML){
+      topNav.insertAdjacentHTML('afterend', subHTML);
+    }
+    wireDropdowns();
+    if(window.I18n && window.I18n.apply){
+      window.I18n.apply(window.I18n.get());
+    }
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', inject);
+  } else {
+    inject();
+  }
+
+  window.BioNav = { TOPICS: TOPICS, TRACK_CHAPTERS: TRACK_CHAPTERS, inject: inject };
+})();

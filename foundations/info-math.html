@@ -1,0 +1,81 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>資訊與數學 — Bioinformatics Tutorial</title>
+<link rel="stylesheet" href="../styles.css">
+</head><body class="theme-bulk">
+<nav class="top-nav"><div class="top-nav-inner"></div></nav>
+<header class="page-hero"><div class="step-badge">FOUNDATIONS · 資訊與數學</div>
+<h1 data-zh="資訊與數學基礎" data-en="Information & Math Foundations">資訊與數學基礎</h1>
+<p class="subtitle" data-lang="zh">看懂 DESeq2、MACS2、VEP 結果，你不需要會證明，但需要熟悉這些核心概念。</p>
+<p class="subtitle" data-lang="en">To read DESeq2, MACS2, and VEP outputs you don't need proofs — but you do need these core ideas.</p>
+</header>
+<main class="content-wrap">
+
+<section class="section"><div class="section-label">PROBABILITY</div><h2 data-zh="① 機率分佈三件套" data-en="① Three distributions you must know">① 機率分佈三件套</h2>
+<table class="comp-table"><thead><tr><th data-zh="分佈" data-en="Distribution">分佈</th><th data-zh="形狀" data-en="Shape">形狀</th><th data-zh="體學用法" data-en="Where used">體學用法</th></tr></thead>
+<tbody>
+<tr><td><strong>Poisson</strong> (λ)</td><td data-zh="μ = σ²" data-en="mean = var">μ = σ²</td><td data-zh="ChIP/ATAC peak calling、低 coverage 計數" data-en="ChIP/ATAC peak calling, low-coverage counts">ChIP/ATAC peak calling、低 coverage 計數</td></tr>
+<tr><td><strong>Negative Binomial</strong></td><td data-zh="σ² > μ (overdispersed)" data-en="σ² > μ (overdispersed)">σ² &gt; μ（過度離散）</td><td>DESeq2 / edgeR — bulk RNA-seq DE 的核心模型</td></tr>
+<tr><td><strong>Normal</strong></td><td data-zh="鐘形" data-en="bell">鐘形</td><td>limma-voom（log-CPM 後）、GWAS Z-score、QC 指標</td></tr>
+</tbody></table>
+<div class="callout tip"><span class="callout-icon">💡</span><div data-lang="zh"><strong>為什麼 RNA-seq 不用 Poisson？</strong>因為生物樣本之間有額外變異（biological replicate variability），σ² 大於 μ；用 Poisson 會低估方差、產生過多偽陽性。</div><div data-lang="en"><strong>Why not Poisson for RNA-seq?</strong> Biological replicates carry extra variability — σ² &gt; μ. Poisson underestimates variance, inflating false positives.</div></div>
+</section>
+
+<section class="section"><div class="section-label">HYPOTHESIS</div><h2 data-zh="② 假設檢定 & FDR" data-en="② Hypothesis testing & FDR">② 假設檢定 & FDR</h2>
+<div data-lang="zh">
+<p>p-value 是「假設 H₀（無差異）為真時，看到目前資料或更極端的機率」。它<strong>不是「H₀ 為真的機率」</strong>——這個常見誤解害死無數論文。</p>
+<p>當你檢定 20,000 個基因，每個 α=0.05，會有 ~1,000 個基因「純靠運氣」p&lt;0.05。修正：</p>
+<ul style="margin-left:22px;color:var(--c-ink-light);line-height:2">
+<li><strong>Bonferroni：</strong>p × n。最保守、過嚴。</li>
+<li><strong>Benjamini-Hochberg (BH-FDR)：</strong>控制「期望偽陽性比例」，體學標配（DESeq2、MACS2、VEP 都用）。</li>
+<li><strong>Storey q-value：</strong>BH 的延伸，估計真實 H₀ 的比例 π₀。</li>
+</ul>
+</div>
+<div data-lang="en">
+<p>A p-value is "the probability of observing the data, or more extreme, <em>assuming H₀ is true</em>." It is <strong>not</strong> "the probability that H₀ is true" — a misconception that has killed many papers.</p>
+<p>Test 20,000 genes at α=0.05 → ~1,000 spurious hits. Corrections:</p>
+<ul style="margin-left:22px;color:var(--c-ink-light);line-height:2"><li><strong>Bonferroni:</strong> p × n — too conservative.</li>
+<li><strong>BH-FDR:</strong> controls expected false-discovery proportion — the omics standard (DESeq2, MACS2, VEP).</li>
+<li><strong>Storey q-value:</strong> extends BH by estimating π₀ (the true-null proportion).</li></ul>
+</div>
+</section>
+
+<section class="section"><div class="section-label">LINEAR ALGEBRA</div><h2 data-zh="③ 矩陣、PCA、SVD" data-en="③ Matrices, PCA, SVD">③ 矩陣、PCA、SVD</h2>
+<div data-lang="zh">
+<p>每個基因表達矩陣都是 <code>m × n</code>（m 樣本 × n 基因）。對它做的所有「降維」、「聚類」、「整合」運算，核心都是線性代數：</p>
+<ul style="margin-left:22px;color:var(--c-ink-light);line-height:2">
+<li><strong>PCA：</strong>找變異最大的方向。常用於 sample QC（檢查 batch effect、outlier）。</li>
+<li><strong>SVD：</strong>PCA 的引擎；也是 NMF、Harmony、scVI 的數學基礎。</li>
+<li><strong>UMAP / t-SNE：</strong>非線性降維，但仍以 PCA 做為前處理（先降到 50-D 再 UMAP）。</li>
+</ul>
+<p>數學細節請參考姊妹站 <strong>Linear_Algebra 線性代數教學</strong>（20 章節含 SVD、Eckart-Young、PCA 三大誤用）。</p>
+</div>
+<div data-lang="en">
+<p>Every expression matrix is <code>m × n</code> (m samples × n genes). All dimensionality reduction, clustering, and integration boils down to linear algebra:</p>
+<ul style="margin-left:22px;color:var(--c-ink-light);line-height:2">
+<li><strong>PCA:</strong> the direction of maximum variance — used in sample QC (batch effect, outliers).</li>
+<li><strong>SVD:</strong> the engine of PCA — also underlies NMF, Harmony, and scVI.</li>
+<li><strong>UMAP / t-SNE:</strong> non-linear, but typically run after PCA pre-reduction (e.g., to 50-D).</li>
+</ul>
+<p>For the deep version, see the sister site <strong>Linear_Algebra tutorial</strong> (20 chapters with SVD, Eckart-Young, and three PCA pitfalls).</p>
+</div>
+</section>
+
+<section class="section"><div class="section-label">INFORMATION</div><h2 data-zh="④ 資訊理論小辭典" data-en="④ Information theory mini-glossary">④ 資訊理論小辭典</h2>
+<table class="comp-table"><thead><tr><th data-zh="概念" data-en="Concept">概念</th><th data-zh="公式" data-en="Formula">公式</th><th data-zh="體學情境" data-en="Where">體學情境</th></tr></thead>
+<tbody>
+<tr><td>Shannon Entropy</td><td>H = −Σ p log₂ p</td><td>Motif 資訊內容、序列複雜度</td></tr>
+<tr><td>Mutual Information</td><td>I(X;Y) = H(X) + H(Y) − H(X,Y)</td><td>GRN 推論、TF-target 相關性</td></tr>
+<tr><td>KL Divergence</td><td>KL = Σ p log(p/q)</td><td>scVI 變分推論、cell-type 比較</td></tr>
+<tr><td>Phred 品質</td><td>Q = −10·log₁₀(P)</td><td>FASTQ、SAM、VCF 全部都用</td></tr>
+</tbody></table>
+</section>
+
+<div class="page-nav">
+  <a href="../intro/index.html"><span class="nav-dir">← 前一頁</span><span class="nav-title">生資前導介紹</span></a>
+  <a href="linux.html"><span class="nav-dir">下一頁 →</span><span class="nav-title">Linux 基礎</span></a>
+</div>
+
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial · Foundations</footer>
+<script src="../nav.js"></script><script src="../i18n.js"></script>
+</body></html>

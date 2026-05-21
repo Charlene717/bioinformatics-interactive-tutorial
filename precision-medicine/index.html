@@ -1,0 +1,52 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Precision Medicine — Bioinformatics Tutorial</title>
+<link rel="stylesheet" href="../styles.css">
+</head><body class="theme-variant">
+<nav class="top-nav"><div class="top-nav-inner"></div></nav>
+<header class="page-hero"><div class="step-badge">APPLICATIONS · 精準醫療</div>
+<h1 data-zh="精準醫療" data-en="Precision Medicine">精準醫療</h1>
+<p class="subtitle" data-lang="zh">把人口級體學變成「給這個人最適合的治療」——基因變異、藥物反應、PRS 風險、液態切片、AI/ML 的交會點。</p>
+<p class="subtitle" data-lang="en">Translating population-level omics into "the right therapy for this individual" — variants, pharmacogenomics, PRS, liquid biopsy, and AI/ML.</p>
+</header>
+<main class="content-wrap">
+
+<section class="section"><div class="section-label">PILLARS</div><h2 data-zh="① 精準醫療的五大支柱" data-en="① Five pillars of precision medicine">① 五大支柱</h2>
+<table class="comp-table"><thead><tr><th data-zh="支柱" data-en="Pillar">支柱</th><th data-zh="技術" data-en="Tech">技術</th><th data-zh="臨床決策" data-en="Decision">臨床決策</th></tr></thead>
+<tbody>
+<tr><td><strong>① 遺傳診斷</strong></td><td>WES / WGS + VEP + ACMG/AMP 2015</td><td data-zh="罕見病、心律、癌症易感基因" data-en="Rare disease, cardiac, cancer predisposition">罕見病、cardiac、癌症易感</td></tr>
+<tr><td><strong>② 體細胞癌症分型</strong></td><td data-zh="腫瘤 panel / WES + Mutect2 + OncoKB / CIViC" data-en="Tumour panel / WES + Mutect2 + OncoKB / CIViC">tumour WES + Mutect2 + OncoKB / CIViC</td><td data-zh="標靶療法、免疫治療抉擇" data-en="Targeted / IO selection">標靶 / 免疫療法選擇</td></tr>
+<tr><td><strong>③ 藥物基因學 (PGx)</strong></td><td>PharmGKB、CPIC、星號(*) allele</td><td data-zh="warfarin、clopidogrel、statin、SSRI 劑量調整" data-en="warfarin, clopidogrel, statin, SSRI dosing">CYP2C19、CYP2D6、SLCO1B1 等</td></tr>
+<tr><td><strong>④ 多基因風險評分 (PRS)</strong></td><td>GWAS summary stats + PRS-CS / LDpred2</td><td data-zh="心血管、糖尿病、乳癌等常見複雜疾病" data-en="CVD, T2D, breast cancer">常見複雜疾病風險分層</td></tr>
+<tr><td><strong>⑤ 液態切片 (cfDNA / ctDNA)</strong></td><td data-zh="UMI deep-seq + MRD panel" data-en="UMI deep-seq + MRD panel">UMI deep-seq + MRD panel</td><td data-zh="癌症早篩、復發監測、治療反應" data-en="Early detection, MRD, response">早篩、MRD、反應監測</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label">ACMG</div><h2 data-zh="② ACMG/AMP 2015 + 2025 點數版" data-en="② ACMG/AMP 2015 + 2025 quantitative">② 變異致病性分類</h2>
+<div data-lang="zh"><p>2015 Richards 等發表 ACMG/AMP guideline——用 28 種證據碼（PVS1/PS1-4/PM1-6/PP1-5/BA1/BS1-4/BP1-7）分類為 P / LP / VUS / LB / B 五級。<strong>2025 ClinGen 將其量化成點數系統：</strong>PVS=8、PS=4、PM=2、PP=1；累積點數對應五級。</p></div>
+<div data-lang="en"><p>Richards et al. 2015 — ACMG/AMP classifies variants with 28 evidence codes into P / LP / VUS / LB / B. In 2025, ClinGen converted this to a points system: PVS=8, PS=4, PM=2, PP=1, summed to determine the class.</p></div>
+<div class="callout tip" style="margin-top:14px"><span class="callout-icon">💡</span><div data-lang="zh">實作工具：<strong>InterVar、Franklin、VarSome</strong>——自動套用點數，輸出建議分類，但人工複核仍是金標準。</div></div>
+</section>
+
+<section class="section"><div class="section-label">CLINICAL REPORT</div><h2 data-zh="③ 臨床報告的核心元素" data-en="③ Anatomy of a clinical report">③ 臨床報告的核心元素</h2>
+<ul style="margin-left:22px;color:var(--c-ink-light);line-height:2">
+<li><strong>HGVS 命名：</strong>NM_007294.3:c.5266dupC (p.Gln1756ProfsTer74) — 必須完整、可重現。</li>
+<li><strong>ACMG SF v3.2 (2023)：</strong>81 secondary-findings genes — WGS/WES 上偶然發現的可採取行動變異。</li>
+<li><strong>族群頻率：</strong>gnomAD v4 (807k WGS + 76k WES, Karczewski 2024)；對應族群（亞洲、非洲）。</li>
+<li><strong>功能證據：</strong>SpliceAI（Jaganathan 2019）、AlphaMissense（Cheng 2023）、REVEL、CADD — 用 AI 預測致病性。</li>
+</ul>
+</section>
+
+<section class="section"><div class="section-label">FUTURE</div><h2 data-zh="④ 2025-2030 趨勢" data-en="④ Where we're heading">④ 2025-2030 趨勢</h2>
+<ul style="margin-left:22px;color:var(--c-ink-light);line-height:2">
+<li>🌍 <strong>cohort 規模：</strong>UK Biobank 500k + All of Us 245k + Our Future Health 5M — PRS 進入臨床準確度。</li>
+<li>🧬 <strong>Pangenome 取代單一 reference：</strong>HPRC 47 樣本 graph，減少族群偏差。</li>
+<li>🤖 <strong>Foundation models：</strong>Geneformer、scGPT、Evo、Caduceus — 將體學變成 LLM-style 通用模型。</li>
+<li>💧 <strong>液態切片進入早篩：</strong>Grail Galleri、Mercy BioAnalytics 多 cancer 早篩 panel。</li>
+<li>⚖️ <strong>監管：</strong>FDA AI/ML medical device guidance、STARD-AI、TRIPOD+AI 報告標準。</li>
+</ul>
+</section>
+
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial · Precision Medicine</footer>
+<script src="../nav.js"></script><script src="../i18n.js"></script>
+</body></html>

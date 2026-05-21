@@ -1,0 +1,84 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Python 基礎 — Bioinformatics Tutorial</title>
+<link rel="stylesheet" href="../styles.css">
+</head><body class="theme-bulk">
+<nav class="top-nav"><div class="top-nav-inner"></div></nav>
+<header class="page-hero"><div class="step-badge">FOUNDATIONS · PYTHON</div>
+<h1 data-zh="Python 基礎教學" data-en="Python Basics for Bioinformatics">Python 基礎教學</h1>
+<p class="subtitle" data-lang="zh">Python 是體學自動化、ML/DL、單細胞與多體學整合的主場。scanpy、scVI、PyTorch、Biopython 全在這個語言。</p>
+<p class="subtitle" data-lang="en">Python rules automation, ML/DL, single-cell, and multi-omics — scanpy, scVI, PyTorch, Biopython all live here.</p>
+</header>
+<main class="content-wrap">
+
+<section class="section"><div class="section-label">SETUP</div><h2 data-zh="① 環境設定（2025 推薦：uv / pixi）" data-en="① Environment setup (2025: uv / pixi)">① 環境設定</h2>
+<div class="code-tabs"><div class="code-tab-content active"><pre><span class="comment"># 2025 業界標準：uv（Astral 出品）— 速度比 pip 快 10×</span>
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+uv venv .venv               <span class="comment"># 建立虛擬環境</span>
+source .venv/bin/activate
+uv pip install scanpy scvi-tools anndata pandas matplotlib seaborn
+
+<span class="comment"># Pixi — 跨平台 conda 替代（含非 Python 工具如 samtools）</span>
+pixi init my-project
+pixi add scanpy samtools bwa</pre></div></div>
+</section>
+
+<section class="section"><div class="section-label">DATA STRUCTURES</div><h2 data-zh="② 三大基石：pandas / numpy / AnnData" data-en="② The big three: pandas / numpy / AnnData">② 三大基石</h2>
+<div class="code-tabs"><div class="code-tab-content active"><pre><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> pandas <span class="kw">as</span> pd
+<span class="kw">import</span> anndata <span class="kw">as</span> ad
+
+<span class="comment"># numpy — 數值矩陣</span>
+m = np.random.poisson(50, size=(4, 5))     <span class="comment"># 4 genes × 5 samples</span>
+
+<span class="comment"># pandas — 表格</span>
+df = pd.DataFrame({<span class="str">'gene'</span>: [<span class="str">'TP53'</span>, <span class="str">'BRCA1'</span>],
+                   <span class="str">'count'</span>: [120, 45]})
+df.query(<span class="str">'count &gt; 50'</span>)
+df.groupby(<span class="str">'condition'</span>).agg(mean_count=(<span class="str">'count'</span>, <span class="str">'mean'</span>))
+
+<span class="comment"># AnnData — scRNA / 空間轉錄組的容器</span>
+adata = ad.AnnData(X=m.T,                              <span class="comment"># cells × genes</span>
+                   obs=pd.DataFrame(index=[<span class="str">f'cell{i}'</span> <span class="kw">for</span> i <span class="kw">in</span> <span class="func">range</span>(5)]),
+                   var=pd.DataFrame(index=[<span class="str">f'g{i}'</span> <span class="kw">for</span> i <span class="kw">in</span> <span class="func">range</span>(4)]))
+adata.layers[<span class="str">'counts'</span>] = m.T          <span class="comment"># 保留原始 counts</span>
+adata.obsm[<span class="str">'X_umap'</span>] = ...           <span class="comment"># 降維結果</span></pre></div></div>
+</section>
+
+<section class="section"><div class="section-label">SCANPY</div><h2 data-zh="③ scanpy 一頁流程（單細胞）" data-en="③ Single-cell in one page (scanpy)">③ scanpy 一頁流程</h2>
+<div class="code-tabs"><div class="code-tab-content active"><pre><span class="kw">import</span> scanpy <span class="kw">as</span> sc
+adata = sc.read_10x_mtx(<span class="str">'filtered_feature_bc_matrix/'</span>)
+sc.pp.filter_cells(adata, min_genes=200)
+sc.pp.filter_genes(adata, min_cells=3)
+adata.var[<span class="str">'mt'</span>] = adata.var_names.str.startswith(<span class="str">'MT-'</span>)
+sc.pp.calculate_qc_metrics(adata, qc_vars=[<span class="str">'mt'</span>], inplace=<span class="kw">True</span>)
+adata = adata[adata.obs.pct_counts_mt &lt; 20].copy()
+
+sc.pp.normalize_total(adata, target_sum=1e4)
+sc.pp.log1p(adata)
+sc.pp.highly_variable_genes(adata, n_top_genes=2000)
+sc.pp.scale(adata)
+sc.tl.pca(adata, n_comps=50)
+sc.pp.neighbors(adata, n_neighbors=15)
+sc.tl.umap(adata)
+sc.tl.leiden(adata, resolution=0.8)
+sc.pl.umap(adata, color=[<span class="str">'leiden'</span>, <span class="str">'CD3D'</span>, <span class="str">'CD79A'</span>])</pre></div></div>
+</section>
+
+<section class="section"><div class="section-label">FASTA / FASTQ</div><h2 data-zh="④ Biopython 兩行讀寫" data-en="④ Biopython in two lines">④ Biopython — 兩行讀寫</h2>
+<div class="code-tabs"><div class="code-tab-content active"><pre><span class="kw">from</span> Bio <span class="kw">import</span> SeqIO
+<span class="kw">for</span> rec <span class="kw">in</span> SeqIO.parse(<span class="str">'reads.fastq'</span>, <span class="str">'fastq'</span>):
+    <span class="kw">if</span> <span class="func">min</span>(rec.letter_annotations[<span class="str">'phred_quality'</span>]) &gt;= 20:
+        <span class="func">print</span>(<span class="func">len</span>(rec.seq), rec.id)</pre></div></div>
+<div class="callout tip" style="margin-top:14px"><span class="callout-icon">💡</span><div data-lang="zh"><strong>R vs Python 該選哪個？</strong> 體學沒有非此即彼——bulk RNA-seq DE 用 R（DESeq2 較成熟），單細胞、深度學習、自動化 pipeline 用 Python。學會兩者切換是常態。</div></div>
+</section>
+
+<div class="page-nav">
+  <a href="r.html"><span class="nav-dir">← 前一頁</span><span class="nav-title">R 基礎</span></a>
+  <a href="../genomics/index.html"><span class="nav-dir">下一塊 →</span><span class="nav-title">基因體學總論</span></a>
+</div>
+
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial · Python</footer>
+<script src="../nav.js"></script><script src="../i18n.js"></script>
+</body></html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ChIP-seq / CUT&RUN / CUT&Tag — Bioinformatics Tutorial</title>
+<link rel="stylesheet" href="../styles.css">
+</head><body class="theme-atac">
+<nav class="top-nav"><div class="top-nav-inner"></div></nav>
+<header class="page-hero"><div class="step-badge">EPIGENOMICS · ChIP-seq / CUT&Tag</div>
+<h1 data-zh="ChIP-seq / CUT&amp;RUN / CUT&amp;Tag" data-en="ChIP-seq / CUT&RUN / CUT&Tag">ChIP-seq / CUT&amp;RUN / CUT&amp;Tag</h1>
+<p class="subtitle" data-lang="zh">「蛋白質結合在 DNA 哪裡？」——從 1990 年代的 ChIP，到 2019 年的 CUT&amp;Tag，技術變得快、便宜、單細胞化。</p>
+<p class="subtitle" data-lang="en">"Where does the protein bind DNA?" — from 1990s ChIP to 2019's CUT&Tag, the technology is now faster, cheaper, and single-cell-capable.</p>
+</header>
+<main class="content-wrap">
+
+<section class="section"><div class="section-label">CHEMISTRY</div><h2 data-zh="① 三代技術對照" data-en="① Three generations of profiling">① 三代技術對照</h2>
+<table class="comp-table"><thead><tr><th data-zh="技術" data-en="Method">技術</th><th data-zh="原理" data-en="Principle">原理</th><th data-zh="輸入細胞數" data-en="Input cells">輸入細胞數</th><th data-zh="背景" data-en="Background">背景</th></tr></thead>
+<tbody>
+<tr><td><strong>ChIP-seq</strong> (Johnson 2007)</td><td data-zh="抗體免疫沉澱固定後 DNA" data-en="Antibody IP of crosslinked DNA">抗體免疫沉澱固定後 DNA</td><td>1-10M</td><td data-zh="高（input control 必要）" data-en="High (needs input control)">高</td></tr>
+<tr><td><strong>CUT&amp;RUN</strong> (Skene 2017)</td><td data-zh="protein A-MNase 切位 + 釋放" data-en="pA-MNase tethered cleavage">protein A-MNase 切位 + 釋放</td><td>100K-500K</td><td data-zh="中" data-en="Medium">中</td></tr>
+<tr><td><strong>CUT&amp;Tag</strong> (Kaya-Okur 2019)</td><td data-zh="protein A-Tn5 切位 + 直接 tagment" data-en="pA-Tn5 tagmentation">protein A-Tn5 切位 + 直接 tagment</td><td>1K-100K (可單細胞)</td><td data-zh="極低" data-en="Very low">極低</td></tr>
+</tbody></table>
+<div class="callout tip"><span class="callout-icon">💡</span><div data-lang="zh"><strong>2025 趨勢：</strong>CUT&amp;Tag 取代 ChIP-seq 成為 histone mark 主流；只有 TF 與罕見抗體仍偶用 ChIP。CUT&amp;Tag 與 scCUT&amp;Tag 是單細胞表觀組學的核心。</div></div>
+</section>
+
+<section class="section"><div class="section-label">PIPELINE</div><h2 data-zh="② 標準分析流程" data-en="② Standard pipeline">② 標準分析流程</h2>
+<div class="flow-chain">
+<span class="fc-step">FASTQ</span><span class="fc-arrow">→</span>
+<span class="fc-step">Trim + QC</span><span class="fc-arrow">→</span>
+<span class="fc-step">Bowtie2 / BWA-MEM</span><span class="fc-arrow">→</span>
+<span class="fc-step">Filter MAPQ + dedup</span><span class="fc-arrow">→</span>
+<span class="fc-step">Peak Calling</span><span class="fc-arrow">→</span>
+<span class="fc-step">IDR / Diff-binding</span><span class="fc-arrow">→</span>
+<span class="fc-step">Motif / Annotation</span>
+</div>
+<ul style="margin-left:22px;color:var(--c-ink-light);line-height:2;margin-top:12px">
+<li><strong>Peak calling：</strong>MACS2/3（narrow：TF / H3K4me3；broad：H3K27me3 / H3K9me3）；SEACR（CUT&amp;Tag/RUN 推薦）。</li>
+<li><strong>IDR (Irreproducibility Discovery Rate)：</strong>ENCODE 標準，至少兩個生物重複才能算可靠 peak。</li>
+<li><strong>Differential binding：</strong>DiffBind（R）、csaw、MAnorm2、THOR。</li>
+<li><strong>Annotation：</strong>ChIPseeker（R）將 peak 連到最近 gene 與基因組區隔（promoter / intron / intergenic）。</li>
+<li><strong>Motif：</strong>HOMER findMotifsGenome.pl、MEME-ChIP、AME。</li>
+</ul>
+</section>
+
+<section class="section"><div class="section-label">COMPARE</div><h2 data-zh="③ ChIP vs ATAC vs CUT&Tag" data-en="③ ChIP vs ATAC vs CUT&Tag">③ ChIP vs ATAC vs CUT&amp;Tag</h2>
+<table class="comp-table"><thead><tr><th data-zh="問題" data-en="Question">問題</th><th data-zh="ChIP / CUT&Tag" data-en="ChIP / CUT&Tag">ChIP / CUT&amp;Tag</th><th>ATAC-seq</th></tr></thead>
+<tbody>
+<tr><td data-zh="量測什麼？" data-en="Measures">量測什麼？</td><td data-zh="特定蛋白質的結合位置" data-en="Where a specific protein binds">特定蛋白質的結合位置</td><td data-zh="所有可及染色質" data-en="All accessible chromatin">所有可及染色質</td></tr>
+<tr><td data-zh="需要抗體？" data-en="Antibody?">需要抗體？</td><td data-zh="✅ 需特異抗體" data-en="✅ Yes">✅ 需特異抗體</td><td data-zh="❌ 不需" data-en="❌ No">❌ 不需</td></tr>
+<tr><td data-zh="可看 TF？" data-en="TF binding?">可看 TF？</td><td data-zh="✅" data-en="✅">✅</td><td data-zh="間接（footprinting）" data-en="Indirect (footprinting)">間接（footprinting）</td></tr>
+</tbody></table>
+</section>
+
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial · ChIP-seq</footer>
+<script src="../nav.js"></script><script src="../i18n.js"></script>
+</body></html>

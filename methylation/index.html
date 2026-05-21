@@ -1,0 +1,50 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Methylation / Bisulfite-seq — Bioinformatics Tutorial</title>
+<link rel="stylesheet" href="../styles.css">
+</head><body class="theme-atac">
+<nav class="top-nav"><div class="top-nav-inner"></div></nav>
+<header class="page-hero"><div class="step-badge">EPIGENOMICS · METHYLATION</div>
+<h1 data-zh="DNA 甲基化分析" data-en="DNA Methylation Analysis">DNA 甲基化分析</h1>
+<p class="subtitle" data-lang="zh">5mC 是哺乳類最重要的表觀標記——它沉默 transposon、調控 promoter、是癌症與發育的關鍵筆跡。</p>
+<p class="subtitle" data-lang="en">5mC is the most important mammalian epigenetic mark — silencing transposons, regulating promoters, and a key signature of cancer and development.</p>
+</header>
+<main class="content-wrap">
+
+<section class="section"><div class="section-label">METHODS</div><h2 data-zh="① 三種主流量測法" data-en="① Three mainstream methods">① 三種主流量測法</h2>
+<table class="comp-table"><thead><tr><th data-zh="技術" data-en="Method">技術</th><th data-zh="原理" data-en="Principle">原理</th><th data-zh="優缺" data-en="Trade-off">優缺</th></tr></thead>
+<tbody>
+<tr><td><strong>WGBS</strong>（Whole-Genome Bisulfite）</td><td data-zh="亞硫酸氫鹽轉換 unmethyl C → U（→ T）" data-en="Bisulfite converts unmethylated C → U → T">亞硫酸氫鹽轉換 unmethyl C → T</td><td data-zh="全基因組單鹼基解析；DNA 損傷大、深度需求高" data-en="Genome-wide single-base; DNA damage, high coverage needed">全基因組單鹼基；DNA 損傷大、深度需求高</td></tr>
+<tr><td><strong>RRBS</strong>（Reduced Representation）</td><td data-zh="MspI 切位 + bisulfite，富集 CpG island" data-en="MspI digestion + bisulfite, enriches CpG islands">MspI 切位 + bisulfite，富集 CpG island</td><td data-zh="便宜，但只涵蓋 ~10% CpG" data-en="Cheap, only ~10% CpGs covered">便宜，只涵蓋 ~10% CpG</td></tr>
+<tr><td><strong>EM-seq</strong>（NEB, 2019）</td><td data-zh="酶轉換 (TET2 + APOBEC) 替代 bisulfite" data-en="Enzymatic conversion (TET2 + APOBEC)">酶轉換取代 bisulfite</td><td data-zh="DNA 損傷小、reads 品質更高，2025 業界主流" data-en="Less DNA damage, higher quality reads; the 2025 standard">DNA 損傷小、品質更高，2025 業界主流</td></tr>
+<tr><td><strong>Direct (Nanopore / PacBio)</strong></td><td data-zh="直接讀電流 / kinetics" data-en="Direct current / kinetics">直接讀電流 / kinetics</td><td data-zh="無需轉換；同步 5mC + 5hmC + 6mA" data-en="No conversion; 5mC + 5hmC + 6mA simultaneously">無需轉換；可同步多種修飾</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label">PIPELINE</div><h2 data-zh="② Bismark 流程" data-en="② The Bismark workflow">② Bismark 流程</h2>
+<div class="flow-chain">
+<span class="fc-step">FASTQ</span><span class="fc-arrow">→</span>
+<span class="fc-step">Trim Galore</span><span class="fc-arrow">→</span>
+<span class="fc-step">Bismark (Bowtie2)</span><span class="fc-arrow">→</span>
+<span class="fc-step">methylation extractor</span><span class="fc-arrow">→</span>
+<span class="fc-step">methylKit / DSS DMR</span>
+</div>
+<ul style="margin-left:22px;color:var(--c-ink-light);line-height:2;margin-top:12px">
+<li><strong>Aligner：</strong>Bismark（Bowtie2 後端，主流）、BSMAP、bwa-meth。</li>
+<li><strong>Per-CpG methylation：</strong>(methylated reads) / (total reads at site)；常表示為 β-value（0-1）或 M-value（log ratio，統計上較佳）。</li>
+<li><strong>DMR detection：</strong>methylKit、DSS（雙重均勻 prior）、dmrseq；長讀甲基化用 modkit、methylartist。</li>
+<li><strong>Annotation：</strong>genomation、ChIPseeker（同樣可註釋甲基化區）；HOMER annotatePeaks.pl。</li>
+</ul>
+</section>
+
+<section class="section"><div class="section-label">APPLICATIONS</div><h2 data-zh="③ 三大臨床應用" data-en="③ Three clinical uses">③ 三大臨床應用</h2>
+<ul style="margin-left:22px;color:var(--c-ink-light);line-height:2">
+<li><strong>癌症甲基組：</strong>TCGA Pan-Cancer 顯示腫瘤普遍 hypomethylated（全域）但 CpG island 在抑癌基因上 hypermethylated。</li>
+<li><strong>液態切片：</strong>cfDNA 甲基化 panel 可早期偵測癌症（Grail Galleri、Mercy BioAnalytics）。</li>
+<li><strong>表觀年齡：</strong>Horvath 2013 clock — 由 353 CpG 預測人類生理年齡 ±3-5 年。</li>
+</ul>
+</section>
+
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial · Methylation</footer>
+<script src="../nav.js"></script><script src="../i18n.js"></script>
+</body></html>

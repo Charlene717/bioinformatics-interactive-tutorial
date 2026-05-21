@@ -1445,10 +1445,3 @@ window.QUIZ_DATA = {
     }
   }
 };
-e support, less reliable. Common filter: NSTI < 2." }
-        ]
-      }
-    }
-  }
-};
-};

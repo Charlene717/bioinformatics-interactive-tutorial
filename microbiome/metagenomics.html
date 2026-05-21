@@ -676,7 +676,7 @@ inStrain compare -i s1.IS s2.IS s3.IS \
 <nav class="page-nav"><a href="amplicon.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 1：Amplicon" data-en="Step 1: Amplicon">Step 1：Amplicon</span></a><a href="function.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 3：Function" data-en="Step 3: Function">Step 3：Function</span></a></nav>
 </main>
 <footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
-<script src="../i18n.js"></script>
+<script src="../nav.js"></script><script src="../i18n.js"></script>
 <script>
 window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
 function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}

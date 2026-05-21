@@ -1,0 +1,80 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>R 基礎 — Bioinformatics Tutorial</title>
+<link rel="stylesheet" href="../styles.css">
+</head><body class="theme-bulk">
+<nav class="top-nav"><div class="top-nav-inner"></div></nav>
+<header class="page-hero"><div class="step-badge">FOUNDATIONS · R</div>
+<h1 data-zh="R 基礎教學" data-en="R Basics for Bioinformatics">R 基礎教學</h1>
+<p class="subtitle" data-lang="zh">R 是體學統計與視覺化的主場。Bioconductor 把 DESeq2、edgeR、limma、Seurat 等核心套件全收在這個生態系。</p>
+<p class="subtitle" data-lang="en">R is the home of omics statistics and visualisation — Bioconductor hosts DESeq2, edgeR, limma, Seurat, and more.</p>
+</header>
+<main class="content-wrap">
+
+<section class="section"><div class="section-label">SETUP</div><h2 data-zh="① 環境設定" data-en="① Environment setup">① 環境設定</h2>
+<div class="code-tabs"><div class="code-tab-content active"><pre><span class="comment"># 1. R itself: 安裝 R 4.4+ from CRAN; 推薦 IDE: RStudio 或 Positron</span>
+
+<span class="comment"># 2. 安裝 BiocManager (Bioconductor 入口)</span>
+install.packages(<span class="str">"BiocManager"</span>)
+BiocManager::install(version = <span class="str">"3.20"</span>)  <span class="comment"># 對應 R 4.4</span>
+
+<span class="comment"># 3. 安裝體學核心套件</span>
+BiocManager::install(c(<span class="str">"DESeq2"</span>, <span class="str">"edgeR"</span>, <span class="str">"limma"</span>,
+                       <span class="str">"clusterProfiler"</span>, <span class="str">"ComplexHeatmap"</span>))
+
+<span class="comment"># 4. tidyverse — 整個資料整理生態</span>
+install.packages(<span class="str">"tidyverse"</span>)  <span class="comment"># dplyr, ggplot2, tidyr, readr 等</span>
+
+<span class="comment"># 5. renv — 鎖定套件版本，可重現性必備</span>
+install.packages(<span class="str">"renv"</span>); renv::init()</pre></div></div>
+</section>
+
+<section class="section"><div class="section-label">DATA STRUCTURES</div><h2 data-zh="② 四種你會天天用的資料結構" data-en="② Four data structures you'll use daily">② 四種你會天天用的資料結構</h2>
+<div class="code-tabs"><div class="code-tab-content active"><pre><span class="comment"># vector — 一維</span>
+x <- c(1, 3, 5, 7); length(x); x[2]      <span class="comment"># 1-based！</span>
+
+<span class="comment"># data.frame / tibble — 表格（最常用）</span>
+df <- data.frame(gene = c(<span class="str">"TP53"</span>, <span class="str">"BRCA1"</span>), count = c(120, 45))
+dplyr::filter(df, count &gt; 50)            <span class="comment"># tidyverse 風格</span>
+df[df$count &gt; 50, ]                      <span class="comment"># base R 風格</span>
+
+<span class="comment"># matrix — 表達量矩陣 (genes × samples)</span>
+m <- matrix(rpois(20, 50), nrow = 4)
+rownames(m) <- paste0(<span class="str">"gene"</span>, 1:4)
+
+<span class="comment"># SummarizedExperiment — Bioconductor 容器</span>
+<span class="comment"># 結合 counts + colData(樣本資訊) + rowData(基因資訊)</span>
+<span class="comment"># DESeq2、edgeR、Seurat 都建立在這個架構上</span></pre></div></div>
+</section>
+
+<section class="section"><div class="section-label">DESEQ2 PATTERN</div><h2 data-zh="③ DESeq2 三行心法" data-en="③ DESeq2 in three lines">③ DESeq2 三行心法</h2>
+<div class="code-tabs"><div class="code-tab-content active"><pre>library(DESeq2)
+dds <- DESeqDataSetFromMatrix(countData = counts,
+                              colData   = coldata,
+                              design    = ~ condition)
+dds <- DESeq(dds)                          <span class="comment"># 估 size factor + 散布 + Wald</span>
+res <- results(dds, contrast = c(<span class="str">"condition"</span>, <span class="str">"treated"</span>, <span class="str">"control"</span>))
+res <- lfcShrink(dds, coef = 2, type = <span class="str">"apeglm"</span>)   <span class="comment"># log2FC 收縮（推薦）</span>
+summary(res); plotMA(res)</pre></div></div>
+<div data-lang="zh"><p>這四行涵蓋整個 bulk RNA-seq 統計核心：<strong>raw counts</strong>（不要先 normalize）→ NB GLM 擬合 → Wald 檢定 → BH-FDR 校正 → log2FC apeglm 收縮。</p></div>
+</section>
+
+<section class="section"><div class="section-label">GGPLOT</div><h2 data-zh="④ ggplot2 — 圖層文法" data-en="④ ggplot2 — the grammar of graphics">④ ggplot2 — 圖層文法</h2>
+<div class="code-tabs"><div class="code-tab-content active"><pre>library(ggplot2)
+ggplot(volcano_df, aes(x = log2FC, y = -log10(padj), color = sig)) +
+  geom_point(alpha = .6, size = 1.5) +
+  geom_vline(xintercept = c(-1, 1), lty = <span class="str">"dashed"</span>) +
+  geom_hline(yintercept = -log10(.05), lty = <span class="str">"dashed"</span>) +
+  scale_color_manual(values = c(up = <span class="str">"#c0392b"</span>, down = <span class="str">"#2C7BB6"</span>, ns = <span class="str">"#aaa"</span>)) +
+  theme_minimal(base_size = 13) +
+  labs(title = <span class="str">"Volcano plot — Treated vs Control"</span>)</pre></div></div>
+</section>
+
+<div class="page-nav">
+  <a href="linux.html"><span class="nav-dir">← 前一頁</span><span class="nav-title">Linux 基礎</span></a>
+  <a href="python.html"><span class="nav-dir">下一頁 →</span><span class="nav-title">Python 基礎</span></a>
+</div>
+
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial · R</footer>
+<script src="../nav.js"></script><script src="../i18n.js"></script>
+</body></html>

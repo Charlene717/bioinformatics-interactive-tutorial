@@ -1,0 +1,47 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Hi-C / 3D 基因組 — Bioinformatics Tutorial</title>
+<link rel="stylesheet" href="../styles.css">
+</head><body class="theme-atac">
+<nav class="top-nav"><div class="top-nav-inner"></div></nav>
+<header class="page-hero"><div class="step-badge">GENOMICS · 3D</div>
+<h1 data-zh="Hi-C 與 3D 基因組" data-en="Hi-C / 3D Genome">Hi-C 與 3D 基因組</h1>
+<p class="subtitle" data-lang="zh">DNA 不是一條長線——它在細胞核裡折成 TAD、compartment、loop。3D 結構決定哪些 enhancer 找得到目標基因。</p>
+<p class="subtitle" data-lang="en">DNA isn't a string — it folds into TADs, compartments, and loops. 3D architecture determines which enhancers reach their target genes.</p>
+</header>
+<main class="content-wrap">
+
+<section class="section"><div class="section-label">PRINCIPLE</div><h2 data-zh="① Proximity ligation — 在什麼旁邊？" data-en="① Proximity ligation — what is near what?">① Proximity ligation — 在什麼旁邊？</h2>
+<div data-lang="zh"><p>Hi-C 的核心：用甲醛固定染色質→限制酶切→生物素標記接合端→近鄰連接→定序。任何兩段 DNA 出現在同一個 read pair，就代表它們在 3D 空間中很近。把所有 pair 加總，得到 <strong>contact map</strong>（chr × chr 的對稱矩陣）。</p></div>
+<div data-lang="en"><p>The core idea: formaldehyde-crosslink chromatin → restriction-enzyme cut → biotin-label ends → proximity-ligate → sequence. Any two DNA fragments in the same read-pair were physically close. Summing all pairs yields a <strong>contact map</strong> — a chr-by-chr symmetric matrix.</p></div>
+</section>
+
+<section class="section"><div class="section-label">SCALES</div><h2 data-zh="② 三大尺度結構" data-en="② Three structural scales">② 三大尺度結構</h2>
+<table class="comp-table"><thead><tr><th data-zh="尺度" data-en="Scale">尺度</th><th data-zh="特徵" data-en="Feature">特徵</th><th data-zh="生物意義" data-en="Biology">生物意義</th></tr></thead>
+<tbody>
+<tr><td><strong>Compartment</strong> (5-10 Mb)</td><td>A vs B 棋盤格</td><td data-zh="A：活躍、富 gene；B：抑制" data-en="A: active/gene-rich; B: repressed">A：活躍；B：抑制</td></tr>
+<tr><td><strong>TAD</strong> (200 kb-1 Mb)</td><td data-zh="三角形 self-interaction 區域" data-en="Triangle self-interaction blocks">三角形自交互區</td><td data-zh="enhancer-promoter 隔離 (insulator)" data-en="enhancer-promoter insulation">enhancer-promoter 隔離</td></tr>
+<tr><td><strong>Loop / Anchor</strong> (10-200 kb)</td><td data-zh="contact map 上的點" data-en="Point in contact map">contact map 的點</td><td data-zh="特定 enhancer–promoter 接觸（CTCF / cohesin）" data-en="Specific E–P contact (CTCF / cohesin)">特定 E-P 接觸（CTCF / cohesin）</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label">PIPELINE</div><h2 data-zh="③ 標準分析" data-en="③ Standard pipeline">③ 標準分析</h2>
+<div class="flow-chain">
+<span class="fc-step">FASTQ pair</span><span class="fc-arrow">→</span>
+<span class="fc-step">BWA-MEM / Chromap</span><span class="fc-arrow">→</span>
+<span class="fc-step">Pair filter (pairtools)</span><span class="fc-arrow">→</span>
+<span class="fc-step">.mcool / .hic 矩陣</span><span class="fc-arrow">→</span>
+<span class="fc-step">Compartment / TAD / Loop</span>
+</div>
+<ul style="margin-left:22px;color:var(--c-ink-light);line-height:2;margin-top:12px">
+<li><strong>Tools：</strong>HiC-Pro、Chromap（快）、cooler、cooltools、Juicer/JuiceBox（互動視覺化）。</li>
+<li><strong>Compartment：</strong>cooltools eigs-cis / cworld、HOMER runHiCpca.pl（PC1 sign = A/B）。</li>
+<li><strong>TAD：</strong>insulation score（cooltools）、HiCExplorer、TopDom。</li>
+<li><strong>Loop：</strong>HICCUPS（Juicer）、SIP、Mustache、Chromosight。</li>
+<li><strong>新平台：</strong>Micro-C（更高解析度）、scHi-C（單細胞 3D）、Pore-C（長讀 Hi-C，2024 Nanopore）。</li>
+</ul>
+</section>
+
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial · Hi-C</footer>
+<script src="../nav.js"></script><script src="../i18n.js"></script>
+</body></html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>scRNA-seq 單細胞 — Bioinformatics Tutorial</title>
+<link rel="stylesheet" href="../styles.css">
+</head><body class="theme-spatial">
+<nav class="top-nav"><div class="top-nav-inner"></div></nav>
+<header class="page-hero"><div class="step-badge">TRANSCRIPTOMICS · scRNA-seq</div>
+<h1 data-zh="單細胞 RNA 定序" data-en="Single-cell RNA-seq">單細胞 RNA 定序</h1>
+<p class="subtitle" data-lang="zh">從「組織平均值」走到「每一顆細胞的表達」——細胞類型、狀態、軌跡與整合的核心地圖。</p>
+<p class="subtitle" data-lang="en">From bulk averages to per-cell expression — the map of cell types, states, trajectories, and integration.</p>
+</header>
+<main class="content-wrap">
+
+<section class="section"><div class="section-label">WHY</div><h2 data-zh="① 為什麼要做單細胞？" data-en="① Why single-cell?">① 為什麼要做單細胞？</h2>
+<div data-lang="zh"><p>Bulk RNA-seq 把一個組織混在一起測，得到「<strong>所有細胞表達的加權平均</strong>」。腫瘤、免疫、發育、神經系統的關鍵問題都是<strong>「哪一群細胞」</strong>在做什麼，bulk 無法回答。scRNA-seq 解析這一層。</p></div>
+<div data-lang="en"><p>Bulk RNA-seq returns the weighted average of all cells in a tissue. The interesting biology of tumours, immunity, development, and the brain is <strong>"which subpopulation does what"</strong> — a question bulk cannot answer.</p></div>
+</section>
+
+<section class="section"><div class="section-label">PLATFORMS</div><h2 data-zh="② 主流平台" data-en="② Mainstream platforms">② 主流平台</h2>
+<table class="comp-table"><thead><tr><th data-zh="平台" data-en="Platform">平台</th><th data-zh="原理" data-en="Principle">原理</th><th data-zh="細胞數 / 樣本" data-en="Cells / sample">細胞數 / 樣本</th></tr></thead>
+<tbody>
+<tr><td><strong>10x Genomics Chromium</strong></td><td data-zh="液滴 + barcoded gel bead" data-en="Droplet + barcoded gel bead">液滴 + barcoded gel bead</td><td>~10K (v3.1 / GEM-X)</td></tr>
+<tr><td>BD Rhapsody</td><td data-zh="微井 + barcoded bead" data-en="Microwell + barcoded bead">微井 + barcoded bead</td><td>~10K-20K</td></tr>
+<tr><td>Parse Bioscience SPLiT-seq</td><td data-zh="多輪 combinatorial barcoding" data-en="Combinatorial barcoding">多輪組合條碼，不需儀器</td><td>1K-1M</td></tr>
+<tr><td>Smart-seq3 / Smart-seq3xpress</td><td data-zh="full-length + UMI" data-en="Full-length + UMI">全長 + UMI，解析 isoform</td><td>~96-384 (低通量、高深度)</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label">PIPELINE</div><h2 data-zh="③ 標準流程" data-en="③ Standard pipeline">③ 標準流程</h2>
+<div class="flow-chain">
+<span class="fc-step">FASTQ</span><span class="fc-arrow">→</span>
+<span class="fc-step">Cell Ranger / STARsolo / Alevin-fry</span><span class="fc-arrow">→</span>
+<span class="fc-step">QC + Doublet</span><span class="fc-arrow">→</span>
+<span class="fc-step">Normalize (SCT/log1p)</span><span class="fc-arrow">→</span>
+<span class="fc-step">PCA → Neighbors → UMAP/Leiden</span><span class="fc-arrow">→</span>
+<span class="fc-step">Annotation</span><span class="fc-arrow">→</span>
+<span class="fc-step">DE / Trajectory / Integration</span>
+</div>
+<ul style="margin-left:22px;color:var(--c-ink-light);line-height:2;margin-top:12px">
+<li data-zh="🔍 QC：filter min_genes、max_pct_mt、Scrublet/scDblFinder 偵測 doublet" data-en="🔍 QC: filter min_genes, max %MT, detect doublets with Scrublet/scDblFinder">🔍 QC：filter min_genes、max_pct_mt、Scrublet/scDblFinder 偵測 doublet</li>
+<li data-zh="📊 Normalization：scTransform（負二項 GLM）或 log1p(CP10K)" data-en="📊 Normalization: scTransform (NB-GLM) or log1p(CP10K)">📊 Normalization：scTransform 或 log1p(CP10K)</li>
+<li data-zh="🎯 Annotation：marker genes + Azimuth / CellTypist / scANVI" data-en="🎯 Annotation: marker genes + Azimuth / CellTypist / scANVI">🎯 Annotation：marker genes + Azimuth / CellTypist / scANVI</li>
+<li data-zh="🛤 Trajectory：Monocle3 / PAGA / scVelo（RNA velocity）" data-en="🛤 Trajectory: Monocle3 / PAGA / scVelo (RNA velocity)">🛤 Trajectory：Monocle3 / PAGA / scVelo</li>
+<li data-zh="🔗 Integration：Harmony / scVI / scANVI（去除 batch、保留生物訊號）" data-en="🔗 Integration: Harmony / scVI / scANVI">🔗 Integration：Harmony / scVI / scANVI</li>
+</ul>
+</section>
+
+<section class="section"><div class="section-label">SISTER SITE</div><h2 data-zh="④ 完整教學請見姊妹站" data-en="④ Full tutorial on the sister site">④ 完整教學請見姊妹站</h2>
+<div class="callout tip"><span class="callout-icon">🔗</span><div data-lang="zh">scRNA-seq 有獨立完整教學 <strong>scrna-interactive-tutorial</strong>（在 <code>D_單細胞學/scRNA-seq</code> 資料夾），涵蓋 QC、Doublet、Integration、CellChat、RNA velocity、CITE-seq 等 20+ 章節。本頁僅是體學總覽中的入口。</div><div data-lang="en">A full standalone tutorial <strong>scrna-interactive-tutorial</strong> exists (under <code>D_單細胞學/scRNA-seq</code>) covering QC, doublets, integration, CellChat, RNA velocity, CITE-seq, and more across 20+ chapters. This page is the omics-overview entry.</div></div>
+</section>
+
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial · scRNA-seq</footer>
+<script src="../nav.js"></script><script src="../i18n.js"></script>
+</body></html>

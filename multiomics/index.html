@@ -1,0 +1,55 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Multi-omics Integration — Bioinformatics Tutorial</title>
+<link rel="stylesheet" href="../styles.css">
+</head><body class="theme-bulk">
+<nav class="top-nav"><div class="top-nav-inner"></div></nav>
+<header class="page-hero"><div class="step-badge">APPLICATIONS · MULTI-OMICS</div>
+<h1 data-zh="多體學整合" data-en="Multi-omics Integration">多體學整合</h1>
+<p class="subtitle" data-lang="zh">同一個樣本同時量基因、表達、染色質、蛋白——把碎片重新拼成「細胞做什麼、怎麼做」的完整故事。</p>
+<p class="subtitle" data-lang="en">Profile genome, expression, chromatin, and proteins on the same samples — and stitch the fragments back into a complete story.</p>
+</header>
+<main class="content-wrap">
+
+<section class="section"><div class="section-label">DESIGN</div><h2 data-zh="① 三種整合層次" data-en="① Three integration levels">① 三種整合層次</h2>
+<table class="comp-table"><thead><tr><th data-zh="層次" data-en="Level">層次</th><th data-zh="描述" data-en="Description">描述</th><th data-zh="例子" data-en="Example">例子</th></tr></thead>
+<tbody>
+<tr><td><strong>Multi-modal</strong></td><td data-zh="同一細胞測多個 modality" data-en="Multiple modalities per cell">同一細胞測多個 modality</td><td>CITE-seq (RNA + 抗體)、10x Multiome (RNA + ATAC)、ASAP-seq</td></tr>
+<tr><td><strong>Multi-omics on same sample</strong></td><td data-zh="不同管線分別測；事後 by sample 對齊" data-en="Separate pipelines aligned by sample ID">不同管線分別測，by sample 對齊</td><td>TCGA cohort（RNA + WGS + methylation + protein）</td></tr>
+<tr><td><strong>Cross-tissue / unpaired</strong></td><td data-zh="不同樣本／cohort 跨平台整合" data-en="Cross-sample / cohort integration">跨樣本／cohort 整合</td><td>HCA、ENCODE 跨組學整合</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label">METHODS</div><h2 data-zh="② 五大方法家族" data-en="② Five method families">② 五大方法家族</h2>
+<ul style="margin-left:22px;color:var(--c-ink-light);line-height:2">
+<li><strong>Latent variable / matrix factorisation：</strong>MOFA / MOFA+（Argelaguet 2018, 2020）、iCluster、JIVE — 找跨組學共同 latent factors。</li>
+<li><strong>Canonical correlation：</strong>DIABLO（mixOmics）、sparse CCA — 找最大相關的線性組合。</li>
+<li><strong>Network-based：</strong>SNF (Similarity Network Fusion)、WGCNA per omic + cross-module correlation。</li>
+<li><strong>Variational autoencoder / deep：</strong>totalVI (RNA + 抗體)、MultiVI (RNA + ATAC)、scMM、Cobolt、Mowgli。</li>
+<li><strong>Optimal transport：</strong>UnionCom、SCOT、Pamona — 對未配對樣本做跨模態對齊。</li>
+</ul>
+</section>
+
+<section class="section"><div class="section-label">PITFALLS</div><h2 data-zh="③ 三個常見地雷" data-en="③ Three common pitfalls">③ 三個常見地雷</h2>
+<div class="callout warn"><span class="callout-icon">⚠️</span><div data-lang="zh">
+<strong>① Batch confounding：</strong>不同 omics 的 batch 必須先個別校正後再整合，不要丟給整合演算法處理。<br>
+<strong>② 不同尺度的 missing：</strong>WGS 幾乎沒 missing，但 proteomics 與 single-cell ATAC missing 比例可達 30-90%；不能用同一個 imputation 策略。<br>
+<strong>③ 「整合等於全部一樣」：</strong>整合後的 UMAP 看起來分開不一定代表分群錯——某些 modality 本來就無法區分某些細胞類型（如 chromatin accessibility 無法解析 myeloid 子群）。
+</div></div>
+</section>
+
+<section class="section"><div class="section-label">PATTERN</div><h2 data-zh="④ Multiome 範例：RNA + ATAC" data-en="④ Multiome example: RNA + ATAC">④ Multiome 範例：RNA + ATAC</h2>
+<div class="code-tabs"><div class="code-tab-content active"><pre><span class="comment"># scvi-tools MultiVI 整合 RNA + ATAC (10x Multiome)</span>
+<span class="kw">import</span> scvi
+scvi.model.MULTIVI.setup_anndata(adata_multi, batch_key=<span class="str">'batch'</span>)
+model = scvi.model.MULTIVI(adata_multi,
+                           n_genes=(adata_multi.var[<span class="str">'modality'</span>]==<span class="str">'gex'</span>).sum(),
+                           n_regions=(adata_multi.var[<span class="str">'modality'</span>]==<span class="str">'atac'</span>).sum())
+model.train()
+adata_multi.obsm[<span class="str">'X_multivi'</span>] = model.get_latent_representation()
+<span class="comment"># 用 latent 做 UMAP / Leiden — 同時利用兩個 modality 的資訊</span></pre></div></div>
+</section>
+
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial · Multi-omics</footer>
+<script src="../nav.js"></script><script src="../i18n.js"></script>
+</body></html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Proteomics / Mass-spec — Bioinformatics Tutorial</title>
+<link rel="stylesheet" href="../styles.css">
+</head><body class="theme-microbiome">
+<nav class="top-nav"><div class="top-nav-inner"></div></nav>
+<header class="page-hero"><div class="step-badge">PROTEOMICS · MASS-SPEC</div>
+<h1 data-zh="蛋白體 / 質譜分析" data-en="Proteomics / Mass-spec">蛋白體 / 質譜分析</h1>
+<p class="subtitle" data-lang="zh">RNA 表達量 ≠ 蛋白質豐度。要看細胞「實際在做什麼」，必須測蛋白——而質譜是目前的金標準。</p>
+<p class="subtitle" data-lang="en">RNA levels ≠ protein abundance. To see what cells are actually doing, you measure proteins — and mass-spec is the gold standard.</p>
+</header>
+<main class="content-wrap">
+
+<section class="section"><div class="section-label">WORKFLOW</div><h2 data-zh="① 從蛋白質到 spectra" data-en="① From proteins to spectra">① 從蛋白質到 spectra</h2>
+<div class="flow-chain">
+<span class="fc-step">細胞溶解</span><span class="fc-arrow">→</span>
+<span class="fc-step">trypsin 切胜肽</span><span class="fc-arrow">→</span>
+<span class="fc-step">LC 分離</span><span class="fc-arrow">→</span>
+<span class="fc-step">MS1 (前驅 m/z)</span><span class="fc-arrow">→</span>
+<span class="fc-step">MS2 (碎片)</span><span class="fc-arrow">→</span>
+<span class="fc-step">資料庫搜尋 → PSM → 蛋白質</span>
+</div>
+<div data-lang="zh"><p>典型 shotgun proteomics：蛋白質被 trypsin 切成胜肽（K/R 後切），LC 分離後注入質譜儀。MS1 量 precursor 質荷比；MS2 把選定 precursor 打碎，得到碎片離子（b、y ion），由此可推回胜肽序列。</p></div>
+</section>
+
+<section class="section"><div class="section-label">DDA vs DIA</div><h2 data-zh="② DDA 與 DIA 兩大策略" data-en="② DDA vs DIA acquisition">② DDA 與 DIA 兩大策略</h2>
+<table class="comp-table"><thead><tr><th></th><th><strong>DDA</strong> (Data-Dependent)</th><th><strong>DIA</strong> (Data-Independent)</th></tr></thead>
+<tbody>
+<tr><td data-zh="選誰打" data-en="Selection">選誰打</td><td data-zh="MS1 上 top-N 強度" data-en="Top-N MS1 intensity">MS1 上 top-N 強度</td><td data-zh="所有 m/z 窗系統性掃過" data-en="All m/z windows scanned systematically">所有 m/z 窗系統性掃過</td></tr>
+<tr><td data-zh="重現性" data-en="Reproducibility">重現性</td><td data-zh="樣本間漏抽 (missing values 多)" data-en="Missing values across samples">樣本間 missing values 多</td><td data-zh="✅ 高重現性，cohort 友善" data-en="✅ Highly reproducible">✅ 高重現性</td></tr>
+<tr><td data-zh="工具" data-en="Tools">工具</td><td>MaxQuant、FragPipe (MSFragger)</td><td>Spectronaut、DIA-NN、Skyline</td></tr>
+</tbody></table>
+<div class="callout tip" style="margin-top:14px"><span class="callout-icon">💡</span><div data-lang="zh"><strong>2025 主流：</strong>DIA + 中性損失質譜 (Astral / timsTOF) 結合 AI（DIA-NN、Spectronaut Pulsar）已成大型 cohort 蛋白體標配。</div></div>
+</section>
+
+<section class="section"><div class="section-label">QUANTIFICATION</div><h2 data-zh="③ 量化策略" data-en="③ Quantification strategies">③ 量化策略</h2>
+<ul style="margin-left:22px;color:var(--c-ink-light);line-height:2">
+<li><strong>Label-free（LFQ）：</strong>跑分別樣本，比較峰面積。MaxLFQ（Cox 2014）為主流校正方法。</li>
+<li><strong>SILAC：</strong>細胞培養 ¹²C/¹³C 同位素標記，混樣後比較。</li>
+<li><strong>TMT / iTRAQ：</strong>胜肽加 isobaric tag，最多 18-plex；MS2 報告離子定量。</li>
+<li><strong>DIA-MS：</strong>近年取代 LFQ 成為大 cohort 主流。</li>
+</ul>
+</section>
+
+<section class="section"><div class="section-label">DOWNSTREAM</div><h2 data-zh="④ 下游分析" data-en="④ Downstream">④ 下游分析</h2>
+<ul style="margin-left:22px;color:var(--c-ink-light);line-height:2">
+<li><strong>Differential abundance：</strong>limma（log-intensity）、MSstats、DEqMS（針對 missing values）。</li>
+<li><strong>Phospho-proteomics：</strong>富集磷酸化胜肽（IMAC、TiO₂）；分析 site-specific 變化（kinase activity）。</li>
+<li><strong>Affinity-proteomics（無 MS）：</strong>Olink（PEA）、SomaScan — 高重現性、cohort 友善，但 panel 限制。</li>
+<li><strong>整合 RNA：</strong>protein 與 RNA 相關係數通常 0.4-0.6（不完全；翻譯效率、降解速率均有影響）。</li>
+</ul>
+</section>
+
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial · Proteomics</footer>
+<script src="../nav.js"></script><script src="../i18n.js"></script>
+</body></html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Protein Structure Prediction — Bioinformatics Tutorial</title>
+<link rel="stylesheet" href="../styles.css">
+</head><body class="theme-spatial">
+<nav class="top-nav"><div class="top-nav-inner"></div></nav>
+<header class="page-hero"><div class="step-badge">APPLICATIONS · STRUCTURE</div>
+<h1 data-zh="蛋白質結構預測" data-en="Protein Structure Prediction">蛋白質結構預測</h1>
+<p class="subtitle" data-lang="zh">AlphaFold 2021 把 50 年的結構預測難題從 30% 推到 92% 準確度——這頁是這場革命的入門地圖。</p>
+<p class="subtitle" data-lang="en">AlphaFold (2021) pushed 50 years of structure prediction from 30% to 92% accuracy. This page is your map of that revolution.</p>
+</header>
+<main class="content-wrap">
+
+<section class="section"><div class="section-label">CONTEXT</div><h2 data-zh="① 為什麼這件事這麼難？" data-en="① Why was this so hard?">① 為什麼這件事這麼難？</h2>
+<div data-lang="zh"><p>胺基酸序列決定 3D 結構（Anfinsen 1972 諾貝爾獎），但 N 個胺基酸有 N 個構型自由度，組合爆炸。從 1994 年 CASP 競賽起，結構預測 GDT_TS 卡在 ~30-50%。直到 2020 CASP14，AlphaFold2 達到 92.4%（中位數）——人類等了 50 年的突破。</p></div>
+<div data-lang="en"><p>Sequence dictates structure (Anfinsen 1972 Nobel), but conformational space explodes combinatorially. CASP benchmarks plateaued at ~30–50% GDT_TS from 1994 onward — until AlphaFold2 hit 92.4% at CASP14 in 2020.</p></div>
+</section>
+
+<section class="section"><div class="section-label">TOOLS</div><h2 data-zh="② 2025 工具地圖" data-en="② 2025 tool map">② 2025 工具地圖</h2>
+<table class="comp-table"><thead><tr><th data-zh="工具" data-en="Tool">工具</th><th data-zh="團隊 / 年份" data-en="Team / year">團隊 / 年份</th><th data-zh="特色" data-en="Highlights">特色</th></tr></thead>
+<tbody>
+<tr><td><strong>AlphaFold2</strong></td><td>DeepMind, 2021 (Jumper Nature)</td><td>MSA + Evoformer + 結構模組；GDT_TS 92%</td></tr>
+<tr><td><strong>AlphaFold3</strong></td><td>DeepMind, 2024 (Abramson Nature)</td><td>蛋白 + DNA + RNA + 配體（ligand）+ ions 同預測</td></tr>
+<tr><td><strong>ESMFold</strong></td><td>Meta FAIR, 2023 (Lin Science)</td><td>純 language model；速度 60× 快於 AF2，無 MSA</td></tr>
+<tr><td><strong>OmegaFold / RoseTTAFold-AA</strong></td><td>Baker Lab 2023</td><td data-zh="無 MSA / 多體 / 含 RNA" data-en="MSA-free / multimer / RNA">無 MSA / 多體 / 含 RNA</td></tr>
+<tr><td><strong>RFdiffusion + ProteinMPNN</strong></td><td>Baker Lab 2023</td><td>De novo 蛋白質設計（diffusion + sequence design）</td></tr>
+<tr><td><strong>Boltz-1 / Chai-1</strong></td><td>2024 (open source)</td><td>AF3 開源等效實作；含複合體與配體</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><div class="section-label">USE CASES</div><h2 data-zh="③ 體學 / 臨床如何用？" data-en="③ Uses in omics / clinic">③ 體學 / 臨床如何用？</h2>
+<ul style="margin-left:22px;color:var(--c-ink-light);line-height:2">
+<li><strong>變異致病性：</strong>把 missense 變異映射到 AlphaFold 結構，看是否破壞 hydrogen bond、buried hydrophobic core 或 ligand site；<strong>AlphaMissense (Cheng 2023, Science)</strong> 已成新標配。</li>
+<li><strong>蛋白-蛋白介面：</strong>AlphaFold-Multimer 預測 PPI 介面，輔助 CRISPR 結構性篩選。</li>
+<li><strong>De novo 抗體 / 結合蛋白：</strong>Baker 實驗室 RFdiffusion + ProteinMPNN 已產生數十款設計性 binder（2023-2024 多篇 Nature）。</li>
+<li><strong>結構導向新藥：</strong>AlphaFold3 + Boltz-1 可預測蛋白-小分子複合體，輔助 docking。但 binding affinity 仍是難點，建議搭配 GNN 或經典 FEP。</li>
+</ul>
+</section>
+
+<section class="section"><div class="section-label">LIMITATIONS</div><h2 data-zh="④ 別過度信任" data-en="④ Caveats">④ 別過度信任</h2>
+<div class="callout warn"><span class="callout-icon">⚠️</span><div data-lang="zh">
+<strong>① pLDDT 不是真實準確度；</strong>低 pLDDT (&lt;50) 區域常是內在無序蛋白，不能當「錯誤」。<br>
+<strong>② 動態與構象集合難捉：</strong>AF 給單一構象；GPCR 開閉態、酶催化態切換需要 MD 或 AF-cluster 後處理。<br>
+<strong>③ 訓練資料偏誤：</strong>PDB 含哺乳類蛋白偏多；對極端 thermophile、海洋微生物、植物蛋白準確度較低。
+</div></div>
+</section>
+
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial · Structure Prediction</footer>
+<script src="../nav.js"></script><script src="../i18n.js"></script>
+</body></html>

@@ -180,7 +180,7 @@
 <nav class="page-nav"><a href="../index.html"><span class="nav-dir" data-zh="← 返回" data-en="← Back">← 返回</span><span class="nav-title" data-zh="主頁" data-en="Hub">主頁</span></a><a href="preprocessing.html"><span class="nav-dir" data-zh="開始 →" data-en="Start →">開始 →</span><span class="nav-title" data-zh="Step 1：預處理" data-en="Step 1: Preprocessing">Step 1：預處理</span></a></nav>
 </main>
 <footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
-<script src="../i18n.js"></script>
+<script src="../nav.js"></script><script src="../i18n.js"></script>
 <script>
 const ctx=document.getElementById('varTypeChart');
 const varChart=new Chart(ctx,{type:'bar',data:{labels:['SNV','Indel','MNV','SV','CNV','STR'],datasets:[{label:'count',data:[4500000,500000,50000,20000,1000,700000],backgroundColor:['#2563eb','#10b981','#f59e0b','#ef4444','#a855f7','#06b6d4']}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{type:'logarithmic',title:{display:true,text:'count per genome (log)'}}},plugins:{legend:{display:false}}}});
