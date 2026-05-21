@@ -1,0 +1,41 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>表觀基因體總覽 — Bioinformatics Tutorial</title>
+<link rel="stylesheet" href="../styles.css">
+</head><body class="theme-atac">
+<nav class="top-nav"><div class="top-nav-inner"></div></nav>
+<header class="page-hero"><div class="step-badge">BLOCK 3 · 表觀基因體</div>
+<h1 data-zh="表觀基因體總覽" data-en="Epigenomics Overview">表觀基因體總覽</h1>
+<p class="subtitle" data-lang="zh">「染色質的狀態決定基因是否有機會被表達」——從可及性 (ATAC) 到組蛋白與 TF 結合 (ChIP / CUT&amp;Tag)。</p>
+<p class="subtitle" data-lang="en">"Chromatin state decides whether a gene is even allowed to be expressed" — from accessibility (ATAC) to histones and TF binding (ChIP / CUT&Tag).</p>
+</header>
+<main class="content-wrap">
+
+<section class="section"><div class="section-label">CONCEPT</div><h2 data-zh="① 表觀基因體做什麼？" data-en="① What does epigenomics do?">① 表觀基因體做什麼？</h2>
+<div data-lang="zh"><p>DNA 是基因序列；表觀基因體是「該基因現在是否準備好被表達」的狀態層。包括 DNA 修飾（甲基化）、染色質可及性、組蛋白修飾、TF 結合與 3D 結構。本區聚焦染色質可及性與蛋白-DNA 互動。</p></div>
+<div data-lang="en"><p>DNA carries the sequence; the epigenome is the state layer telling you whether a gene is currently ready to be expressed. It includes DNA modifications (methylation), chromatin accessibility, histone marks, TF binding, and 3D structure. This block focuses on accessibility and protein-DNA interactions.</p></div>
+</section>
+
+<section class="section"><div class="section-label">TRACKS</div><h2 data-zh="② 本區兩條路線" data-en="② Two tracks in this block">② 本區兩條路線</h2>
+<div class="hub-steps-grid">
+  <a href="../atac-seq/index.html" class="hub-card"><div class="hub-emoji">📐</div><h3 data-zh="ATAC-seq" data-en="ATAC-seq">ATAC-seq</h3><p data-lang="zh">用 Tn5 探查所有可及染色質——「哪些基因可以被打開」的全景圖。</p></a>
+  <a href="../chipseq/index.html" class="hub-card"><div class="hub-emoji">📎</div><h3 data-zh="ChIP-seq / CUT&amp;Tag" data-en="ChIP-seq / CUT&Tag">ChIP-seq / CUT&amp;Tag</h3><p data-lang="zh">用抗體探查「特定蛋白質結合在哪裡」——histone marks 與 TF binding。</p></a>
+</div>
+</section>
+
+<section class="section"><h2 data-zh="③ 與其他區塊的關係" data-en="③ Links to other blocks">③ 與其他區塊的關係</h2>
+<ul style="margin-left:22px;color:var(--c-ink-light);line-height:2">
+<li><strong>與甲基化：</strong>另一個主要表觀層次，放在「基因體學」區塊（<a href="../methylation/index.html">DNA 甲基化分析</a>）。</li>
+<li><strong>與 Hi-C：</strong>3D 結構決定哪些 enhancer 可以接觸到 promoter，<a href="../hic/index.html">Hi-C / 3D 基因組</a>。</li>
+<li><strong>與 RNA-seq：</strong>表觀資料只告訴你「可以表達」；要看「實際表達」需要整合 <a href="../bulk-rnaseq/index.html">RNA-seq</a>。</li>
+</ul>
+</section>
+
+<div class="page-nav">
+  <a href="../transcriptomics/index.html"><span class="nav-dir" data-zh="← 上一大區塊" data-en="← Prev block">← 上一大區塊</span><span class="nav-title" data-zh="轉錄體學" data-en="Transcriptomics">轉錄體學</span></a>
+  <a href="../proteo-microbe/index.html"><span class="nav-dir" data-zh="下一大區塊 →" data-en="Next block →">下一大區塊 →</span><span class="nav-title" data-zh="蛋白體與微生物" data-en="Proteomics & Microbiome">蛋白體與微生物</span></a>
+</div>
+
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial · Epigenomics</footer>
+<script src="../nav.js"></script><script src="../i18n.js"></script>
+</body></html>

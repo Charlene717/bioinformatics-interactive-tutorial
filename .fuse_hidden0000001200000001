@@ -2,7 +2,6 @@
 (function(){
   var TOPICS = [
     { id:'foundations', zh:'前導基礎', en:'Foundations', items:[
-      { url:'foundations/index.html',          zh:'總覽',             en:'Overview' },
       { url:'intro/index.html',                zh:'生資前導介紹',     en:'Intro to Bioinformatics' },
       { url:'foundations/info-math.html',      zh:'資訊與數學',       en:'Information & Math' },
       { url:'foundations/linux.html',          zh:'Linux 基礎',       en:'Linux Basics' },
@@ -10,36 +9,32 @@
       { url:'foundations/python.html',         zh:'Python 基礎',      en:'Python Basics' }
     ]},
     { id:'genomics', zh:'基因體學', en:'Genomics', items:[
-      { url:'genomics/index.html',             zh:'總覽',             en:'Overview' },
+      { url:'genomics/index.html',             zh:'基因體學總論',     en:'Genomics Overview' },
       { url:'variant/index.html',              zh:'變異偵測 (WGS/WES)', en:'Variant Calling (WGS/WES)' },
       { url:'longread/index.html',             zh:'Long-read 定序',   en:'Long-read Sequencing' },
       { url:'hic/index.html',                  zh:'Hi-C / 3D 基因組', en:'Hi-C / 3D Genome' },
       { url:'methylation/index.html',          zh:'甲基化 / Bisulfite', en:'Methylation / Bisulfite-seq' }
     ]},
     { id:'transcriptomics', zh:'轉錄體學', en:'Transcriptomics', items:[
-      { url:'transcriptomics/index.html',      zh:'總覽',             en:'Overview' },
       { url:'bulk-rnaseq/index.html',          zh:'Bulk RNA-seq',     en:'Bulk RNA-seq' },
       { url:'scrna-seq/index.html',            zh:'scRNA-seq 單細胞', en:'scRNA-seq (Single-cell)' },
       { url:'spatial/index.html',              zh:'空間轉錄組學',     en:'Spatial Transcriptomics' }
     ]},
     { id:'epigenomics', zh:'表觀基因體', en:'Epigenomics', items:[
-      { url:'epigenomics/index.html',          zh:'總覽',             en:'Overview' },
       { url:'atac-seq/index.html',             zh:'ATAC-seq',         en:'ATAC-seq' },
       { url:'chipseq/index.html',              zh:'ChIP-seq / CUT&Tag', en:'ChIP-seq / CUT&RUN / CUT&Tag' }
     ]},
     { id:'proteo_microbe', zh:'蛋白體與微生物', en:'Proteomics & Microbiome', items:[
-      { url:'proteo-microbe/index.html',       zh:'總覽',             en:'Overview' },
       { url:'proteomics/index.html',           zh:'蛋白體 / Mass-spec', en:'Proteomics / Mass-spec' },
       { url:'microbiome/index.html',           zh:'微生物群體學',     en:'Microbiome / Metagenomics' }
     ]},
     { id:'applications', zh:'整合與臨床應用', en:'Integration & Clinical', items:[
-      { url:'applications/index.html',         zh:'總覽',             en:'Overview' },
       { url:'multiomics/index.html',           zh:'Multi-omics 整合', en:'Multi-omics Integration' },
       { url:'protein-structure/index.html',    zh:'蛋白質結構預測',   en:'Protein Structure Prediction' },
       { url:'precision-medicine/index.html',   zh:'精準醫療',         en:'Precision Medicine' }
     ]},
     { id:'resources', zh:'參考資料', en:'References', items:[
-      { url:'references/index.html', zh:'學術論文與資料庫', en:'Papers & Databases' },
+      { url:'references/index.html',           zh:'學術論文與資料庫', en:'Papers { url:'references/index.html',           zh:'參考資料',         en:'References' } Databases' },
       { url:'bioinfo-quiz/index.html',         zh:'互動考題',         en:'Interactive Quiz' }
     ]}
   ];
@@ -50,7 +45,7 @@
       { file:'qc-trim.html',        zh:'QC 與修剪',    en:'QC & Trim' },
       { file:'alignment.html',      zh:'對齊',         en:'Alignment' },
       { file:'quantification.html', zh:'定量',         en:'Quantification' },
-      { file:'normalization.html',  zh:'標準化',       en:'Normalization' },
+      { file:'normalization.html',  zh:'歸一化',       en:'Normalization' },
       { file:'de.html',             zh:'差異表達',     en:'DE' },
       { file:'visualization.html',  zh:'視覺化',       en:'Visualization' },
       { file:'gsea.html',           zh:'GSEA',         en:'GSEA' }
@@ -72,7 +67,7 @@
     ],
     'variant': [
       { file:'index.html',         zh:'總覽',         en:'Overview' },
-      { file:'preprocessing.html', zh:'預處理',       en:'Preprocessing' },
+      { file:'preprocessing.html', zh:'前處理',       en:'Preprocessing' },
       { file:'calling.html',       zh:'Variant 呼叫', en:'Calling' },
       { file:'filtering.html',     zh:'過濾',         en:'Filtering' },
       { file:'annotation.html',    zh:'註釋',         en:'Annotation' },

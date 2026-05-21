@@ -1,0 +1,43 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>轉錄體學總覽 — Bioinformatics Tutorial</title>
+<link rel="stylesheet" href="../styles.css">
+</head><body class="theme-bulk">
+<nav class="top-nav"><div class="top-nav-inner"></div></nav>
+<header class="page-hero"><div class="step-badge">BLOCK 2 · 轉錄體學</div>
+<h1 data-zh="轉錄體學總覽" data-en="Transcriptomics Overview">轉錄體學總覽</h1>
+<p class="subtitle" data-lang="zh">RNA 是「基因被打開後實際生產的東西」——從組織平均、到單細胞、到保留空間結構，三個解析度層次。</p>
+<p class="subtitle" data-lang="en">RNA is what cells actually produce after genes turn on — across three resolutions: tissue average, single-cell, and space-preserving.</p>
+</header>
+<main class="content-wrap">
+
+<section class="section"><div class="section-label">WHY</div><h2 data-zh="① 為什麼轉錄體學？" data-en="① Why transcriptomics?">① 為什麼轉錄體學？</h2>
+<div data-lang="zh"><p>DNA 是「劇本」，RNA 是「正在演出的台詞」。轉錄體告訴你細胞當下「實際在做什麼」、哪些基因被打開、哪些被關閉——這是體學分析最常見的入口。</p></div>
+<div data-lang="en"><p>DNA is the script; RNA is the lines currently being spoken. Transcriptomics tells you what cells are doing <em>right now</em> — which genes are on, which are off. It's the most common entry point to omics.</p></div>
+</section>
+
+<section class="section"><div class="section-label">RESOLUTIONS</div><h2 data-zh="② 三個解析度層次" data-en="② Three resolution levels">② 三個解析度層次</h2>
+<table class="comp-table"><thead><tr><th data-zh="技術" data-en="Tech">技術</th><th data-zh="解析度" data-en="Resolution">解析度</th><th data-zh="優點" data-en="Strength">優點</th><th data-zh="弱點" data-en="Weakness">弱點</th></tr></thead>
+<tbody>
+<tr><td><strong>Bulk RNA-seq</strong></td><td data-zh="組織平均" data-en="Tissue average">組織平均</td><td data-zh="便宜、cohort 統計力強、與 GTEx/TCGA 接軌" data-en="Cheap, strong cohort power, bridges GTEx/TCGA">便宜、cohort 統計力強</td><td data-zh="混合了所有細胞類型" data-en="Mixes all cell types">混合所有細胞類型</td></tr>
+<tr><td><strong>scRNA-seq</strong></td><td data-zh="單細胞" data-en="Single cell">單細胞</td><td data-zh="解析細胞類型 + 狀態" data-en="Resolves cell types and states">解析細胞類型與狀態</td><td data-zh="貴、捨棄空間資訊" data-en="Expensive, no space">貴、捨棄空間資訊</td></tr>
+<tr><td><strong>Spatial</strong></td><td data-zh="保留空間" data-en="Space-preserving">保留空間</td><td data-zh="同時得到位置與表達" data-en="Position + expression">同時得到位置與表達</td><td data-zh="解析度仍不夠細（spot 可能含多細胞）" data-en="Sub-cellular still hard">spot 含多細胞</td></tr>
+</tbody></table>
+</section>
+
+<section class="section"><h2 data-zh="③ 本區三大路線" data-en="③ Three tracks in this block">③ 本區三大路線</h2>
+<div class="hub-steps-grid">
+  <a href="../bulk-rnaseq/index.html" class="hub-card"><div class="hub-emoji">🧬</div><h3 data-zh="Bulk RNA-seq" data-en="Bulk RNA-seq">Bulk RNA-seq</h3><p data-lang="zh">7 章 · STAR/Salmon/DESeq2/GSEA。</p></a>
+  <a href="../scrna-seq/index.html" class="hub-card"><div class="hub-emoji">🔬</div><h3 data-zh="scRNA-seq 單細胞" data-en="scRNA-seq (Single-cell)">scRNA-seq 單細胞</h3><p data-lang="zh">10x/Smart-seq · scanpy/Seurat/scVI · trajectory · integration。</p></a>
+  <a href="../spatial/index.html" class="hub-card"><div class="hub-emoji">🗺️</div><h3 data-zh="空間轉錄組學" data-en="Spatial Transcriptomics">空間轉錄組學</h3><p data-lang="zh">5 章 · Visium/MERFISH/Xenium · BayesSpace/cell2location。</p></a>
+</div>
+</section>
+
+<div class="page-nav">
+  <a href="../genomics/index.html"><span class="nav-dir" data-zh="← 上一大區塊" data-en="← Prev block">← 上一大區塊</span><span class="nav-title" data-zh="基因體學" data-en="Genomics">基因體學</span></a>
+  <a href="../epigenomics/index.html"><span class="nav-dir" data-zh="下一大區塊 →" data-en="Next block →">下一大區塊 →</span><span class="nav-title" data-zh="表觀基因體" data-en="Epigenomics">表觀基因體</span></a>
+</div>
+
+</main>
+<footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial · Transcriptomics</footer>
+<script src="../nav.js"></script><script src="../i18n.js"></script>
+</body></html>
