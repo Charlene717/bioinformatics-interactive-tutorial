@@ -1,43 +1,101 @@
 <!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Differential Expression — Bulk RNA-seq</title>
-<link rel="stylesheet" href="../styles.css"></head><body class="theme-bulk">
+<link rel="stylesheet" href="../styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+</head><body class="theme-bulk">
 <nav class="top-nav"><div class="top-nav-inner">
   <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
-  <ul class="top-nav-links">
-    <li><a href="index.html">Bulk RNA</a></li><li><a href="qc-trim.html">QC</a></li><li><a href="alignment.html">Align</a></li><li><a href="quantification.html">Quant</a></li><li><a href="normalization.html">Norm</a></li><li><a href="de.html" class="active">DE</a></li><li><a href="visualization.html">Viz</a></li><li><a href="gsea.html">GSEA</a></li>
-  </ul>
+  <ul class="top-nav-links"><li><a href="index.html">Bulk RNA</a></li><li><a href="qc-trim.html">QC</a></li><li><a href="alignment.html">Align</a></li><li><a href="quantification.html">Quant</a></li><li><a href="normalization.html">Norm</a></li><li><a href="de.html" class="active">DE</a></li><li><a href="visualization.html">Viz</a></li><li><a href="gsea.html">GSEA</a></li></ul>
 </div></nav>
 <div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
-<header class="page-hero"><div class="step-badge">STEP 5 / 7</div><h1 data-zh="差異表達分析" data-en="Differential Expression">差異表達分析</h1><p class="subtitle" data-lang="zh">用統計模型找出組間真正表達不同的基因——RNA-seq 的核心目的。</p><p class="subtitle" data-lang="en">Use statistical models to find genuinely changing genes between groups — the core purpose of RNA-seq.</p></header><main class="content-wrap">
 
-<section class="section"><div class="section-label" data-zh="核心概念" data-en="CONCEPT">核心概念</div>
-<h2 data-zh="為什麼不用 t-test？" data-en="Why not just t-test?">為什麼不用 t-test？</h2>
-<div data-lang="zh"><p>RNA-seq counts 是離散整數，且呈現 <strong>過度離散</strong>（variance &gt; mean），t-test 假設常態分布 + 等變異，會嚴重低估 false positives。三大主流模型用不同方式解決：</p></div>
-<div data-lang="en"><p>RNA-seq counts are discrete integers and show <strong>over-dispersion</strong> (variance &gt; mean). A t-test assumes normality and equal variance, which underestimates false positives. The three mainstream models handle this differently:</p></div>
-<table class="comp-table"><thead><tr><th>Tool</th><th data-zh="分佈" data-en="Distribution">分佈</th><th data-zh="處理變異" data-en="Variance handling">處理變異</th><th data-zh="特色" data-en="Notes">特色</th></tr></thead><tbody>
-<tr><td><strong>DESeq2</strong></td><td>Negative Binomial</td><td data-zh="empirical Bayes 收縮 dispersion" data-en="EB shrinkage on dispersion">EB 收縮 dispersion</td><td data-zh="預設工具；shrinkage LFC 適合排名" data-en="Default tool; shrinkage LFC ideal for ranking">預設工具</td></tr>
-<tr><td><strong>edgeR</strong></td><td>Negative Binomial</td><td data-zh="quasi-likelihood (QL) F 檢定" data-en="Quasi-likelihood (QL) F test">QL F 檢定</td><td data-zh="速度快、小樣本穩定" data-en="Fast, stable for small n">小樣本穩定</td></tr>
-<tr><td><strong>limma-voom</strong></td><td data-zh="log-CPM + 加權線性模型" data-en="log-CPM + weighted LM">log-CPM + 線性模型</td><td data-zh="voom 估觀測層級權重" data-en="Per-observation voom weights">最快</td><td data-zh="樣本 &gt; 20 時最高效率，可處理複雜設計" data-en="Most efficient for n &gt; 20; handles complex designs">大樣本</td></tr>
-</tbody></table>
+<header class="page-hero"><div class="step-badge">STEP 5 / 7 · BULK RNA-seq</div>
+<h1 data-zh="差異表達分析" data-en="Differential Expression Analysis">差異表達分析</h1>
+<p class="subtitle" data-lang="zh">用統計模型找出組間真正表達不同的基因——RNA-seq 流程的核心目的。</p>
+<p class="subtitle" data-lang="en">Use statistical models to find truly changing genes between groups — the core purpose of RNA-seq.</p>
+<div style="margin-top:18px"><span class="diff-chip beg">🟢 Beginner</span><span class="diff-chip int">🟡 Intermediate</span><span class="diff-chip adv">🔴 Advanced</span></div>
+</header>
+
+<main class="content-wrap">
+
+<section class="section">
+<div class="section-label" data-zh="開場故事" data-en="MOTIVATION">開場故事</div>
+<h2 data-zh="為什麼不能用 t-test？一個 30 年前的失敗教訓" data-en="Why not t-test? A 30-year-old lesson">為什麼不能用 t-test？</h2>
+<div data-lang="zh">
+<p>1990 年代的 microarray 時代，研究者習慣對每個基因做 t-test。結果呢？<strong>同一個資料用不同軟體跑出來的「DEG」重疊度常低於 30%</strong>。原因：t-test 假設常態分布 + 等變異，但基因表達是離散整數、且 variance 隨 mean 變化（高表達基因變異大、低表達基因變異小）。</p>
+<p>RNA-seq counts 是 <span class="term">離散整數<span class="term-tip">Discrete integers. counts 不會出現 3.7 reads；最低就是 0。</span></span>，且呈現 <strong><span class="term">過度離散<span class="term-tip">Over-dispersion: variance > mean，違反 Poisson 假設（var=mean）。負二項分佈專門處理此特性。</span></span></strong>（variance &gt; mean）。t-test 在這上面會嚴重低估 false positives。三大主流 DE 工具（DESeq2、edgeR、limma-voom）<strong>用不同方式解決這問題</strong>，但都基於統計學上更嚴謹的負二項或加權線性模型。</p>
+<p>2014 年 DESeq2 論文發表至今，引用超過 5 萬次——它徹底改變了 RNA-seq 分析的可重現性。每一個 RNA-seq 工作者都應該理解：<strong>「為什麼選這個工具」比「會用這個工具」更重要</strong>。</p>
+</div>
+<div data-lang="en">
+<p>In the 1990s microarray era, researchers ran t-tests on each gene. The result? <strong>The same dataset analysed by different tools agreed on &lt; 30% of "DEGs."</strong> The reason: t-test assumes normality + equal variance, but gene expression is integer-valued and has variance that scales with mean (high expressors are more variable than low ones).</p>
+<p>RNA-seq counts are <span class="term">discrete integers<span class="term-tip">You never see 3.7 reads; the minimum is 0.</span></span> with <strong><span class="term">over-dispersion<span class="term-tip">variance &gt; mean — violates the Poisson assumption (var = mean). Negative binomial handles this.</span></span></strong>. T-test severely under-estimates false positives. The three mainstream DE tools (DESeq2, edgeR, limma-voom) each solve this differently but all use statistically rigorous negative binomial or weighted linear models.</p>
+<p>Since DESeq2's 2014 publication it has &gt; 50,000 citations — it fundamentally changed RNA-seq reproducibility. Every RNA-seq analyst should understand: <strong>"why this tool" matters more than "how to use this tool."</strong></p>
+</div>
+
+<div class="analogy" data-lang="zh"><strong>類比：</strong>t-test 像「直接量花瓣長度比較兩種花」；DE 工具像「同時考慮花的整體大小、種子大小、平均壽命等變異模式」。後者更貼近生物學真實。</div>
+<div class="analogy" data-lang="en"><strong>Analogy:</strong> t-test is like comparing flowers by petal length alone; DE tools consider overall plant size, seed size, lifespan variability — closer to biological reality.</div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="統計輸出" data-en="STATS">統計輸出</div>
-<h2 data-zh="解讀 DE 表格" data-en="Reading a DE Table">解讀 DE 表格</h2>
+<section class="section">
+<div class="section-label" data-zh="核心模型" data-en="MODELS">核心模型</div>
+<h2 data-zh="一、三大模型的核心邏輯" data-en="I. Core logic of the three main models">一、三大模型的核心邏輯</h2>
+
+<table class="comp-table"><thead><tr>
+<th>Tool</th><th data-zh="分佈假設" data-en="Distribution">分佈假設</th><th data-zh="變異處理" data-en="Variance handling">變異處理</th><th data-zh="特色" data-en="Notes">特色</th><th data-zh="最佳情境" data-en="Best for">最佳情境</th>
+</tr></thead><tbody>
+<tr><td><strong>DESeq2</strong></td><td>Negative Binomial</td><td data-zh="empirical Bayes 收縮 dispersion" data-en="EB shrinkage on dispersion">EB 收縮</td><td data-zh="預設工具；shrinkage LFC 適合排名" data-en="Default tool; shrinkage LFC ideal for ranking">預設工具</td><td data-zh="小到中樣本 (n=3-50)" data-en="Small to medium n (3-50)">小到中樣本</td></tr>
+<tr><td><strong>edgeR</strong></td><td>Negative Binomial</td><td data-zh="quasi-likelihood F 檢定" data-en="Quasi-likelihood F test">QL F 檢定</td><td data-zh="速度快、小樣本穩定" data-en="Fast, stable for small n">小樣本穩定</td><td data-zh="複雜實驗設計" data-en="Complex designs">複雜設計</td></tr>
+<tr><td><strong>limma-voom</strong></td><td data-zh="log-CPM + 加權線性模型" data-en="log-CPM + weighted LM">log-CPM + LM</td><td data-zh="voom 觀測層級權重" data-en="Per-observation voom weights">每筆權重</td><td data-zh="樣本 n &gt; 20 時最高效率" data-en="Most efficient for n &gt; 20">最快</td><td data-zh="大樣本 (n &gt; 20)、time-course" data-en="Large n; time-course">大樣本</td></tr>
+</tbody></table>
+
+<div class="formula-box">
+y<sub>gi</sub> ~ NegBin(μ<sub>gi</sub>, α<sub>g</sub>)<br>
+log(μ<sub>gi</sub>) = β<sub>0</sub> + β<sub>1</sub>·condition<sub>i</sub> + log(s<sub>i</sub>)
+<span class="formula-label" data-zh="DESeq2 的負二項 GLM 核心模型" data-en="DESeq2's NB-GLM core model">DESeq2 核心模型</span>
+</div>
+
+<div data-lang="zh"><p>意思：基因 g 在樣本 i 的 read count <code>y<sub>gi</sub></code> 服從負二項分佈，平均值 <code>μ<sub>gi</sub></code> 來自條件效應 + library size factor <code>s<sub>i</sub></code>，<code>α<sub>g</sub></code> 是過度離散參數（每個基因獨立估計、用 EB shrink）。<strong>DE 檢定 = β<sub>1</sub> ≠ 0 的 Wald 檢定。</strong></p></div>
+<div data-lang="en"><p>Meaning: gene <em>g</em>'s count <code>y<sub>gi</sub></code> in sample <em>i</em> follows a negative binomial with mean <code>μ<sub>gi</sub></code> from condition effect + library size factor <code>s<sub>i</sub></code>, where <code>α<sub>g</sub></code> is the gene-specific dispersion (EB-shrunk). <strong>The DE test is a Wald test of β<sub>1</sub> ≠ 0.</strong></p></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="統計輸出" data-en="STATS">統計輸出</div>
+<h2 data-zh="二、解讀 DE 表格" data-en="II. Reading a DE table">二、解讀 DE 表格</h2>
 <div class="card-grid cols-2">
-<div class="card"><h4>log2FoldChange (LFC)</h4><p data-lang="zh">對數轉換的倍數變化。<code>LFC = 1</code> 代表 2 倍上升，<code>LFC = -1</code> 代表減半。LFC shrinkage 會把低 counts 基因的高估倍數拉回真實值。</p><p data-lang="en">Log-transformed fold change. <code>LFC = 1</code> means 2× up, <code>LFC = -1</code> means half. LFC shrinkage tames inflated estimates from low-count genes.</p></div>
-<div class="card"><h4>p-value</h4><p data-lang="zh">在 H₀「無差異」下觀察到此差異的機率，<strong>未校正多重檢定</strong>。20,000 基因下，p &lt; 0.05 也有 1000 個假陽性。</p><p data-lang="en">Probability under H₀ "no change". <strong>Not multiple-testing corrected</strong>. With 20,000 genes, p &lt; 0.05 still yields ~1000 false positives.</p></div>
-<div class="card"><h4>padj (FDR)</h4><p data-lang="zh">經 BH 校正的調整 p 值。<strong>真正的「顯著」門檻通常用 padj &lt; 0.05 或 0.1</strong>。</p><p data-lang="en">BH-adjusted p-value. <strong>Use padj &lt; 0.05 or 0.1 for "significance"</strong>.</p></div>
-<div class="card"><h4>baseMean / AveExpr</h4><p data-lang="zh">該基因跨所有樣本的平均表達。極低 baseMean 的基因即使 LFC 很大也要謹慎。</p><p data-lang="en">Mean expression across samples. Be cautious about genes with very low baseMean even if LFC is large.</p></div>
+<div class="card"><h4>log2FoldChange (LFC)</h4>
+<div data-lang="zh"><p>對數轉換的倍數變化。<code>LFC = 1</code> = 2 倍上升；<code>LFC = -1</code> = 減半。<strong>shrunken LFC</strong>（apeglm / ashr）會把低 counts 基因高估的 LFC 拉回真實值。</p></div>
+<div data-lang="en"><p>Log fold change. <code>LFC = 1</code> = 2× up; <code>LFC = -1</code> = half. <strong>Shrunken LFC</strong> (apeglm / ashr) tames inflated LFCs from low-count genes.</p></div>
+</div>
+<div class="card"><h4>p-value</h4>
+<div data-lang="zh"><p>H₀「無差異」下觀察到此差異的機率，<strong>未校正多重比較</strong>。20,000 基因下，p &lt; 0.05 也有 1000 個假陽性。</p></div>
+<div data-lang="en"><p>Probability under H₀ "no change," <strong>not multiple-testing corrected</strong>. With 20,000 genes, p &lt; 0.05 still yields ~1000 false positives.</p></div>
+</div>
+<div class="card"><h4>padj (FDR)</h4>
+<div data-lang="zh"><p>BH 校正後的調整 p 值。<strong>真正的「顯著」門檻通常用 padj &lt; 0.05 或 0.1</strong>。</p></div>
+<div data-lang="en"><p>BH-adjusted p-value. <strong>Use padj &lt; 0.05 or 0.1 for "significance".</strong></p></div>
+</div>
+<div class="card"><h4>baseMean / AveExpr</h4>
+<div data-lang="zh"><p>該基因跨所有樣本的平均表達。極低 baseMean (&lt; 10) 即使 LFC 大也要謹慎。</p></div>
+<div data-lang="en"><p>Mean expression across samples. Very low baseMean (&lt; 10) warrants caution even with large LFC.</p></div>
+</div>
+</div>
+
+<div class="formula-box">
+padj = BH(p)<br>
+<small>Benjamini-Hochberg: padj<sub>(i)</sub> = min(p<sub>(i)</sub> · m / i, padj<sub>(i+1)</sub>)</small>
+<span class="formula-label" data-zh="多重比較校正：False Discovery Rate" data-en="Multiple-test correction: False Discovery Rate">FDR 校正</span>
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
-<h2 data-zh="LFC 與 padj 門檻：DEG 數量怎麼變？" data-en="LFC / padj Thresholds vs. DEG Count">LFC 與 padj 門檻</h2>
+<section class="section">
+<div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
+<h2 data-zh="三、LFC 與 padj 門檻：DEG 數量怎麼變？" data-en="III. LFC and padj thresholds — how DEG count changes">三、LFC 與 padj 門檻：DEG 數量怎麼變？</h2>
 <div data-lang="zh"><p>調整 LFC 與 padj 門檻，看符合條件的 DEG 數量與「上升 / 下降」分佈：</p></div>
-<div data-lang="en"><p>Drag LFC and padj thresholds to see how many DEGs pass, split into up / down:</p></div>
+<div data-lang="en"><p>Drag thresholds; see DEG counts split into up / down:</p></div>
+
 <div class="interactive-panel">
-<div class="slider-group"><label>|log2FC| ≥ <span id="valLFC">1.0</span></label><input type="range" id="sliderLFC" min="0" max="3" value="1" step="0.1"></div>
-<div class="slider-group"><label>padj &lt; <span id="valFDR">0.05</span></label><input type="range" id="sliderFDR" min="0.001" max="0.2" value="0.05" step="0.001"></div>
+<div class="slider-group"><label><span data-zh="|log2FC| ≥" data-en="|log2FC| ≥">|log2FC| ≥</span> <span id="valLFC">1.0</span></label><input type="range" id="sliderLFC" min="0" max="3" value="1" step="0.1"></div>
+<div class="slider-group"><label><span data-zh="padj &lt;" data-en="padj &lt;">padj &lt;</span> <span id="valFDR">0.05</span></label><input type="range" id="sliderFDR" min="0.001" max="0.2" value="0.05" step="0.001"></div>
 <div class="stat-row">
 <div class="stat-box"><div class="sb-num" id="totDeg" style="color:var(--c-accent-dark)">--</div><div class="sb-lbl">Total DEGs</div></div>
 <div class="stat-box"><div class="sb-num" id="upDeg" style="color:#d05a3a;">--</div><div class="sb-lbl">Up</div></div>
@@ -45,11 +103,32 @@
 </div>
 <div class="chart-container" style="height:330px;"><canvas id="volcano"></canvas></div>
 </div>
-<div class="callout tip"><span class="callout-icon">💡</span><div data-lang="zh"><strong>業界慣例：</strong>「DEG」常定義為 <code>padj &lt; 0.05 且 |LFC| &gt; 1</code>。但門檻沒有絕對標準——大樣本可放寬 LFC、小樣本則必收緊 padj。</div><div data-lang="en"><strong>Field convention:</strong> "DEG" is often <code>padj &lt; 0.05 and |LFC| &gt; 1</code>. There's no universal cutoff — relax LFC with large n; tighten padj with small n.</div></div>
+
+<div class="callout tip"><span class="callout-icon">💡</span><div data-lang="zh"><strong>業界慣例：</strong>「DEG」常定義為 <code>padj &lt; 0.05 且 |LFC| &gt; 1</code>。但門檻沒有絕對標準——大樣本可放寬 LFC、小樣本則必收緊 padj。</div><div data-lang="en"><strong>Field convention:</strong> "DEG" is often <code>padj &lt; 0.05 and |LFC| &gt; 1</code>. No universal cutoff — relax LFC with large n; tighten padj with small n.</div></div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="程式碼" data-en="CODE">程式碼</div>
-<h2 data-zh="完整 DE 流程" data-en="Complete DE Workflow">完整 DE 流程</h2>
+<section class="section">
+<div class="section-label" data-zh="案例研究" data-en="CASE STUDY">案例研究</div>
+<h2 data-zh="四、真實案例：DESeq2 經典 airway 資料集" data-en="IV. Real case: the classic DESeq2 airway dataset">四、真實案例：airway 資料集</h2>
+<div class="case-study">
+<div class="case-meta">Himes et al. 2014 · PLOS ONE · GSE52778</div>
+<h4 data-zh="📂 dexamethasone 處理對氣管平滑肌細胞的影響" data-en="📂 Dexamethasone effects on airway smooth muscle">📂 dexamethasone vs control</h4>
+<div data-lang="zh">
+<p><span class="real-data" data-zh="真實資料" data-en="Real Data">真實資料</span> Himes 等人收集 4 位捐贈者的人類氣管平滑肌細胞，分別處理 dexamethasone（一種類固醇）24 小時與 control。8 個樣本（4 paired pairs）。原始問題：糖皮質激素如何抑制氣道發炎？</p>
+<p><strong>結果：</strong>DESeq2 找到 ~2,500 個 DEGs（padj &lt; 0.1）。Top up-regulated 基因包含已知的糖皮質激素標靶 <code>DUSP1</code>、<code>KLF15</code>；top down-regulated 包含 inflammatory cytokine <code>IL6</code>、<code>CXCL5</code>。這完全符合預期的「類固醇抗發炎」生物學。</p>
+<p><strong>教學價值：</strong>(1) 公開且乾淨；(2) 樣本配對（subject）需用 <code>design = ~ subject + condition</code>；(3) Bioconductor 套件 <code>airway</code> 直接可用，零環境設定。<strong>每個 DESeq2 vignette 都用它示範。</strong></p>
+</div>
+<div data-lang="en">
+<p><span class="real-data">Real Data</span> Himes et al. collected human airway smooth muscle cells from 4 donors, treated with dexamethasone (a corticosteroid) 24 h vs control. 8 samples (4 paired). Original question: how do glucocorticoids suppress airway inflammation?</p>
+<p><strong>Result:</strong> DESeq2 found ~2,500 DEGs (padj &lt; 0.1). Top up-regulated genes include known glucocorticoid targets <code>DUSP1</code>, <code>KLF15</code>; top down-regulated include inflammatory cytokines <code>IL6</code>, <code>CXCL5</code>. Perfectly consistent with steroid anti-inflammatory biology.</p>
+<p><strong>Teaching value:</strong> (1) public + clean; (2) paired samples (subject) need <code>design = ~ subject + condition</code>; (3) Bioconductor package <code>airway</code> ships ready-to-use, zero setup. <strong>Every DESeq2 vignette uses it.</strong></p>
+</div>
+</div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="程式碼" data-en="CODE">程式碼</div>
+<h2 data-zh="五、完整 DE 流程" data-en="V. Complete DE Workflow">五、完整 DE 流程</h2>
 <div class="code-tabs"><div class="code-tab-btns">
 <button class="code-tab-btn active" onclick="switchTab(this,'ds2')">DESeq2</button>
 <button class="code-tab-btn" onclick="switchTab(this,'edge')">edgeR</button>
@@ -92,55 +171,124 @@ tt  &lt;- <span class="func">topTable</span>(fit, coef = <span class="str">"cond
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="進階" data-en="ADVANCED">進階</div>
-<h2 data-zh="複雜實驗設計" data-en="Complex Designs">複雜實驗設計</h2>
+<section class="section">
+<div class="section-label" data-zh="進階" data-en="ADVANCED">進階</div>
+<h2 data-zh="六、複雜實驗設計" data-en="VI. Complex experimental designs">六、複雜實驗設計</h2>
 <div class="card-grid cols-2">
-<div class="card"><h4 data-zh="批次校正" data-en="Batch correction">批次校正</h4><p data-lang="zh">把 batch 放進 <code>design</code>（如 <code>~ batch + condition</code>），DESeq2/limma 會在模型內校正。若僅作視覺化，可用 <code>limma::removeBatchEffect()</code>。</p><p data-lang="en">Put batch in <code>design</code> (e.g., <code>~ batch + condition</code>) — DESeq2/limma adjust for it. For viz only, use <code>limma::removeBatchEffect()</code>.</p></div>
+<div class="card"><h4 data-zh="批次校正" data-en="Batch correction">批次校正</h4><p data-lang="zh">把 batch 放進 <code>design</code>（如 <code>~ batch + condition</code>），DESeq2/limma 會在模型內校正。若僅作視覺化，可用 <code>limma::removeBatchEffect()</code>。</p><p data-lang="en">Put batch in <code>design</code> (e.g., <code>~ batch + condition</code>) — DESeq2/limma adjust internally. For viz only, use <code>limma::removeBatchEffect()</code>.</p></div>
 <div class="card"><h4 data-zh="多組比較與交互作用" data-en="Multi-level & interactions">多組比較與交互作用</h4><p data-lang="zh">用 <code>contrast = c(...)</code> 對任意組合取差異。交互作用以 <code>~ genotype * treatment</code> 編碼。</p><p data-lang="en">Use <code>contrast = c(...)</code> for any pairwise comparison. Interactions via <code>~ genotype * treatment</code>.</p></div>
-<div class="card"><h4 data-zh="配對 / 重複測量" data-en="Paired / repeated">配對 / 重複測量</h4><p data-lang="zh">配對樣本：<code>~ subject + condition</code>。limma 可用 <code>duplicateCorrelation()</code> 處理。</p><p data-lang="en">Paired samples: <code>~ subject + condition</code>. In limma, use <code>duplicateCorrelation()</code>.</p></div>
-<div class="card"><h4 data-zh="hidden confounder" data-en="Hidden confounders">隱藏干擾</h4><p data-lang="zh">用 <code>sva</code> 或 <code>RUVSeq</code> 偵測未記錄的批次源。把推得的 surrogate variables 加進 design。</p><p data-lang="en">Use <code>sva</code> or <code>RUVSeq</code> to find unrecorded batch sources; add the SVs into the design.</p></div>
+<div class="card"><h4 data-zh="配對 / 重複測量" data-en="Paired / repeated">配對 / 重複測量</h4><p data-lang="zh">配對樣本：<code>~ subject + condition</code>。limma 可用 <code>duplicateCorrelation()</code> 處理重複測量。</p><p data-lang="en">Paired: <code>~ subject + condition</code>. In limma, <code>duplicateCorrelation()</code> handles repeated measures.</p></div>
+<div class="card"><h4 data-zh="隱藏干擾" data-en="Hidden confounders">隱藏干擾</h4><p data-lang="zh">用 <code>sva</code> 或 <code>RUVSeq</code> 偵測未記錄的批次源。把推得的 surrogate variables 加進 design。</p><p data-lang="en">Use <code>sva</code> or <code>RUVSeq</code> to detect unrecorded batch sources; add the SVs to the design.</p></div>
+</div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="陷阱" data-en="PITFALLS">陷阱</div>
+<h2 data-zh="七、五個關鍵 DE 陷阱" data-en="VII. Five critical DE pitfalls">七、五個關鍵 DE 陷阱</h2>
+
+<div class="pitfall"><strong data-zh="陷阱 1：把 TPM 或 normalized counts 餵給 DESeq2" data-en="Pitfall 1: Feeding TPM or normalized counts to DESeq2">陷阱 1：用 TPM 跑 DE</strong><span data-zh="。DESeq2 假設輸入是 raw integer counts，內建處理 size factor。給 TPM 或 normalized 後的小數會破壞統計模型，產生無意義的 p-values。永遠用 raw counts。" data-en=". DESeq2 expects raw integer counts and handles size factors internally. Feeding TPMs or normalized decimals breaks the model and produces meaningless p-values. Always use raw counts."></span></div>
+
+<div class="pitfall"><strong data-zh="陷阱 2：忽略 batch effect" data-en="Pitfall 2: Ignoring batch effects">陷阱 2：忽略 batch effect</strong><span data-zh="。樣本來自不同處理日期/lane/lab 是常態。若不加進 design，batch 訊號會混入 condition 效應。先做 PCA 觀察：若 PC1 沿 batch 軸分群、case/ctrl 沒分開，是嚴重警訊。" data-en=". Samples from different days/lanes/labs is the norm. Without batch in design, batch signal contaminates condition effect. First do PCA: if PC1 follows batch and case/ctrl don't separate, it's a serious warning."></span></div>
+
+<div class="pitfall"><strong data-zh="陷阱 3：n=2 vs n=2 還做 DE" data-en="Pitfall 3: Running DE with n=2 vs n=2">陷阱 3：n=2 vs n=2 仍做 DE</strong><span data-zh="。雖然 DESeq2 不會報錯，但 EB shrinkage 在 n &lt; 3 時極度不可靠。Schurch et al. 2016 證明 n=3 是「能跑」的最低底線、n=6+ 才有合理 power。預印本若用 n=2 樣本，審稿時務必質疑。" data-en=". DESeq2 won't error, but EB shrinkage is unreliable below n=3. Schurch et al. (2016) showed n=3 is the bare minimum; n=6+ gives reasonable power. Always challenge n=2 designs in peer review."></span></div>
+
+<div class="pitfall"><strong data-zh="陷阱 4：把「p &lt; 0.05」當顯著（沒做 BH 校正）" data-en="Pitfall 4: Using 'p &lt; 0.05' without BH correction">陷阱 4：用 raw p-value 當顯著</strong><span data-zh="。20,000 個基因 × p &lt; 0.05 → 1000 個假陽性！永遠用 padj（DESeq2 的 results 自動算 BH）。新手常見錯誤：複製 DESeq2 表格時取 p 欄而非 padj 欄。" data-en=". 20,000 genes × p &lt; 0.05 → 1000 false positives! Always use padj (DESeq2's results computes BH automatically). Common newbie mistake: copying DESeq2 output but using the 'p' column instead of 'padj'."></span></div>
+
+<div class="pitfall"><strong data-zh="陷阱 5：跨工具結果不一致就「取交集」" data-en="Pitfall 5: 'Intersecting' results across tools">陷阱 5：取 DESeq2 ∩ edgeR 的交集</strong><span data-zh="。新手有時為了「保守」會取三個工具的交集，但這不增加可信度——三者用相似負二項假設，交集只反映「最保守的工具」而非真實 ground truth。建議選一個工具堅持到底，並充分解釋為何選它。" data-en=". Beginners take intersections of three tools 'for conservatism,' but this adds no credibility — all three use similar NB assumptions; the intersection reflects 'the most conservative tool,' not ground truth. Pick one tool, stick with it, and justify the choice."></span></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="討論" data-en="DISCUSSION">討論</div>
+<h2 data-zh="八、思考題：DE 分析的深層議題" data-en="VIII. Discussion: deeper DE questions">八、思考題</h2>
+<div class="discussion">
+<h4 data-zh="💭 五道值得思考的問題" data-en="💭 Five thought-provoking questions">💭 五道值得思考的問題</h4>
+<div data-lang="zh">
+<p><span class="q-ico">Q1.</span> 你的 cohort 有 4 個 case、4 個 control，PCA 顯示 PC1 沿性別分群、case/ctrl 沿 PC3。原始 design 是 <code>~ condition</code>，怎麼修改？討論：要加 sex？要把 sex 與 condition 解耦的代價？</p>
+<p><span class="q-ico">Q2.</span> 為什麼 DESeq2 對 padj=NA 的基因「不算進 BH」？這在低表達基因上特別常見。提示：independent filtering。</p>
+<p><span class="q-ico">Q3.</span> 兩個樣本 cohort，case 與 ctrl 各 3 隻小鼠。如果一隻 case 死亡只剩 n=2 vs 3，你會：(a) 用剩餘樣本做 DE、(b) 把它變成 n=3 vs 3 的 paired design 重新分析、(c) 找新合作者重做？討論各方案的科學成本。</p>
+<p><span class="q-ico">Q4.</span> Bulk RNA-seq cohort 與 scRNA-seq pseudo-bulk 在同一條件比較下，DEG 一致度通常 30-50%。為什麼？想想 cell-type composition、dropout、normalization 的差異。</p>
+<p><span class="q-ico">Q5.</span> DESeq2 的 LFC shrinkage 對「真正高 fold-change 但 baseMean 低的基因」會壓抑訊號。在罕見 marker gene 研究時，要不要用 shrunken LFC？討論 ranking vs reporting 的差別。</p>
+</div>
+<div data-lang="en">
+<p><span class="q-ico">Q1.</span> Cohort: 4 case + 4 control. PCA shows PC1 follows sex; case/ctrl separate along PC3. Original design <code>~ condition</code>. How to fix? Discuss: add sex? Cost of decoupling sex from condition?</p>
+<p><span class="q-ico">Q2.</span> Why does DESeq2 set padj=NA for some low-count genes and exclude them from BH? Hint: independent filtering.</p>
+<p><span class="q-ico">Q3.</span> Cohort: 3 mice per group; one case mouse dies leaving n=2 vs 3. Options: (a) DE on remaining; (b) redesign as paired n=3 vs 3; (c) find collaborator to redo. Discuss costs.</p>
+<p><span class="q-ico">Q4.</span> Bulk RNA-seq vs scRNA pseudo-bulk for the same condition typically agree on only 30–50% of DEGs. Why? Consider cell-type composition, dropout, normalization differences.</p>
+<p><span class="q-ico">Q5.</span> DESeq2's LFC shrinkage suppresses "high fold-change but low baseMean" genes. For rare marker discovery, use shrunken LFC? Discuss ranking-vs-reporting trade-off.</p>
+</div>
+</div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="FAQ" data-en="FAQ">FAQ</div>
+<h2 data-zh="九、常見問答" data-en="IX. FAQ">九、常見問答</h2>
+<div class="faq-list">
+<div class="faq-item"><button class="faq-q" data-zh="❓ 我可以用 t-test 跑 RNA-seq DE 嗎？" data-en="❓ Can I use t-test for RNA-seq DE?">❓ 可以用 t-test 嗎？</button>
+<div class="faq-a"><div data-lang="zh"><p>技術上可行，但結果不可靠。RNA-seq counts 違反常態與等變異假設。t-test 對基因數 &gt; 5,000 的 DE 場景產生顯著膨脹的 false positives。<strong>除非用無母數版本（如 Mann-Whitney）+ 大樣本 (n &gt; 30)</strong>，否則別用。</p></div><div data-lang="en"><p>Technically possible, but unreliable. RNA-seq counts violate normality and equal-variance assumptions. T-test inflates false positives at genome scale. <strong>Unless you use non-parametric (e.g., Mann-Whitney) + large n (&gt; 30)</strong>, avoid it.</p></div></div></div>
+
+<div class="faq-item"><button class="faq-q" data-zh="❓ DESeq2 vs edgeR 哪個比較好？" data-en="❓ DESeq2 vs edgeR — which is better?">❓ DESeq2 vs edgeR？</button>
+<div class="faq-a"><div data-lang="zh"><p>沒有絕對贏家。Schurch et al. (2016) 對 24 個工具的 benchmark：DESeq2 與 edgeR 表現幾乎相同。差異：</p><ul style="margin-left:20px;"><li>DESeq2 預設 LFC shrinkage → 排名更穩定</li><li>edgeR 對複雜 design (含 GLM contrasts) 更靈活</li><li>limma-voom 在大 cohort 速度勝出</li></ul><p>建議：選一個你熟的，並理解其數學基礎。</p></div><div data-lang="en"><p>No clear winner. Schurch et al. (2016) benchmarked 24 tools: DESeq2 and edgeR perform similarly. Differences:</p><ul style="margin-left:20px;"><li>DESeq2 has default LFC shrinkage → more stable ranking</li><li>edgeR is more flexible for complex GLM contrasts</li><li>limma-voom wins on speed for large cohorts</li></ul><p>Recommendation: pick one you know, understand its math.</p></div></div></div>
+
+<div class="faq-item"><button class="faq-q" data-zh="❓ DEG 數量「合理」是多少？" data-en="❓ How many DEGs is 'reasonable'?">❓ DEG 數量該多少？</button>
+<div class="faq-a"><div data-lang="zh"><p>取決於生物學情境：</p><ul style="margin-left:20px;"><li><strong>強處理</strong>（如 dexamethasone、IFN 刺激）：1,000-5,000 DEGs</li><li><strong>溫和處理</strong>（mild stress、低劑量藥物）：100-1,000</li><li><strong>細微差異</strong>（年齡、輕度疾病）：&lt; 500 或甚至 &lt; 100</li><li><strong>0 DEGs</strong>：可能真實（無生物學差異）或統計力不足；用 power analysis 區分</li><li><strong>&gt; 10,000 DEGs</strong>：高度可疑——可能是 batch effect、normalization 失敗、或 PCA outlier 未移除</li></ul></div><div data-lang="en"><p>Depends on biology:</p><ul style="margin-left:20px;"><li><strong>Strong perturbation</strong> (dexamethasone, IFN): 1,000–5,000</li><li><strong>Mild perturbation</strong>: 100–1,000</li><li><strong>Subtle</strong> (aging, mild disease): &lt; 500 or even &lt; 100</li><li><strong>0 DEGs</strong>: could be real (no biology) or under-powered; distinguish with power analysis</li><li><strong>&gt; 10,000 DEGs</strong>: highly suspicious — batch effect, normalization failure, or unremoved PCA outliers</li></ul></div></div></div>
+
+<div class="faq-item"><button class="faq-q" data-zh="❓ padj &lt; 0.05 但 |LFC| = 0.3，要 report 嗎？" data-en="❓ padj &lt; 0.05 but |LFC| = 0.3 — report it?">❓ 小 LFC 顯著該 report 嗎？</button>
+<div class="faq-a"><div data-lang="zh"><p>視情境。在大 cohort (n &gt; 30) 中，padj &lt; 0.05 + LFC 0.3（~1.23×）統計上可信。但生物學上 1.23 倍變化是否「有意義」需個別評估。<strong>實驗驗證 (qPCR/Western) 通常需要 |LFC| &gt; 1（2 倍）才能可靠複製</strong>。</p></div><div data-lang="en"><p>It depends. In large cohorts (n &gt; 30), padj &lt; 0.05 + LFC 0.3 (~1.23×) is statistically credible. Whether 1.23× is biologically meaningful must be judged case-by-case. <strong>Wet-lab validation (qPCR/Western) typically needs |LFC| &gt; 1 (2×) for reliable replication</strong>.</p></div></div></div>
+
+<div class="faq-item"><button class="faq-q" data-zh="❓ 為什麼我跑兩次 DESeq2 結果略不同？" data-en="❓ Why do two DESeq2 runs differ slightly?">❓ DESeq2 結果不可重現？</button>
+<div class="faq-a"><div data-lang="zh"><p>常見原因：(1) <strong>DESeq2 版本</strong>（每個 minor version 算法微調，記得鎖版本）；(2) <strong>輸入順序</strong>（不同 sample 順序可能改 size factor 細節）；(3) <strong>filter</strong> 是否相同。為可重現性：用 sessionInfo() 記錄版本、固定 sample 排序、撰寫 Snakemake/nf-core pipeline。</p></div><div data-lang="en"><p>Common causes: (1) <strong>DESeq2 version</strong> (minor updates tweak algorithms — lock the version); (2) <strong>input sample order</strong> (can subtly change size factors); (3) different <strong>filters</strong>. For reproducibility: record sessionInfo(), fix sample order, use Snakemake/nf-core pipelines.</p></div></div></div>
 </div>
 </section>
 
 <section class="quiz-section"><h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
-<div class="quiz-q" data-answer="1"><p data-lang="zh">RNA-seq counts 的「過度離散」是指？</p><p data-lang="en">"Over-dispersion" in RNA-seq counts means?</p><div class="quiz-options">
-<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 樣本之間的 library size 差異</span><span data-lang="en">A. Library-size differences between samples</span></div>
-<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. variance 遠大於 mean，違反 Poisson 假設</span><span data-lang="en">B. Variance ≫ mean, violating Poisson assumption</span></div>
-<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 高表達基因比低表達基因多</span><span data-lang="en">C. More highly than lowly expressed genes</span></div>
-<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 偵測到太多 DEG</span><span data-lang="en">D. Too many DEGs detected</span></div>
+<div class="quiz-q" data-answer="1"><p data-lang="zh">1. RNA-seq counts 的「過度離散」是指？</p><p data-lang="en">1. "Over-dispersion" in RNA-seq counts means?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 樣本間 library size 差異</span><span data-lang="en">A. Library-size differences</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. variance &gt; mean，違反 Poisson 假設</span><span data-lang="en">B. variance &gt; mean, violating Poisson</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 高表達基因比低表達多</span><span data-lang="en">C. More highly than lowly expressed</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 偵測到太多 DEG</span><span data-lang="en">D. Too many DEGs</span></div>
 </div><div class="quiz-feedback" id="fb1"></div></div>
-<div class="quiz-q" data-answer="2"><p data-lang="zh">何時最該使用 DESeq2 的 <code>lfcShrink()</code>？</p><p data-lang="en">When is DESeq2's <code>lfcShrink()</code> most useful?</p><div class="quiz-options">
-<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 取代 p-value 校正</span><span data-lang="en">A. To replace p-value adjustment</span></div>
-<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 增加 DEG 數量</span><span data-lang="en">B. To increase DEG count</span></div>
-<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 在依 LFC 排名挑 top 基因時，減低低 counts 基因的假象高 LFC</span><span data-lang="en">C. When ranking by LFC — tame inflated LFCs from low-count genes</span></div>
-<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 改善樣本對齊率</span><span data-lang="en">D. Improves sample alignment rate</span></div>
+
+<div class="quiz-q" data-answer="2"><p data-lang="zh">2. 何時最該用 DESeq2 的 lfcShrink()？</p><p data-lang="en">2. When is DESeq2's lfcShrink() most useful?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 取代 p-value 校正</span><span data-lang="en">A. Replace p-value adjustment</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 增加 DEG 數量</span><span data-lang="en">B. Increase DEG count</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 排名 top 基因時，校正低 counts 的假象高 LFC</span><span data-lang="en">C. Ranking top genes — correct inflated LFC from low counts</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 改善樣本對齊率</span><span data-lang="en">D. Improves alignment rate</span></div>
 </div><div class="quiz-feedback" id="fb2"></div></div>
+
+<div class="quiz-q" data-answer="0"><p data-lang="zh">3. DESeq2 的 padj 是用哪種校正方法？</p><p data-lang="en">3. What method does DESeq2 use for padj?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. Benjamini-Hochberg (FDR)</span><span data-lang="en">A. Benjamini-Hochberg (FDR)</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. Bonferroni</span><span data-lang="en">B. Bonferroni</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. Holm-Sidak</span><span data-lang="en">C. Holm-Sidak</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 無校正</span><span data-lang="en">D. No correction</span></div>
+</div><div class="quiz-feedback" id="fb3"></div></div>
+
+<div class="quiz-q" data-answer="1"><p data-lang="zh">4. 對 paired 設計（pre/post treatment 同一人）最適合的 DESeq2 design？</p><p data-lang="en">4. For paired (pre/post same subject) — best DESeq2 design?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. ~ condition</span><span data-lang="en">A. ~ condition</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. ~ subject + condition</span><span data-lang="en">B. ~ subject + condition</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. ~ 1</span><span data-lang="en">C. ~ 1</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 不能用 DESeq2</span><span data-lang="en">D. Can't use DESeq2</span></div>
+</div><div class="quiz-feedback" id="fb4"></div></div>
+
+<div class="quiz-q" data-answer="2"><p data-lang="zh">5. 下列何者最不適合輸入 DESeq2？</p><p data-lang="en">5. Which is LEAST suitable as DESeq2 input?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. featureCounts 的 raw integer counts</span><span data-lang="en">A. featureCounts raw integer counts</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. tximport 整合 Salmon 後的 gene-level counts</span><span data-lang="en">B. tximport-aggregated gene-level counts from Salmon</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. log2(TPM + 1)</span><span data-lang="en">C. log2(TPM + 1)</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. HTSeq raw counts</span><span data-lang="en">D. HTSeq raw counts</span></div>
+</div><div class="quiz-feedback" id="fb5"></div></div>
 </section>
 
 <nav class="page-nav"><a href="normalization.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 4：Normalization" data-en="Step 4: Normalization">Step 4：Normalization</span></a><a href="visualization.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 6：視覺化" data-en="Step 6: Visualization">Step 6：視覺化</span></a></nav>
 </main>
 <footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="../i18n.js"></script>
 <script>
-window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
-function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
-// Synthesize volcano data
+window.addEventListener('scroll',()=>{const h=document.documentElement;document.getElementById('progressBar').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+'%';});
+function switchTab(b,id){const p=b.closest('.code-tabs');p.querySelectorAll('.code-tab-btn').forEach(x=>x.classList.remove('active'));p.querySelectorAll('.code-tab-content').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById(id).classList.add('active');}
+document.querySelectorAll('.faq-q').forEach(b=>b.addEventListener('click',()=>{b.classList.toggle('open');b.nextElementSibling.classList.toggle('open');}));
 const NG=1500;const points=[];for(let i=0;i<NG;i++){const lfc=(Math.random()*2-1)*3*(Math.random()<.15?2:1);const pa=Math.random()<.1?Math.random()*0.01:0.05+Math.random()*0.95;points.push({lfc,pa,nlp:-Math.log10(pa)});}
-const volcano=new Chart(document.getElementById('volcano'),{type:'scatter',data:{datasets:[
-  {label:'Up',data:[],backgroundColor:'rgba(208,90,58,0.6)',pointRadius:2.5},
-  {label:'Down',data:[],backgroundColor:'rgba(46,126,186,0.6)',pointRadius:2.5},
-  {label:'NS',data:[],backgroundColor:'rgba(160,160,160,0.35)',pointRadius:2}
-]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{title:{display:true,text:'log2 fold change'}},y:{title:{display:true,text:'-log10(padj)'}}},plugins:{legend:{position:'bottom'}}}});
-function upDE(){
-  const L=+document.getElementById('sliderLFC').value;const F=+document.getElementById('sliderFDR').value;
-  document.getElementById('valLFC').textContent=L.toFixed(1);document.getElementById('valFDR').textContent=F.toFixed(3);
-  const up=[],dn=[],ns=[];let nu=0,nd=0;
-  points.forEach(p=>{const pt={x:p.lfc,y:p.nlp};if(p.pa<F&&p.lfc>=L){up.push(pt);nu++;}else if(p.pa<F&&p.lfc<=-L){dn.push(pt);nd++;}else{ns.push(pt);}});
-  document.getElementById('totDeg').textContent=nu+nd;document.getElementById('upDeg').textContent=nu;document.getElementById('dnDeg').textContent=nd;
-  volcano.data.datasets[0].data=up;volcano.data.datasets[1].data=dn;volcano.data.datasets[2].data=ns;volcano.update('none');
-}
+const volcano=new Chart(document.getElementById('volcano'),{type:'scatter',data:{datasets:[{label:'Up',data:[],backgroundColor:'rgba(208,90,58,0.6)',pointRadius:2.5},{label:'Down',data:[],backgroundColor:'rgba(46,126,186,0.6)',pointRadius:2.5},{label:'NS',data:[],backgroundColor:'rgba(160,160,160,0.35)',pointRadius:2}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{title:{display:true,text:'log2 fold change'}},y:{title:{display:true,text:'-log10(padj)'}}},plugins:{legend:{position:'bottom'}}}});
+function upDE(){const L=+document.getElementById('sliderLFC').value;const F=+document.getElementById('sliderFDR').value;document.getElementById('valLFC').textContent=L.toFixed(1);document.getElementById('valFDR').textContent=F.toFixed(3);const up=[],dn=[],ns=[];let nu=0,nd=0;points.forEach(p=>{const pt={x:p.lfc,y:p.nlp};if(p.pa<F&&p.lfc>=L){up.push(pt);nu++;}else if(p.pa<F&&p.lfc<=-L){dn.push(pt);nd++;}else{ns.push(pt);}});document.getElementById('totDeg').textContent=nu+nd;document.getElementById('upDeg').textContent=nu;document.getElementById('dnDeg').textContent=nd;volcano.data.datasets[0].data=up;volcano.data.datasets[1].data=dn;volcano.data.datasets[2].data=ns;volcano.update('none');}
 ['sliderLFC','sliderFDR'].forEach(id=>document.getElementById(id).addEventListener('input',upDE));upDE();
-window._QF={zh:{q1_y:'過度離散指 variance &gt; mean；負二項分佈可建模這種離散度。',q1_n:'答案是 B。',q2_y:'shrinkage 把低 counts 基因高估的 LFC 拉回，特別適合 LFC 排名與 GSEA。',q2_n:'答案是 C：用於排名時校正低 counts 的高估 LFC。'},en:{q1_y:'Over-dispersion: variance &gt; mean; the negative binomial models it.',q1_n:'Answer is B.',q2_y:'Shrinkage tames inflated LFCs from low-count genes — useful for ranking and GSEA.',q2_n:'Answer is C: shrinkage for ranking, fixing low-count inflation.'}};
-const QF=window._QF||{};document.querySelectorAll(".quiz-q").forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll(".quiz-opt").forEach(o=>{o.addEventListener("click",()=>{if(q.classList.contains("answered"))return;q.classList.add("answered");const fb=document.getElementById("fb"+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?"correct":"wrong");if(!ok)q.querySelectorAll(".quiz-opt")[ans].classList.add("correct");const Lg=I18n.get();fb.className="quiz-feedback show "+(ok?"correct-fb":"wrong-fb");fb.textContent=(ok?"✅ ":"❌ ")+(QF[Lg]&&QF[Lg]["q"+(qi+1)+"_"+(ok?"y":"n")]||"");});});});
+const QF={zh:{q1_y:'過度離散：var > mean；負二項分佈可建模。',q1_n:'答案是 B：var > mean。',q2_y:'shrinkage 校正低 counts 基因的高估 LFC，適合排名與 GSEA。',q2_n:'答案是 C。',q3_y:'DESeq2 預設用 BH 校正 (FDR)。',q3_n:'答案是 A：Benjamini-Hochberg。',q4_y:'加 subject 為協變量可移除個體差異，提升統計力。',q4_n:'答案是 B：~ subject + condition。',q5_y:'log2(TPM+1) 不是 raw counts，破壞 DESeq2 統計模型。',q5_n:'答案是 C：log2(TPM+1) 不適合 DESeq2。'},en:{q1_y:'Over-dispersion: var > mean; NB models it.',q1_n:'Answer is B.',q2_y:'Shrinkage corrects inflated LFC from low counts — ideal for ranking and GSEA.',q2_n:'Answer is C.',q3_y:'DESeq2 defaults to BH (FDR).',q3_n:'Answer is A.',q4_y:'Adding subject as covariate removes individual variation.',q4_n:'Answer is B: ~ subject + condition.',q5_y:'log2(TPM+1) is not raw counts; breaks DESeq2 model.',q5_n:'Answer is C.'}};
+document.querySelectorAll('.quiz-q').forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll('.quiz-opt').forEach(o=>{o.addEventListener('click',()=>{if(q.classList.contains('answered'))return;q.classList.add('answered');const fb=document.getElementById('fb'+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?'correct':'wrong');if(!ok)q.querySelectorAll('.quiz-opt')[ans].classList.add('correct');const L=(window.I18n&&I18n.get)?I18n.get():'zh';fb.className='quiz-feedback show '+(ok?'correct-fb':'wrong-fb');fb.innerHTML=(ok?'✅ ':'❌ ')+(QF[L]['q'+(qi+1)+'_'+(ok?'y':'n')]||'');});});});
 </script></body></html>

@@ -1,6 +1,8 @@
 <!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Shotgun Metagenomics — Microbiome</title>
-<link rel="stylesheet" href="../styles.css"></head><body class="theme-microbiome">
+<link rel="stylesheet" href="../styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+</head><body class="theme-microbiome">
 <nav class="top-nav"><div class="top-nav-inner">
   <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
   <ul class="top-nav-links">
@@ -8,112 +10,667 @@
   </ul>
 </div></nav>
 <div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
-<header class="page-hero"><div class="step-badge">STEP 2 / 3</div><h1 data-zh="Shotgun Metagenomics" data-en="Shotgun Metagenomics">Shotgun Metagenomics</h1><p class="subtitle" data-lang="zh">從整個群落隨機定序——獲得 strain 級組成與功能基因清單。</p><p class="subtitle" data-lang="en">Random sequencing of the whole community — get strain-level composition and the full functional gene catalog.</p></header><main class="content-wrap">
+<header class="page-hero"><div class="step-badge">STEP 2 / 3</div>
+<h1 data-zh="Shotgun Metagenomics" data-en="Shotgun Metagenomics">Shotgun Metagenomics</h1>
+<p class="subtitle" data-lang="zh">從整個群落隨機定序——獲得 strain 級組成、功能基因清單，並重建可發表的 metagenome-assembled genomes。</p>
+<p class="subtitle" data-lang="en">Random sequencing of the whole community — get strain-level composition, the full functional gene catalog, and reconstruct publication-grade metagenome-assembled genomes.</p>
+<div style="margin-top:18px"><span class="diff-chip int">🟡 Intermediate</span><span class="diff-chip adv">🔴 Advanced</span><span class="diff-chip expert">🟣 Biostatistician</span></div>
+</header>
+<main class="content-wrap">
 
-<section class="section"><div class="section-label" data-zh="兩大策略" data-en="TWO STRATEGIES">兩大策略</div>
+<!-- ===== Why this matters ===== -->
+<section class="section">
+<div class="section-label" data-zh="為什麼重要" data-en="WHY THIS MATTERS">為什麼重要</div>
+<h2 data-zh="從「誰在裡面」躍進到「誰、什麼基因、什麼 strain」" data-en="From 'who is there' to 'who, what genes, what strain'">為什麼 Shotgun？</h2>
+<div data-lang="zh">
+<p>2019 年 Pasolli 等人 (<em>Cell</em>) 從 9428 個公開人體 metagenome 重建出 <strong>154,723 個 metagenome-assembled genomes (MAGs)</strong>，其中 4,930 個是「人類腸道中從未培養過」的新菌——將已知人體微生物多樣性<strong>翻倍以上</strong>。這一切只用 Illumina 短讀 shotgun + 純運算實現，沒有任何培養。</p>
+<p>shotgun 帶來的能力，16S 永遠做不到：</p>
+<ul style="margin-left:24px;color:var(--c-ink-light)">
+<li><strong>Strain-level 追蹤</strong>：辨識同一 <em>E. coli</em> 物種下的 K12 vs O157:H7；FMT 後新菌種是否成功定殖。</li>
+<li><strong>抗生素抗藥基因組 (resistome)</strong>：直接量化 <em>blaCTX-M</em>、<em>mecA</em>、<em>vanA</em> 等，<span class="term">CARD<span class="tip">Comprehensive Antibiotic Resistance Database：含 3000+ 抗性基因、可用 RGI 工具掃 shotgun reads。</span></span>、ResFinder 為標準資料庫。</li>
+<li><strong>毒力因子 (virulence)</strong>：<em>Shiga toxin</em>、TTSS effector、毒蛋白譜——VFDB 資料庫。</li>
+<li><strong>病毒體與噬菌體</strong>：CheckV、VirSorter、geNomad 偵測整合的前噬菌體 (prophage) 與裂解性病毒。</li>
+<li><strong>HGT (水平基因轉移)</strong>：metaCHIP、WAAFLE 偵測「同一基因在多個物種間穿梭」的事件。</li>
+<li><strong>從讀到 MAG</strong>：重建從未培養的菌的完整基因組，提交到 NCBI 變為新參考序列。</li>
+</ul>
+</div>
+<div data-lang="en">
+<p>In 2019, Pasolli et al. (<em>Cell</em>) reconstructed <strong>154,723 metagenome-assembled genomes (MAGs)</strong> from 9428 public human metagenomes — of which <strong>4,930 represent species never cultured</strong> — more than doubling the known human gut microbial diversity. All from Illumina short-read shotgun and pure compute, with zero culture.</p>
+<p>Capabilities shotgun unlocks that 16S can never offer:</p>
+<ul style="margin-left:24px;color:var(--c-ink-light)">
+<li><strong>Strain-level tracking</strong>: distinguish K12 vs O157:H7 within <em>E. coli</em>; track FMT engraftment.</li>
+<li><strong>Resistome</strong>: directly quantify <em>blaCTX-M</em>, <em>mecA</em>, <em>vanA</em>, etc.; standard refs are <span class="term">CARD<span class="tip">Comprehensive Antibiotic Resistance Database: 3000+ resistance genes; scan shotgun reads with RGI.</span></span>, ResFinder.</li>
+<li><strong>Virulence factors</strong>: <em>Shiga toxin</em>, TTSS effectors, full virulence panel — VFDB.</li>
+<li><strong>Virome &amp; phages</strong>: CheckV, VirSorter, geNomad detect integrated prophages and lytic viruses.</li>
+<li><strong>Horizontal gene transfer (HGT)</strong>: metaCHIP, WAAFLE detect "same gene shuffling among species".</li>
+<li><strong>Reads → MAG</strong>: reconstruct full genomes of never-cultured taxa, submit to NCBI as new references.</li>
+</ul>
+</div>
+<div class="analogy"><strong data-zh="比喻：拼一千本攪碎的書" data-en="Analogy: reassembling 1000 shredded books">比喻：</strong>
+<span data-lang="zh">想像你把 1000 本書全撕碎、扔進一個大袋子，再隨機抓出幾百萬張紙片。Shotgun metagenomics 就是這個袋子。<strong>Read-based 分類</strong>像翻找特定書名的紙片快速統計來源；<strong>Assembly + binning</strong>則是試圖重新組裝每本書——同一本書的紙片有相似的字體 (k-mer 組成)、用同樣的紙張 (覆蓋深度)，因此可被聚到一起。新書 (新菌) 就這樣被「發現」。</span>
+<span data-lang="en">Imagine shredding 1000 books into one bag and picking out a few million paper scraps. That's shotgun metagenomics. <strong>Read-based classification</strong> = quickly count which books contributed each scrap. <strong>Assembly + binning</strong> = try to reassemble each book — scraps from the same book share font (k-mer composition) and paper stock (coverage), so they cluster. Brand-new books (novel species) are "discovered" this way.</span></div>
+</section>
+
+<!-- ===== Two strategies overview ===== -->
+<section class="section">
+<div class="section-label" data-zh="兩大策略" data-en="TWO STRATEGIES">兩大策略</div>
 <h2 data-zh="Read-based vs Assembly-based" data-en="Read-based vs Assembly-based">Read-based vs Assembly-based</h2>
-<div class="card-grid cols-2">
-<div class="card"><div class="card-icon">📖</div><h4 data-zh="Read-based 分類" data-en="Read-based">Read-based</h4><p data-lang="zh">把每條 read 直接對照已知基因組 / 蛋白資料庫分類。優：快、低門檻。限：依賴 reference；無法找新物種。</p><p data-lang="en">Map each read to known genomes / proteins. Pro: fast, low effort. Con: reference-dependent; misses novel organisms.</p><p data-lang="zh"><strong>工具：</strong>Kraken2、Bracken、MetaPhlAn4、Centrifuge、KrakenUniq。</p><p data-lang="en"><strong>Tools:</strong> Kraken2, Bracken, MetaPhlAn4, Centrifuge, KrakenUniq.</p></div>
-<div class="card"><div class="card-icon">🧩</div><h4 data-zh="Assembly-based" data-en="Assembly-based">Assembly-based</h4><p data-lang="zh">先 de novo 組裝 → 把 contigs 分箱 (binning) → 還原可能的 MAG (metagenome-assembled genome)。</p><p data-lang="en">De novo assemble → bin contigs → reconstruct MAGs (metagenome-assembled genomes).</p><p data-lang="zh"><strong>工具：</strong>metaSPAdes、MEGAHIT、MetaBAT2、CONCOCT、CheckM2、GTDB-Tk。</p><p data-lang="en"><strong>Tools:</strong> metaSPAdes, MEGAHIT, MetaBAT2, CONCOCT, CheckM2, GTDB-Tk.</p></div>
+<div class="vs-grid">
+<div class="vs-side"><h5>📖 Read-based</h5>
+<p data-lang="zh">把每條 read 直接對照已知參考資料庫分類。常以 <span class="term">k-mer<span class="tip">長度為 k 的核酸子序列。Kraken2 預設 k=35，把所有 ref genome 的 k-mer 編入索引，查 read 的 k-mer 反查物種。</span></span> 為單位查表。</p>
+<p data-lang="zh"><strong>優：</strong>快 (Kraken2 8 GB/min)、設置簡單、低豐度物種偵測佳。</p>
+<p data-lang="zh"><strong>限：</strong>完全依賴 reference；新物種會被歸到最近祖先 (LCA) 或漏掉；無法看 strain (除 inStrain)。</p>
+<p data-lang="zh"><strong>工具：</strong>Kraken2、Bracken、MetaPhlAn4、Centrifuge、KrakenUniq、Sourmash。</p>
+<p data-lang="en">Map each read directly to a known reference database. Lookup is typically by <span class="term">k-mer<span class="tip">A subsequence of length k. Kraken2 defaults to k=35: index all reference genome k-mers, look up each read's k-mers to assign taxonomy.</span></span>.</p>
+<p data-lang="en"><strong>Pro:</strong> fast (Kraken2 = 8 GB/min), simple, good detection of low-abundance taxa.</p>
+<p data-lang="en"><strong>Con:</strong> fully reference-dependent; novel taxa fall back to LCA or get missed; cannot see strain (unless inStrain).</p>
+<p data-lang="en"><strong>Tools:</strong> Kraken2, Bracken, MetaPhlAn4, Centrifuge, KrakenUniq, Sourmash.</p></div>
+<div class="vs-mid">VS</div>
+<div class="vs-side"><h5>🧩 Assembly-based</h5>
+<p data-lang="zh">先 de novo 組裝 reads → <span class="term">contigs<span class="tip">contiguous sequence：組裝後相連的長序列片段，通常數 kb 到 Mb。</span></span> → 分箱 → <span class="term">MAG<span class="tip">Metagenome-Assembled Genome：用 binning 把屬於同一菌的 contigs 聚到一起所重建出的「準完整基因組」。</span></span>。</p>
+<p data-lang="zh"><strong>優：</strong>偵測新物種、完整基因內容、可重建未培養菌的 reference genome。</p>
+<p data-lang="zh"><strong>限：</strong>慢 (100×+ CPU)、需 ≥ 10× 覆蓋的物種才組得起、低豐度菌會「碎」。</p>
+<p data-lang="zh"><strong>工具：</strong>metaSPAdes、MEGAHIT、MetaBAT2、CONCOCT、CheckM2、GTDB-Tk、dRep、Anvi'o。</p>
+<p data-lang="en">De-novo assemble reads → <span class="term">contigs<span class="tip">Contiguous sequence: long stretches of joined-up DNA from assembly, typically a few kb to Mb.</span></span> → bin → <span class="term">MAG<span class="tip">Metagenome-Assembled Genome: the near-complete genome obtained when binning groups contigs of one organism.</span></span>.</p>
+<p data-lang="en"><strong>Pro:</strong> detects novel taxa, full gene content, reconstructs reference genomes of never-cultured organisms.</p>
+<p data-lang="en"><strong>Con:</strong> slow (100×+ CPU); only ≥10× coverage species assemble well; rare taxa fragment.</p>
+<p data-lang="en"><strong>Tools:</strong> metaSPAdes, MEGAHIT, MetaBAT2, CONCOCT, CheckM2, GTDB-Tk, dRep, Anvi'o.</p></div>
+</div>
+<div class="protip"><strong data-zh="當代最佳實踐：" data-en="Modern best practice:">當代最佳實踐：</strong>
+<span data-lang="zh"><strong>兩個都跑</strong>。Read-based 給快速概覽和低豐度菌；Assembly 給 strain、新菌與功能基因。HMP2 和 Pasolli 2019 都是「並行」設計。</span>
+<span data-lang="en"><strong>Do both.</strong> Read-based for a quick overview + low-abundance detection; assembly for strain, novel taxa, and gene content. HMP2 and Pasolli 2019 both run them in parallel.</span></div>
+</section>
+
+<!-- ===== Pre-processing ===== -->
+<section class="section">
+<div class="section-label" data-zh="前處理" data-en="PRE-PROCESSING">前處理</div>
+<h2 data-zh="不可省略：前處理流程" data-en="Non-negotiable: pre-processing">不可省略：前處理</h2>
+<div class="steps-vertical">
+<div class="step-item" data-num="1"><h5 data-zh="① Adapter / 品質修剪" data-en="① Adapter / quality trimming">① Adapter / quality trimming</h5>
+<p data-lang="zh">fastp / Trimmomatic / cutadapt 移除 adapter、過低品質 reads。fastp 速度與報告最佳。</p>
+<p data-lang="en">fastp / Trimmomatic / cutadapt remove adapters and low-quality reads. fastp wins on speed + reporting.</p></div>
+<div class="step-item" data-num="2"><h5 data-zh="② 宿主 DNA 去除（最重要！）" data-en="② Host DNA removal (CRITICAL!)">② 宿主 DNA 去除</h5>
+<p data-lang="zh">用 Bowtie2 / KneadData 對人類基因組 (CHM13 v2) 比對，丟掉 mapped reads。糞便樣本 1-5%、口腔 30-60%、組織活檢 &gt; 90% 是人類 DNA。<strong>不去除 = 你買的 shotgun 變成「人類重定序」。</strong></p>
+<p data-lang="en">Map to the human genome (CHM13 v2) with Bowtie2 / KneadData and discard mapped reads. Stool is 1-5%, oral 30-60%, tissue biopsies &gt; 90% human DNA. <strong>Skip this = you paid for shotgun and got human resequencing.</strong></p></div>
+<div class="step-item" data-num="3"><h5 data-zh="③ 去除 PhiX / contamination" data-en="③ Remove PhiX / contamination">③ 去除 PhiX</h5>
+<p data-lang="zh">Illumina spike-in 對照。BBduk / BWA 對 PhiX 過濾。</p>
+<p data-lang="en">Illumina spike-in control. Filter with BBduk / BWA against PhiX.</p></div>
+<div class="step-item" data-num="4"><h5 data-zh="④ Run negative controls" data-en="④ Run negative controls">④ Negative controls</h5>
+<p data-lang="zh">空 buffer 跑全流程；用 decontam / SCRuB 標識試劑污染物。對低生物量樣本必要。</p>
+<p data-lang="en">Run blank buffer through full pipeline; flag kit contaminants with decontam / SCRuB. Mandatory for low-biomass samples.</p></div>
+</div>
+
+<div class="code-tabs"><div class="code-tab-btns"><button class="code-tab-btn active" onclick="switchTab(this,'pre1')">fastp + KneadData</button><button class="code-tab-btn" onclick="switchTab(this,'pre2')">Snakemake</button></div>
+<div class="code-tab-content active" id="pre1"><pre><span class="comment"># 1. fastp 快速 trim + report</span>
+fastp -i raw_R1.fq.gz -I raw_R2.fq.gz \
+      -o tr_R1.fq.gz -O tr_R2.fq.gz \
+      --detect_adapter_for_pe --cut_tail --cut_tail_window_size <span class="num">4</span> --cut_tail_mean_quality <span class="num">20</span> \
+      --length_required <span class="num">50</span> -w <span class="num">8</span> \
+      --html fastp.html --json fastp.json
+
+<span class="comment"># 2. KneadData：宿主 + PhiX + rRNA 一氣呵成</span>
+kneaddata --input1 tr_R1.fq.gz --input2 tr_R2.fq.gz \
+  --reference-db /db/human_CHM13 \
+  --reference-db /db/PhiX \
+  --reference-db /db/SILVA \
+  --output kd_out --threads <span class="num">16</span> --remove-intermediate-output
+
+<span class="comment"># 3. 檢查宿主比例</span>
+echo <span class="str">"Host fraction:"</span>
+awk <span class="str">'/contaminated/'</span> kd_out/*_kneaddata.log</pre></div>
+<div class="code-tab-content" id="pre2"><pre><span class="comment"># Snakemake rule: pre-process all samples in parallel</span>
+rule fastp:
+    input: r1=<span class="str">"raw/{s}_R1.fq.gz"</span>, r2=<span class="str">"raw/{s}_R2.fq.gz"</span>
+    output: r1=<span class="str">"clean/{s}_R1.fq.gz"</span>, r2=<span class="str">"clean/{s}_R2.fq.gz"</span>
+    threads: <span class="num">8</span>
+    shell:
+        <span class="str">"fastp -i {input.r1} -I {input.r2} -o {output.r1} -O {output.r2} -w {threads}"</span>
+
+rule kneaddata:
+    input: r1=<span class="str">"clean/{s}_R1.fq.gz"</span>, r2=<span class="str">"clean/{s}_R2.fq.gz"</span>
+    output: directory(<span class="str">"host_removed/{s}/"</span>)
+    threads: <span class="num">16</span>
+    shell:
+        <span class="str">"kneaddata --input1 {input.r1} --input2 {input.r2} --reference-db /db/human_CHM13 -o {output} -t {threads}"</span></pre></div>
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="Read-based 流程" data-en="READ-BASED">Read-based 流程</div>
-<h2 data-zh="Kraken2 + Bracken" data-en="Kraken2 + Bracken">Kraken2 + Bracken</h2>
-<div data-lang="zh"><p>Kraken2 使用 k-mer 精確匹配快速分類，速度 8 GB/min；Bracken 用 Bayesian 估算物種豐度。MetaPhlAn4 走另一條路——只比對 clade-specific marker genes，速度與準確度兼具。</p></div>
-<div data-lang="en"><p>Kraken2 uses exact k-mer matching at 8 GB/min; Bracken adds Bayesian abundance. MetaPhlAn4 takes another path — aligning only to clade-specific marker genes for balanced speed/accuracy.</p></div>
-<div class="code-tabs"><div class="code-tab-btns">
-<button class="code-tab-btn active" onclick="switchTab(this,'k2')">Kraken2 + Bracken</button>
-<button class="code-tab-btn" onclick="switchTab(this,'mp')">MetaPhlAn4</button>
+<!-- ===== Kraken2 algorithm ===== -->
+<section class="section">
+<div class="section-label" data-zh="Kraken2 演算法" data-en="KRAKEN2 ALGORITHM">Kraken2 演算法</div>
+<h2 data-zh="Kraken2 + Bracken 是怎麼運作的？" data-en="How do Kraken2 + Bracken work?">Kraken2 + Bracken 原理</h2>
+<div data-lang="zh">
+<p><strong>Kraken2</strong> 的核心：</p>
+<ol style="margin-left:24px;color:var(--c-ink-light)">
+<li><strong>建索引 (offline)</strong>：對每個參考基因組切 k-mer (預設 k=35)，建立「k-mer → 物種」對應表。同一 k-mer 出現在多個物種時，記錄為這些物種的 <strong>Lowest Common Ancestor (LCA)</strong>。</li>
+<li><strong>查詢 read</strong>：把 read 切成滑動 k-mer，每個 k-mer 查表，得到一串「途中 taxon」。沿樹找出最佳路徑賦予該 read 一個 taxon。</li>
+<li><strong>輸出</strong>：每條 read 的分類 + 樣本層級 report (kraken2.report)。</li>
+</ol>
+<p><strong>為何要 Bracken？</strong>Kraken2 把 read 卡在 LCA 節點時 (例：屬不上更深 species)，會「升級」到較高分類層級。Bracken 用 Bayesian 把這些 reads 重新分配回 species，獲得「實際 species 豐度」估計。</p>
 </div>
-<div class="code-tab-content active" id="k2"><pre><span class="comment"># 1. Kraken2 分類</span>
-kraken2 --db kraken2_db \
-  --paired R1.fq.gz R2.fq.gz \
-  --threads <span class="num">16</span> --gzip-compressed \
-  --report sample1.k2.report \
-  --output sample1.k2.out
-
-<span class="comment"># 2. Bracken 物種層級豐度</span>
-bracken -d kraken2_db \
-  -i sample1.k2.report \
-  -o sample1.bracken \
-  -r <span class="num">150</span> -l S</pre></div>
-<div class="code-tab-content" id="mp"><pre><span class="comment"># MetaPhlAn4：直接給物種與豐度</span>
-metaphlan R1.fq.gz,R2.fq.gz \
-  --bowtie2db metaphlan4_db \
-  --input_type fastq \
-  --bowtie2out sample1.bt2.bz2 \
-  --nproc <span class="num">12</span> \
-  -o sample1.metaphlan4.tsv
-
-<span class="comment"># 合併多樣本</span>
-merge_metaphlan_tables.py *.metaphlan4.tsv &gt; merged_abundance.tsv</pre></div>
+<div data-lang="en">
+<p><strong>Kraken2</strong> core:</p>
+<ol style="margin-left:24px;color:var(--c-ink-light)">
+<li><strong>Index (offline)</strong>: shred each reference genome into k-mers (default k=35); build a "k-mer → taxon" table. If a k-mer appears in multiple genomes, record the <strong>Lowest Common Ancestor (LCA)</strong>.</li>
+<li><strong>Query a read</strong>: slide k-mers across the read, look each up, get a sequence of "intermediate taxa". Climb the taxonomy tree and assign the read one taxon along the optimal path.</li>
+<li><strong>Output</strong>: per-read classification + per-sample report.</li>
+</ol>
+<p><strong>Why Bracken?</strong> When Kraken2 hits an LCA node (the read cannot be resolved to species), it "promotes" the read to a higher rank. Bracken Bayesian-redistributes such reads back to species, giving a more honest species-level abundance.</p>
 </div>
+
+<div class="formula-box">
+P(species | reads at higher rank) ∝ P(reads | species) × P(species)
+<span class="formula-label" data-zh="Bracken 後驗：用 ref 基因組中此 read 應落點的機率重新分配到 species" data-en="Bracken posterior: redistribute using probability the read should fall in each species, learned from references">Bracken Bayesian redistribution</span>
+</div>
+
+<div class="analogy"><strong data-zh="比喻：「我是亞洲人」vs「我是日本人」" data-en="Analogy: 'I am Asian' vs 'I am Japanese'">比喻：</strong>
+<span data-lang="zh">Kraken2 像問人「你來自哪？」如果你的口音同時像日本、韓國、中國 (k-mer 在多個 genome 共享)，它回答「東亞」(LCA)。Bracken 像問了 1 萬人後，用統計把這些「東亞」的人按照族群實際比例分回日本、韓國、中國。</span>
+<span data-lang="en">Kraken2 is like asking a person "where are you from?" If your accent matches Japan, Korea, and China (k-mers shared across genomes), it answers "East Asia" (LCA). Bracken polls 10,000 people, then statistically redistributes the "East Asian" answers into Japan / Korea / China by realistic proportions.</span></div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="Assembly 流程" data-en="ASSEMBLY">Assembly 流程</div>
-<h2 data-zh="MAG 重建完整流程" data-en="Full MAG Reconstruction">MAG 重建完整流程</h2>
-<div class="flow-chain">
-  <span class="fc-step">Trim</span><span class="fc-arrow">→</span>
-  <span class="fc-step">Assembly</span><span class="fc-arrow">→</span>
-  <span class="fc-step">Mapping</span><span class="fc-arrow">→</span>
-  <span class="fc-step">Binning</span><span class="fc-arrow">→</span>
-  <span class="fc-step">Refinement</span><span class="fc-arrow">→</span>
-  <span class="fc-step">CheckM2</span><span class="fc-arrow">→</span>
-  <span class="fc-step">GTDB-Tk</span>
-</div>
-<div class="code-tabs"><div class="code-tab-btns">
-<button class="code-tab-btn active" onclick="switchTab(this,'meghit')">MEGAHIT</button>
-<button class="code-tab-btn" onclick="switchTab(this,'mbat')">MetaBAT2</button>
-<button class="code-tab-btn" onclick="switchTab(this,'check')">CheckM2 + GTDB-Tk</button>
-</div>
-<div class="code-tab-content active" id="meghit"><pre><span class="comment"># MEGAHIT 對大資料快</span>
-megahit -1 trim_R1.fq.gz -2 trim_R2.fq.gz \
-  -o megahit_out --min-contig-len <span class="num">1500</span> -t <span class="num">16</span></pre></div>
-<div class="code-tab-content" id="mbat"><pre><span class="comment"># 1. 映射回 contigs 估深度</span>
-bowtie2-build megahit_out/final.contigs.fa contigs_idx
-bowtie2 -x contigs_idx -<span class="num">1</span> trim_R1.fq.gz -<span class="num">2</span> trim_R2.fq.gz \
-  | samtools sort -@ <span class="num">8</span> -o mapping.bam -
-jgi_summarize_bam_contig_depths --outputDepth depth.txt mapping.bam
-
-<span class="comment"># 2. MetaBAT2 分箱</span>
-metabat2 -i megahit_out/final.contigs.fa \
-  -a depth.txt -o bins/bin -m <span class="num">1500</span> -t <span class="num">16</span></pre></div>
-<div class="code-tab-content" id="check"><pre><span class="comment"># 評估 MAG 完整度與汙染</span>
-checkm2 predict --threads <span class="num">16</span> --input bins/ \
-  --output-directory checkm2_out
-
-<span class="comment"># GTDB-Tk 分類</span>
-gtdbtk classify_wf \
-  --genome_dir bins/ \
-  --out_dir gtdbtk_out --extension fa \
-  --cpus <span class="num">16</span></pre></div>
-</div>
-</section>
-
-<section class="section"><div class="section-label" data-zh="MAG 品質" data-en="MAG QUALITY">MAG 品質</div>
-<h2 data-zh="MAG 品質分級" data-en="MAG Quality Tiers">MAG 品質分級 (MIMAG)</h2>
-<table class="comp-table"><thead><tr><th data-zh="等級" data-en="Tier">等級</th><th data-zh="完整度" data-en="Completeness">完整度</th><th data-zh="汙染" data-en="Contamination">汙染</th><th data-zh="使用" data-en="Use">使用</th></tr></thead><tbody>
-<tr><td><strong>Finished</strong></td><td>&gt; 90%</td><td>&lt; 5%</td><td data-zh="單一 contig + 16S" data-en="single contig + 16S">完美</td></tr>
-<tr><td><strong>High quality</strong></td><td>&gt; 90%</td><td>&lt; 5%</td><td data-zh="可發表為 reference genome" data-en="Publishable as reference">可發表</td></tr>
-<tr><td><strong>Medium quality</strong></td><td>≥ 50%</td><td>&lt; 10%</td><td data-zh="豐度分析；謹慎用於基因預測" data-en="Abundance; cautious gene prediction">主要用途</td></tr>
-<tr><td><strong>Low quality</strong></td><td>&lt; 50%</td><td>--</td><td data-zh="僅供探索" data-en="Exploration only">探索性</td></tr>
+<!-- ===== Tool comparison table ===== -->
+<section class="section">
+<div class="section-label" data-zh="工具比較" data-en="TOOL COMPARISON">工具比較</div>
+<h2 data-zh="Read-based 分類器比較" data-en="Read-based classifier comparison">Read-based 分類器比較</h2>
+<table class="comp-table"><thead><tr><th>Tool</th><th data-zh="原理" data-en="Method">原理</th><th data-zh="速度" data-en="Speed">速度</th><th data-zh="記憶體" data-en="Memory">記憶體</th><th data-zh="特色 / 用途" data-en="Notes / use">特色</th></tr></thead><tbody>
+<tr><td><strong>Kraken2</strong></td><td>k-mer exact + LCA</td><td>⭐⭐⭐⭐⭐</td><td data-zh="50-100 GB (大 DB)" data-en="50-100 GB (full DB)">大</td><td data-zh="速度王；需 Bracken 補種層級；MiniKraken 8GB" data-en="Speed king; pair with Bracken for species; MiniKraken 8GB option">速度王</td></tr>
+<tr><td><strong>MetaPhlAn4</strong></td><td data-zh="Clade-specific markers" data-en="Clade-specific markers">marker gene</td><td>⭐⭐⭐⭐</td><td data-zh="2-4 GB" data-en="2-4 GB">小</td><td data-zh="只比對 1.1M 種特異標記基因；HUMAnN3 預設" data-en="Aligns only to 1.1M clade-specific markers; HUMAnN3 default">精準</td></tr>
+<tr><td><strong>Bracken</strong></td><td data-zh="Bayesian redistribution" data-en="Bayesian redistribution">後處理</td><td>⭐⭐⭐⭐⭐</td><td data-zh="小" data-en="Small">小</td><td data-zh="Kraken2 結果的 species 校正" data-en="Refines Kraken2 to species level">配 Kraken2</td></tr>
+<tr><td><strong>Centrifuge</strong></td><td>BWT-FM index</td><td>⭐⭐⭐⭐</td><td data-zh="6-8 GB" data-en="6-8 GB">中</td><td data-zh="壓縮索引；多匹配支援" data-en="Compressed index; multi-match support">壓縮</td></tr>
+<tr><td><strong>KrakenUniq</strong></td><td>k-mer + unique k-mer count</td><td>⭐⭐⭐</td><td data-zh="大" data-en="Big">大</td><td data-zh="計獨特 k-mer 偵測 false positives" data-en="Counts unique k-mers — flags false positives">假陽性控制</td></tr>
+<tr><td><strong>Sourmash</strong></td><td>MinHash sketching</td><td>⭐⭐⭐⭐</td><td data-zh="小" data-en="Small">小</td><td data-zh="基因組相似度搜尋；可在 laptop 跑 100M reads" data-en="Genome similarity search; runs 100M reads on a laptop">輕量</td></tr>
+<tr><td><strong>Ganon</strong></td><td>IBF (Interleaved Bloom Filter)</td><td>⭐⭐⭐⭐⭐</td><td data-zh="20 GB" data-en="20 GB">中</td><td data-zh="新一代 (2024)；更新 DB 快" data-en="Next-gen (2024); fast DB updates">新</td></tr>
 </tbody></table>
 </section>
 
-<section class="section"><div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
-<h2 data-zh="覆蓋深度與 MAG 完整度" data-en="Coverage vs MAG Completeness">覆蓋深度與 MAG 完整度</h2>
-<div data-lang="zh"><p>調整一個微生物在群落中的相對豐度與總定序量，看預期 MAG 完整度：</p></div>
-<div data-lang="en"><p>Tune a microbe's relative abundance and total sequencing; see expected MAG completeness:</p></div>
+<!-- ===== Code: read-based ===== -->
+<section class="section">
+<div class="section-label" data-zh="Read-based 程式碼" data-en="READ-BASED CODE">Read-based 程式碼</div>
+<h2 data-zh="實作：Kraken2 / Bracken / MetaPhlAn4" data-en="Practice: Kraken2 / Bracken / MetaPhlAn4">Read-based 流程程式碼</h2>
+<div class="code-tabs"><div class="code-tab-btns">
+<button class="code-tab-btn active" onclick="switchTab(this,'k2')">Kraken2 + Bracken</button>
+<button class="code-tab-btn" onclick="switchTab(this,'mp')">MetaPhlAn4</button>
+<button class="code-tab-btn" onclick="switchTab(this,'sm')">Sourmash gather</button>
+</div>
+<div class="code-tab-content active" id="k2"><pre><span class="comment"># 1. Kraken2 classification (k=35 default)</span>
+kraken2 --db /db/kraken2_pluspf <span class="comment"># Standard+protozoa+fungi DB</span>
+  --paired clean_R1.fq.gz clean_R2.fq.gz \
+  --threads <span class="num">16</span> --gzip-compressed --confidence <span class="num">0.1</span> \
+  --report sample1.k2.report \
+  --output sample1.k2.out
+
+<span class="comment"># 2. Bracken species-level refinement</span>
+bracken -d /db/kraken2_pluspf \
+  -i sample1.k2.report \
+  -o sample1.bracken.S.tsv \
+  -r <span class="num">150</span>     <span class="comment"># read length (must match)</span>
+  -l S       <span class="comment"># species level; or G/F</span>
+  -t <span class="num">10</span>     <span class="comment"># min reads needed</span>
+
+<span class="comment"># 3. 合併多樣本</span>
+combine_bracken_outputs.py --files *.bracken.S.tsv \
+  -o merged_species.tsv
+
+<span class="comment"># 4. Krona 互動視覺化</span>
+ktImportTaxonomy -t <span class="num">5</span> -m <span class="num">3</span> sample1.k2.report -o krona.html</pre></div>
+
+<div class="code-tab-content" id="mp"><pre><span class="comment"># MetaPhlAn4 marker-based</span>
+metaphlan clean_R1.fq.gz,clean_R2.fq.gz \
+  --bowtie2db /db/metaphlan4 \
+  --index mpa_vJun23_CHOCOPhlAnSGB_202307 \
+  --input_type fastq \
+  --bowtie2out sample1.bt2.bz2 \
+  --nproc <span class="num">16</span> \
+  --add_viruses --unclassified_estimation \
+  -o sample1.mp4.txt
+
+<span class="comment"># 合併多樣本 → SGB / species 矩陣</span>
+merge_metaphlan_tables.py sample*.mp4.txt &gt; merged_mp4.tsv
+
+<span class="comment"># Strain tracking (StrainPhlAn)</span>
+strainphlan -s sample*.pkl \
+  -c <span class="str">"s__Bifidobacterium_breve"</span> \
+  --marker_in_n_samples <span class="num">5</span> --sample_with_n_markers <span class="num">20</span> \
+  -o strainphlan_out</pre></div>
+
+<div class="code-tab-content" id="sm"><pre><span class="comment"># Sourmash MinHash + gather (極輕量、可在 laptop)</span>
+sourmash sketch dna -p k=<span class="num">31</span>,scaled=<span class="num">1000</span> \
+  clean_R1.fq.gz clean_R2.fq.gz -o sample1.sig
+
+<span class="comment"># GTDB 預建 sketches 搜尋</span>
+sourmash gather sample1.sig gtdb-rs214-k31.zip \
+  -o sample1.gtdb.csv --threshold-bp <span class="num">50000</span>
+
+<span class="comment"># tax annotate</span>
+sourmash tax annotate -g sample1.gtdb.csv -t gtdb-rs214.lineages.csv</pre></div>
+</div>
+</section>
+
+<!-- ===== Assembly mechanism ===== -->
+<section class="section">
+<div class="section-label" data-zh="組裝原理" data-en="ASSEMBLY MECHANISM">組裝原理</div>
+<h2 data-zh="Assembly：de Bruijn graph 與 binning" data-en="Assembly: de Bruijn graphs & binning">de Bruijn 與分箱</h2>
+<div data-lang="zh">
+<p><span class="term">de Bruijn graph<span class="tip">把所有 reads 切成 k-mer，每個 k-mer 為節點，重疊 k-1 鹼基為邊。組裝 = 找通過所有邊的路徑 (Eulerian path)。</span></span> 是現代短讀組裝的基礎。對 metagenome 的挑戰：</p>
+<ul style="margin-left:24px;color:var(--c-ink-light)">
+<li><strong>不均勻覆蓋</strong>：豐度 50% 的菌深 100×；豐度 0.1% 的菌深 0.5×。傳統假設「均勻覆蓋」失敗。</li>
+<li><strong>重複序列跨物種</strong>：rRNA、insertion sequence、transposase 出現在多個基因組——graph 中產生「分支結點」。</li>
+<li><strong>strain 變異</strong>：同一物種不同 strain SNP 差幾百個 → graph 中產生「泡泡 (bubble)」。</li>
+</ul>
+<p>解法：<strong>metaSPAdes</strong> 用多 k-mer (從 k=21 到 k=127) 漸進組裝、用 paired-end 訊息消除歧義；<strong>MEGAHIT</strong> 用 succinct de Bruijn graph 大幅省記憶體 (適合大樣本)。</p>
+<p>組裝後得到 contigs：每個都可能來自任意一個菌。<strong>Binning</strong> 把它們聚回各自基因組：</p>
+</div>
+<div data-lang="en">
+<p><span class="term">de Bruijn graph<span class="tip">Shred reads into k-mers; each k-mer is a node, edges link nodes overlapping by k-1 bases. Assembly = find a path through all edges (Eulerian path).</span></span> underpins modern short-read assembly. Metagenomic challenges:</p>
+<ul style="margin-left:24px;color:var(--c-ink-light)">
+<li><strong>Uneven coverage</strong>: a 50%-abundance microbe is 100× deep; a 0.1% microbe is 0.5×. Classic "uniform coverage" assumption breaks.</li>
+<li><strong>Cross-species repeats</strong>: rRNA, ISs, transposases appear in many genomes — branching nodes in the graph.</li>
+<li><strong>Strain variation</strong>: hundreds of SNPs between strains → "bubbles" in the graph.</li>
+</ul>
+<p>Solutions: <strong>metaSPAdes</strong> uses progressive multi-k (k=21 → 127), paired-end info to resolve ambiguities; <strong>MEGAHIT</strong> uses a succinct de Bruijn graph saving huge memory (better for large samples).</p>
+<p>After assembly you get contigs — each could belong to any microbe. <strong>Binning</strong> regroups them into genomes:</p>
+</div>
+
+<div class="card-grid cols-2">
+<div class="card"><h4 data-zh="① 組成特徵 (Tetranucleotide)" data-en="① Composition (Tetranucleotide)">① 組成特徵 (TNF)</h4>
+<p data-lang="zh">同一物種基因組 4-mer 頻率相似 (TNF 指紋)。不同 phylum TNF 距離大。</p>
+<p data-lang="en">Genomes of one species share a 4-mer (tetranucleotide) frequency fingerprint. Different phyla have very different TNFs.</p></div>
+<div class="card"><h4 data-zh="② 覆蓋深度" data-en="② Coverage depth">② 覆蓋深度</h4>
+<p data-lang="zh">同一基因組的 contigs 應有相似覆蓋；跨多樣本時，相關性更強——豐度高處皆高、低處皆低。</p>
+<p data-lang="en">Contigs of one genome should share coverage; across multiple samples, the correlation is even stronger — co-vary together.</p></div>
+</div>
+
+<div class="protip"><strong data-zh="跨樣本分箱：" data-en="Cross-sample binning:">跨樣本分箱：</strong>
+<span data-lang="zh">如果你有 ≥ 10 個相關樣本，把每個樣本的 reads 都映回 co-assembly 的 contigs 算 coverage 向量。一個物種的所有 contigs 在 10 個樣本中應有<strong>類似的相對豐度模式</strong>——這比單樣本 TNF 強得多。MetaBAT2、CONCOCT、SemiBin2 都吃這種多樣本覆蓋。</span>
+<span data-lang="en">If you have ≥10 related samples, map every sample's reads to the co-assembly contigs and compute coverage vectors. All contigs of one species should show a <strong>similar abundance pattern across the 10 samples</strong> — far stronger than single-sample TNF. MetaBAT2, CONCOCT, SemiBin2 all consume multi-sample coverage.</span></div>
+</section>
+
+<!-- ===== Assembly + Binning tools ===== -->
+<section class="section">
+<div class="section-label" data-zh="工具比較" data-en="TOOL COMPARISON">工具比較</div>
+<h2 data-zh="Assembly &amp; binning 工具比較" data-en="Assembly &amp; binning tool comparison">組裝與分箱工具</h2>
+<table class="comp-table"><thead><tr><th data-zh="類別" data-en="Class">類別</th><th>Tool</th><th data-zh="原理" data-en="Method">原理</th><th data-zh="優勢" data-en="Strength">優勢</th><th data-zh="適用" data-en="When to use">適用</th></tr></thead><tbody>
+<tr><td rowspan="3"><strong>Assembly</strong></td><td><strong>metaSPAdes</strong></td><td data-zh="多 k-mer de Bruijn + paired info" data-en="Multi-k de Bruijn + paired info">多 k-mer</td><td data-zh="完整度高、解 strain bubble" data-en="High completeness, resolves strain bubbles">小-中樣本 (&lt; 30 Gb)</td><td>HMP2 標準</td></tr>
+<tr><td><strong>MEGAHIT</strong></td><td data-zh="Succinct de Bruijn" data-en="Succinct de Bruijn">壓縮 graph</td><td data-zh="記憶體小、快" data-en="Low memory, fast">大樣本 / co-assembly</td><td data-zh="記憶體限制" data-en="Memory-constrained">記憶體有限</td></tr>
+<tr><td><strong>Flye / metaFlye</strong></td><td data-zh="長讀 OLC" data-en="Long-read OLC">長讀</td><td data-zh="Nanopore / PacBio；完整 closed genome" data-en="Nanopore / PacBio; closed genomes">長讀</td><td data-zh="Nanopore + 短讀混合" data-en="Nanopore + short reads hybrid">長讀</td></tr>
+<tr><td rowspan="4"><strong>Binning</strong></td><td><strong>MetaBAT2</strong></td><td>TNF + cov</td><td data-zh="速度、易用、CheckM 完整度高" data-en="Fast, easy, high CheckM completeness">速度</td><td data-zh="多 sample co-assembly" data-en="Multi-sample co-assembly">標配</td></tr>
+<tr><td><strong>CONCOCT</strong></td><td data-zh="高斯混合 (TNF + cov)" data-en="Gaussian mixture (TNF + cov)">GMM</td><td data-zh="contig 切分提升小基因組偵測" data-en="Splits contigs to detect small genomes">大基因組碎裂</td><td data-zh="多基因組互相干擾時" data-en="When genomes co-overlap">複雜社群</td></tr>
+<tr><td><strong>SemiBin2</strong></td><td data-zh="自監督深度學習" data-en="Self-supervised deep learning">DL</td><td data-zh="2023 SOTA；可不要 multi-sample" data-en="2023 SOTA; works on single sample">最新</td><td data-zh="現代研究首選" data-en="Modern default">新研究</td></tr>
+<tr><td><strong>DAS_Tool</strong></td><td data-zh="多種 binner 集成" data-en="Ensemble of binners">集成</td><td data-zh="挑出每個基因組最佳 bin" data-en="Picks the best bin per genome">最終 refine</td><td data-zh="HMP2 標配" data-en="HMP2 default">最終</td></tr>
+<tr><td rowspan="3"><strong>QC / Class</strong></td><td><strong>CheckM2</strong></td><td data-zh="ML 基於完整度 + 汙染" data-en="ML completeness + contamination">機器學習</td><td data-zh="比 CheckM1 快 100×" data-en="100× faster than CheckM1">當代標配</td><td>2023+</td></tr>
+<tr><td><strong>GTDB-Tk</strong></td><td data-zh="基因組系統發育分類" data-en="Genome phylogeny placement">系統發育</td><td data-zh="最現代分類學；MAG 給名字" data-en="Modern taxonomy; names your MAG">標配</td><td data-zh="所有 MAG" data-en="All MAGs">必跑</td></tr>
+<tr><td><strong>dRep</strong></td><td data-zh="ANI 去重複 MAG" data-en="ANI MAG dereplication">ANI</td><td data-zh="多樣本合併、避免重複" data-en="Cross-sample merge, removes redundancy">大專案</td><td data-zh="多樣本" data-en="Multi-sample">大專案</td></tr>
+</tbody></table>
+</section>
+
+<!-- ===== Code: assembly pipeline ===== -->
+<section class="section">
+<div class="section-label" data-zh="Assembly 完整程式碼" data-en="ASSEMBLY FULL CODE">Assembly 完整程式碼</div>
+<h2 data-zh="MAG 重建完整流程" data-en="Full MAG reconstruction pipeline">MAG 重建完整流程</h2>
+<div class="flow-chain">
+  <span class="fc-step">Trim+Host-removal</span><span class="fc-arrow">→</span>
+  <span class="fc-step">MEGAHIT</span><span class="fc-arrow">→</span>
+  <span class="fc-step">Mapping</span><span class="fc-arrow">→</span>
+  <span class="fc-step">MetaBAT2 / SemiBin2</span><span class="fc-arrow">→</span>
+  <span class="fc-step">DAS_Tool</span><span class="fc-arrow">→</span>
+  <span class="fc-step">CheckM2</span><span class="fc-arrow">→</span>
+  <span class="fc-step">GTDB-Tk</span><span class="fc-arrow">→</span>
+  <span class="fc-step">dRep</span>
+</div>
+
+<div class="code-tabs"><div class="code-tab-btns">
+<button class="code-tab-btn active" onclick="switchTab(this,'asm1')">Assembly</button>
+<button class="code-tab-btn" onclick="switchTab(this,'asm2')">Binning</button>
+<button class="code-tab-btn" onclick="switchTab(this,'asm3')">QC + Tax</button>
+<button class="code-tab-btn" onclick="switchTab(this,'asm4')">Strain (inStrain)</button>
+</div>
+<div class="code-tab-content active" id="asm1"><pre><span class="comment"># --- Option A: MEGAHIT (大樣本、低 RAM) ---</span>
+megahit -1 clean_R1.fq.gz -2 clean_R2.fq.gz \
+  -o megahit_out \
+  --min-contig-len <span class="num">1500</span> \
+  --k-list <span class="num">21</span>,<span class="num">31</span>,<span class="num">41</span>,<span class="num">51</span>,<span class="num">61</span>,<span class="num">71</span>,<span class="num">81</span>,<span class="num">91</span>,<span class="num">99</span> \
+  --memory <span class="num">0.9</span> -t <span class="num">32</span>
+
+<span class="comment"># --- Option B: metaSPAdes (品質佳、需 RAM) ---</span>
+metaspades.py -1 clean_R1.fq.gz -2 clean_R2.fq.gz \
+  -o spades_out -t <span class="num">32</span> -m <span class="num">200</span> \
+  --only-assembler
+
+<span class="comment"># --- Option C: Co-assembly (多樣本拼) ---</span>
+megahit -1 s1_R1.fq.gz,s2_R1.fq.gz,s3_R1.fq.gz \
+        -2 s1_R2.fq.gz,s2_R2.fq.gz,s3_R2.fq.gz \
+        -o co_assembly --min-contig-len <span class="num">1500</span> -t <span class="num">64</span>
+
+<span class="comment"># 看組裝統計</span>
+seqkit stats megahit_out/final.contigs.fa
+quast.py megahit_out/final.contigs.fa -o quast_out</pre></div>
+
+<div class="code-tab-content" id="asm2"><pre><span class="comment"># 1. 多樣本映回 contigs 估深度</span>
+bowtie2-build megahit_out/final.contigs.fa idx --threads <span class="num">16</span>
+<span class="kw">for</span> s <span class="kw">in</span> s1 s2 s3; <span class="kw">do</span>
+  bowtie2 -x idx -<span class="num">1</span> ${s}_R1.fq.gz -<span class="num">2</span> ${s}_R2.fq.gz -p <span class="num">16</span> \
+    | samtools sort -@ <span class="num">8</span> -o ${s}.bam -
+  samtools index ${s}.bam
+<span class="kw">done</span>
+
+jgi_summarize_bam_contig_depths --outputDepth depth.txt s*.bam
+
+<span class="comment"># 2. MetaBAT2 (TNF + multi-sample coverage)</span>
+metabat2 -i megahit_out/final.contigs.fa \
+  -a depth.txt -o bins/bin -m <span class="num">1500</span> -t <span class="num">32</span>
+
+<span class="comment"># 3. SemiBin2 (現代 SOTA)</span>
+SemiBin2 single_easy_bin \
+  -i megahit_out/final.contigs.fa \
+  -b s1.bam s2.bam s3.bam \
+  -o semibin_out --environment human_gut --threads <span class="num">32</span>
+
+<span class="comment"># 4. DAS_Tool 集成多 binner</span>
+DAS_Tool \
+  -i metabat_bins.tsv,semibin_bins.tsv,concoct_bins.tsv \
+  -l metabat,semibin,concoct \
+  -c megahit_out/final.contigs.fa \
+  -o dastool_out --write_bins --threads <span class="num">32</span></pre></div>
+
+<div class="code-tab-content" id="asm3"><pre><span class="comment"># 1. CheckM2 (完整度 + 汙染)</span>
+checkm2 predict --input dastool_out_DASTool_bins/ \
+  --output-directory checkm2_out --extension fa --threads <span class="num">32</span>
+
+<span class="comment"># 用 MIMAG 標準過濾 — high-quality MAG</span>
+awk -F<span class="str">'\t'</span> <span class="str">'NR&gt;1 &amp;&amp; $2&gt;90 &amp;&amp; $3&lt;5 {print $1}'</span> \
+    checkm2_out/quality_report.tsv &gt; hq_mags.txt
+
+<span class="comment"># 2. GTDB-Tk (基因組系統發育分類)</span>
+gtdbtk classify_wf \
+  --genome_dir dastool_out_DASTool_bins/ \
+  --out_dir gtdbtk_out \
+  --extension fa --cpus <span class="num">32</span> \
+  --skip_ani_screen
+
+<span class="comment"># 3. dRep 多樣本去重複 (95% ANI = same species)</span>
+dRep dereplicate drep_out \
+  -g all_mags/*.fa \
+  --S_algorithm fastANI \
+  -comp <span class="num">75</span> -con <span class="num">10</span> -pa <span class="num">0.9</span> -sa <span class="num">0.95</span>
+
+<span class="comment"># 4. CheckV 偵測 viruses</span>
+checkv end_to_end final.contigs.fa checkv_out -t <span class="num">16</span></pre></div>
+
+<div class="code-tab-content" id="asm4"><pre><span class="comment"># inStrain - strain-level SNP profiling</span>
+inStrain profile s1.bam dastool_bins.fa \
+  -o s1.IS -p <span class="num">16</span> -g genes.fna \
+  --database_mode
+
+<span class="comment"># 多樣本 strain 比較 (是同一 strain 移轉嗎？)</span>
+inStrain compare -i s1.IS s2.IS s3.IS \
+  -o strain_compare -p <span class="num">16</span> -s scaffold_info.tsv
+
+<span class="comment"># 結果包含：</span>
+<span class="comment">#   popANI &gt; 99.999%  ⇒  same strain (true engraftment)</span>
+<span class="comment">#   conANI ~ 95-99%   ⇒  same species, different strains</span></pre></div>
+</div>
+</section>
+
+<!-- ===== MAG quality tiers ===== -->
+<section class="section">
+<div class="section-label" data-zh="MAG 品質" data-en="MAG QUALITY">MAG 品質</div>
+<h2 data-zh="MAG 品質分級：MIMAG 國際標準" data-en="MAG quality tiers: MIMAG international standard">MAG 品質分級 (MIMAG, Bowers 2017)</h2>
+<table class="comp-table"><thead><tr><th data-zh="等級" data-en="Tier">等級</th><th data-zh="完整度" data-en="Completeness">完整度</th><th data-zh="汙染" data-en="Contamination">汙染</th><th data-zh="額外條件" data-en="Extra criteria">額外條件</th><th data-zh="使用情境" data-en="Use case">使用</th></tr></thead><tbody>
+<tr><td><strong>Finished</strong></td><td>≥ 95%</td><td>&lt; 5%</td><td data-zh="1 個 contig；含 23S/16S/5S + tRNA" data-en="1 contig; 23S/16S/5S + tRNAs">完整封閉</td><td data-zh="參考基因組級" data-en="Reference-genome quality">參考級</td></tr>
+<tr><td><strong>High quality</strong></td><td>≥ 90%</td><td>&lt; 5%</td><td data-zh="≥ 18 tRNA + 23S + 16S + 5S" data-en="≥18 tRNAs + 23S + 16S + 5S rRNA">齊全</td><td data-zh="可發表 ref 並提交 NCBI / GenBank" data-en="Publishable, submit to NCBI / GenBank">可發表</td></tr>
+<tr><td><strong>Medium quality</strong></td><td>≥ 50%</td><td>&lt; 10%</td><td data-zh="-" data-en="-">--</td><td data-zh="豐度分析；謹慎 gene prediction" data-en="Abundance analysis; gene calls with caution">主要用途</td></tr>
+<tr><td><strong>Low quality</strong></td><td>&lt; 50%</td><td>&lt; 10%</td><td data-zh="-" data-en="-">--</td><td data-zh="僅供探索；不用於系統發育" data-en="Exploration only; not for phylogeny">探索</td></tr>
+</tbody></table>
+<div class="callout warn"><span class="callout-icon">⚠️</span><div>
+<div data-lang="zh"><strong>陷阱：</strong>CheckM2 完整度 &gt; 90% 不等於「真的 90% 完整」。如果你的菌沒在 CheckM2 訓練集裡，估計會偏差。對新菌請額外做 BUSCO + 手動驗證 16S / 標誌基因。</div>
+<div data-lang="en"><strong>Pitfall:</strong> CheckM2 completeness &gt; 90% does not literally mean 90% complete. If your taxon isn't in CheckM2's training set, the estimate is biased. For novel taxa, run BUSCO and manually verify 16S / marker genes.</div>
+</div></div>
+</section>
+
+<!-- ===== Interactive 1: MAG coverage simulator ===== -->
+<section class="section">
+<div class="section-label" data-zh="互動模擬一" data-en="INTERACTIVE 1">互動模擬一</div>
+<h2 data-zh="覆蓋深度與 MAG 完整度模擬器" data-en="Coverage vs MAG completeness simulator">覆蓋 vs 完整度</h2>
+<div data-lang="zh"><p>調整一個微生物在群落中的相對豐度與總定序量，看預期 MAG 完整度。<strong>規則：</strong>需 ≥ 5× 才能開始組裝、≥ 10× 為 medium、≥ 30× 為 high quality。</p></div>
+<div data-lang="en"><p>Tune a microbe's relative abundance and total sequencing; see expected MAG completeness. <strong>Rule:</strong> need ≥5× to start assembly, ≥10× for medium, ≥30× for high quality.</p></div>
 <div class="interactive-panel">
-<div class="slider-group"><label data-lang="zh">物種相對豐度 (%)<span id="valR">5</span></label><label data-lang="en">Species relative abundance (%)<span id="valREn">5</span></label><input type="range" id="sliderR" min="0.1" max="50" value="5" step="0.1"></div>
-<div class="slider-group"><label data-lang="zh">總定序量 (Gb)<span id="valS">10</span></label><label data-lang="en">Total sequencing (Gb)<span id="valSEn">10</span></label><input type="range" id="sliderS" min="1" max="100" value="10" step="1"></div>
+<div class="slider-group"><label data-lang="zh">物種相對豐度 (%) <span id="valR">5</span></label><label data-lang="en">Species relative abundance (%) <span id="valREn">5</span></label><input type="range" id="sliderR" min="0.05" max="50" value="5" step="0.05"></div>
+<div class="slider-group"><label data-lang="zh">總定序量 (Gb) <span id="valS">10</span></label><label data-lang="en">Total sequencing (Gb) <span id="valSEn">10</span></label><input type="range" id="sliderS" min="0.5" max="100" value="10" step="0.5"></div>
+<div class="slider-group"><label data-lang="zh">基因組大小 (Mb) <span id="valG">5</span></label><label data-lang="en">Genome size (Mb) <span id="valGEn">5</span></label><input type="range" id="sliderG" min="1" max="12" value="5" step="0.5"></div>
 <div class="stat-row">
-<div class="stat-box"><div class="sb-num" id="depth">--</div><div class="sb-lbl" data-zh="物種覆蓋深度 (X)" data-en="Species depth (X)">物種深度 (X)</div></div>
+<div class="stat-box"><div class="sb-num" id="depth">--</div><div class="sb-lbl" data-zh="覆蓋深度 (X)" data-en="Coverage depth (X)">覆蓋深度</div></div>
 <div class="stat-box"><div class="sb-num" id="comp">--</div><div class="sb-lbl" data-zh="預期完整度" data-en="Expected completeness">預期完整度</div></div>
+<div class="stat-box"><div class="sb-num" id="tier">--</div><div class="sb-lbl" data-zh="MIMAG 等級" data-en="MIMAG tier">MIMAG</div></div>
 </div>
 </div>
-<div class="callout tip"><span class="callout-icon">💡</span><div data-lang="zh"><strong>經驗法則：</strong>MAG 重建需該物種 &gt; 10× 覆蓋。1% 豐度的微生物在 10 Gb 樣本中只有 ~30× 覆蓋（假設 5 Mb 基因組），剛好夠。</div><div data-lang="en"><strong>Rule of thumb:</strong> MAG reconstruction needs &gt; 10× coverage of that species. A 1%-abundant microbe in a 10 Gb sample has ~30× coverage (5 Mb genome) — just sufficient.</div></div>
+<div class="callout tip"><span class="callout-icon">💡</span><div data-lang="zh"><strong>經驗法則：</strong>MAG 重建需該物種 &gt; 10× 覆蓋。1% 豐度、5 Mb 基因組、10 Gb 樣本 = ~20× → medium-high quality。多樣本 co-assembly 可把這個 threshold 降到 ~3×（因為跨樣本訊號更強）。</div><div data-lang="en"><strong>Rule of thumb:</strong> MAG reconstruction needs &gt;10× coverage of that species. 1% abundance, 5 Mb genome, 10 Gb sample = ~20× → medium-high quality. Multi-sample co-assembly can drop this to ~3× (cross-sample signal is stronger).</div></div>
+</section>
+
+<!-- ===== Interactive 2: Read-based confidence ===== -->
+<section class="section">
+<div class="section-label" data-zh="互動模擬二" data-en="INTERACTIVE 2">互動模擬二</div>
+<h2 data-zh="Kraken2 信心度 (confidence) 對假陽性的影響" data-en="Kraken2 confidence vs false-positive trade-off">Kraken2 信心度</h2>
+<div data-lang="zh"><p>調整 Kraken2 <code>--confidence</code> 參數 (0-1)，看分類率 (TP+FP) 與假陽性下降。Kraken2 預設 0.0 (敏感)；建議低生物量 / 預測新物種時用 0.1-0.2。</p></div>
+<div data-lang="en"><p>Adjust Kraken2 <code>--confidence</code> (0-1); watch the classification rate (TP+FP) drop and false positives shrink. Kraken2 default is 0.0 (most sensitive); for low-biomass or novel-species analysis use 0.1-0.2.</p></div>
+<div class="interactive-panel">
+<div class="slider-group"><label>Confidence threshold <span id="valC2">0.10</span></label><input type="range" id="sliderC2" min="0" max="0.5" value="0.10" step="0.01"></div>
+<div class="stat-row">
+<div class="stat-box"><div class="sb-num" id="tpRate">--</div><div class="sb-lbl" data-zh="True positive rate" data-en="True positive rate">TPR</div></div>
+<div class="stat-box"><div class="sb-num" id="fpRate">--</div><div class="sb-lbl" data-zh="False positive rate" data-en="False positive rate">FPR</div></div>
+<div class="stat-box"><div class="sb-num" id="unclass">--</div><div class="sb-lbl" data-zh="未分類比例" data-en="Unclassified">未分類</div></div>
+</div>
+<div class="chart-container" style="height:200px"><canvas id="confChart"></canvas></div>
+</div>
+</section>
+
+<!-- ===== Decision tree ===== -->
+<section class="section">
+<div class="section-label" data-zh="決策引導" data-en="DECISION GUIDE">決策引導</div>
+<h2 data-zh="研究設計決策樹" data-en="Study-design decision tree">研究設計決策樹</h2>
+<div class="decision-tree"><h4>🌳 <span data-zh="該跑 read-based 還是 assembly？" data-en="Read-based or assembly?">該跑 read-based 還是 assembly？</span></h4>
+<div data-lang="zh">
+<div class="dt-node"><span class="dt-q">Q1:</span><div>樣本 &lt; 5 Gb 且只想快看物種？ <span class="dt-arrow">→ 是 →</span> Kraken2 + Bracken / MetaPhlAn4 即可</div></div>
+<div class="dt-node"><span class="dt-q">Q2:</span><div>研究目標含「新菌發現」或「未培養菌」？ <span class="dt-arrow">→ 是 →</span> Assembly + binning 必跑</div></div>
+<div class="dt-node"><span class="dt-q">Q3:</span><div>有 ≥ 10 個相關樣本？ <span class="dt-arrow">→ 是 →</span> Co-assembly + 多樣本 binning，效益最大</div></div>
+<div class="dt-node"><span class="dt-q">Q4:</span><div>需要 strain 級分辨 (FMT 移植、傳染病溯源)？ <span class="dt-arrow">→ 是 →</span> Read-based 不夠；用 inStrain / StrainPhlAn / midas</div></div>
+<div class="dt-node"><span class="dt-q">Q5:</span><div>研究 AMR / 毒力？ <span class="dt-arrow">→ 是 →</span> shotgun reads → CARD (RGI)、ResFinder、VFDB；含 assembly 可看 context</div></div>
+<div class="dt-node"><span class="dt-q">Q6:</span><div>低生物量樣本 (皮膚、tissue、placenta)？ <span class="dt-arrow">→ 是 →</span> Kraken2 confidence=0.2、跑 negative control、慎用 assembly</div></div>
+</div>
+<div data-lang="en">
+<div class="dt-node"><span class="dt-q">Q1:</span><div>Sample &lt; 5 Gb, only need a quick species overview? <span class="dt-arrow">→ Yes →</span> Kraken2 + Bracken / MetaPhlAn4 is enough</div></div>
+<div class="dt-node"><span class="dt-q">Q2:</span><div>Goal includes "novel taxa discovery" or "uncultured organisms"? <span class="dt-arrow">→ Yes →</span> Assembly + binning required</div></div>
+<div class="dt-node"><span class="dt-q">Q3:</span><div>You have ≥10 related samples? <span class="dt-arrow">→ Yes →</span> Co-assembly + multi-sample binning maximizes returns</div></div>
+<div class="dt-node"><span class="dt-q">Q4:</span><div>Need strain-level resolution (FMT engraftment, outbreak tracing)? <span class="dt-arrow">→ Yes →</span> Read-based isn't enough; use inStrain / StrainPhlAn / MIDAS</div></div>
+<div class="dt-node"><span class="dt-q">Q5:</span><div>Studying AMR / virulence? <span class="dt-arrow">→ Yes →</span> shotgun reads → CARD (RGI), ResFinder, VFDB; add assembly for genomic context</div></div>
+<div class="dt-node"><span class="dt-q">Q6:</span><div>Low-biomass sample (skin, tissue, placenta)? <span class="dt-arrow">→ Yes →</span> Kraken2 confidence=0.2, run negative controls, use assembly with caution</div></div>
+</div>
+</div>
+</section>
+
+<!-- ===== Case study ===== -->
+<section class="case-study">
+<h4 data-zh="案例研究：Pasolli 2019 — 從 9428 個 metagenome 重建 154,723 個 MAG" data-en="Case study: Pasolli 2019 — 154,723 MAGs reconstructed from 9428 metagenomes">案例研究：Pasolli 2019 — 154,723 MAGs</h4>
+<div class="case-meta">Pasolli E. et al. 2019, Cell 176:649-662</div>
+<div data-lang="zh">
+<p><strong>背景：</strong>2019 年前已知人類腸道菌約 2000 種，但 70% 的人體微生物從未培養過。Pasolli 等人重新分析所有公開 shotgun (9428 samples × 5 大洲 × 18 體表位)。</p>
+<p><strong>方法：</strong></p>
+<ol style="margin-left:24px"><li>每個樣本獨立 metaSPAdes 組裝</li>
+<li>MetaBAT2 + CONCOCT + MaxBin2 → DAS_Tool 集成</li>
+<li>CheckM 過濾 (≥ 50% 完整度，&lt; 5% 汙染)</li>
+<li>dRep 跨樣本去重 (95% ANI = 同 species)</li>
+<li>BLAST 對 NCBI 找出「從未報告過」的 4930 個物種</li>
+</ol>
+<p><strong>關鍵發現：</strong></p>
+<ul style="margin-left:24px"><li>新 species 中 77% 屬 Firmicutes、77% 不能在公司資料庫找到。</li>
+<li>非西方人 (撒哈拉、東南亞、中南美) 樣本貢獻最多新菌——印證「西方化飲食縮小微生物多樣性」假說。</li>
+<li>許多新菌帶有獨特代謝功能 (例如 secondary bile acid 代謝)。</li>
+</ul>
+<p><strong>啟示：</strong>① shotgun 公開資料是個金礦——重新分析可發大論文；② non-Western 樣本最有價值；③ MAGs 已經是現代微生物基因組學的基礎建設。</p>
+</div>
+<div data-lang="en">
+<p><strong>Background:</strong> Before 2019 the human gut was thought to contain ~2000 species, yet 70% of human microbes had never been cultured. Pasolli et al. reanalyzed all public shotgun data (9428 samples × 5 continents × 18 body sites).</p>
+<p><strong>Methods:</strong></p>
+<ol style="margin-left:24px"><li>Per-sample metaSPAdes assembly</li>
+<li>MetaBAT2 + CONCOCT + MaxBin2 → DAS_Tool ensemble</li>
+<li>CheckM filter (≥ 50% completeness, &lt; 5% contamination)</li>
+<li>dRep cross-sample dereplication (95% ANI = one species)</li>
+<li>BLAST vs NCBI to flag "never reported" species — 4,930 of them</li>
+</ol>
+<p><strong>Key findings:</strong></p>
+<ul style="margin-left:24px"><li>77% of novel species belonged to Firmicutes; 77% had no match in any company database.</li>
+<li>Non-Western cohorts (sub-Saharan Africa, SE Asia, Latin America) contributed the most novel species — supporting the "westernization shrinks diversity" hypothesis.</li>
+<li>Many novel species carry unique metabolic functions (e.g., secondary bile acid metabolism).</li>
+</ul>
+<p><strong>Lessons:</strong> (1) Public shotgun data is a goldmine — reanalysis can drive big papers; (2) non-Western samples are most valuable; (3) MAGs are now the infrastructure of modern microbial genomics.</p>
+</div>
+</section>
+
+<!-- ===== Pitfalls ===== -->
+<section class="section">
+<div class="section-label" data-zh="陷阱" data-en="PITFALLS">陷阱</div>
+<h2 data-zh="Shotgun 分析的 5 個關鍵陷阱" data-en="5 key shotgun pitfalls">5 個關鍵陷阱</h2>
+<div class="pitfall"><strong data-zh="① 沒去宿主 DNA = 你跑了人類重定序" data-en="① No host removal = you did human resequencing">① 宿主 DNA：</strong>
+<span data-lang="zh">糞便 1-10%、口腔 30-60%、組織 &gt; 90% 是人類 DNA。不去除會：浪費你 80% 的計算、Kraken2 把人類 reads 錯分到 <em>Homo</em> 旁的 outlier、HUMAnN3 結果全部失真。<strong>對策：</strong>KneadData + CHM13 v2。</span>
+<span data-lang="en">Stool is 1-10%, oral 30-60%, tissue &gt;90% human DNA. Skipping removal: wastes 80% of your compute, Kraken2 mis-assigns human reads to <em>Homo</em>-neighboring taxa, HUMAnN3 results become noise. <strong>Fix:</strong> KneadData + CHM13 v2.</span></div>
+<div class="pitfall"><strong data-zh="② Kraken2 假陽性" data-en="② Kraken2 false positives">② Kraken2 假陽性：</strong>
+<span data-lang="zh">Kraken2 預設 confidence=0 會把每條 read 強制分類，導致 1000+ species 報告，其中大半是假陽性。<strong>對策：</strong>① 用 KrakenUniq 計獨特 k-mer 數過濾；② 設 confidence ≥ 0.1；③ 用 Bracken 後篩 ≥ 100 reads。</span>
+<span data-lang="en">Kraken2 default confidence=0 force-classifies every read, reporting 1000+ species — most false. <strong>Fix:</strong> (1) KrakenUniq's unique-k-mer count filter; (2) set confidence ≥0.1; (3) Bracken post-filter ≥100 reads.</span></div>
+<div class="pitfall"><strong data-zh="③ MAG 嵌合 (chimeric MAG)" data-en="③ Chimeric MAGs">③ Chimeric MAG：</strong>
+<span data-lang="zh">兩個近親物種的 contigs 被 binning 混在一起。CheckM2 看起來完整度高，但實際上「拼錯」。<strong>對策：</strong>① 跑 GUNC (Genome UNClutter)、② Anvi'o 視覺檢查、③ 看到 SNP 密度異常變動就懷疑。</span>
+<span data-lang="en">Contigs from two close relatives get binned together. CheckM2 reports high completeness but the bin is hybrid. <strong>Fix:</strong> (1) run GUNC (Genome UNClutter); (2) Anvi'o visual inspection; (3) suspect when SNP density fluctuates abnormally.</span></div>
+<div class="pitfall"><strong data-zh="④ 用單樣本組裝低豐度菌" data-en="④ Single-sample assembly of low-abundance taxa">④ 低豐度組裝：</strong>
+<span data-lang="zh">豐度 &lt; 0.5% 的菌單一樣本通常 &lt; 5× 覆蓋，組不出來。<strong>對策：</strong>① co-assembly (但 RAM 上限)、② 富集 (mini-Bulk)、③ 接受「找不到所有菌」。</span>
+<span data-lang="en">Taxa &lt; 0.5% are usually &lt; 5× covered in single samples — won't assemble. <strong>Fix:</strong> (1) co-assembly (RAM-bound); (2) enrich (mini-bulk); (3) accept you can't reconstruct everything.</span></div>
+<div class="pitfall"><strong data-zh="⑤ 用 raw read counts 比較功能" data-en="⑤ Raw read counts for functional comparison">⑤ Raw counts 比較：</strong>
+<span data-lang="zh">不同樣本 library size 差異大 (1 Gb vs 10 Gb)，raw counts 不可直接比。<strong>對策：</strong>HUMAnN3 內建 normalize 為 CPM/relab；或對 KO counts 做 CLR + linear model。</span>
+<span data-lang="en">Library sizes differ 10× (1 Gb vs 10 Gb); raw counts cannot be compared directly. <strong>Fix:</strong> HUMAnN3 normalizes to CPM/relab built-in; or CLR + linear model on KO counts.</span></div>
+</section>
+
+<!-- ===== Discussion ===== -->
+<section class="discussion">
+<h4 data-zh="討論題：思考一下" data-en="Discussion: think about it">討論題</h4>
+<div data-lang="zh">
+<p><span class="q-ico">Q1.</span> 為什麼 Kraken2 對「資料庫沒有的菌」會把 read 分到資料庫中最近的親屬，而非乾脆說「unknown」？這在臨床傳染病溯源上會是大問題嗎？</p>
+<p><span class="q-ko">Q2.</span> 你看到一個 MAG，CheckM2 95% 完整、4% 汙染，但 GTDB-Tk 給出「未知 phylum」。這個發現有多重大？要怎麼驗證它不是 chimera？</p>
+<p><span class="q-ico">Q3.</span> 為什麼 co-assembly 對低豐度菌更有效？什麼情況下 co-assembly 反而是壞主意？(提示：strain heterogeneity)</p>
+<p><span class="q-ico">Q4.</span> FMT 後你看到捐者 strain 在收者腸道——這是 engraftment 還是被收者既有 strain 「污染」MAG 後的假象？怎麼證實？</p>
+<p><span class="q-ico">Q5.</span> 為什麼 metaproteomics 比 metatranscriptomics 更難？儘管「真實表現的蛋白」是最終答案？</p>
+</div>
+<div data-lang="en">
+<p><span class="q-ico">Q1.</span> Why does Kraken2 assign reads from "out-of-database" organisms to the nearest relative in the DB rather than saying "unknown"? Is this a problem for clinical outbreak tracing?</p>
+<p><span class="q-ico">Q2.</span> You see a MAG: CheckM2 says 95% complete, 4% contaminated, but GTDB-Tk gives "unknown phylum". How significant is this? How do you verify it isn't a chimera?</p>
+<p><span class="q-ico">Q3.</span> Why is co-assembly more effective for low-abundance taxa? When is co-assembly a bad idea? (Hint: strain heterogeneity.)</p>
+<p><span class="q-ico">Q4.</span> Post-FMT you see donor strain in recipient gut. Is this engraftment or an artifact from recipient strain "contaminating" the MAG? How do you prove it?</p>
+<p><span class="q-ico">Q5.</span> Why is metaproteomics harder than metatranscriptomics, even though "actually expressed proteins" are the truest answer?</p>
+</div>
+</section>
+
+<!-- ===== FAQ ===== -->
+<section class="section">
+<div class="section-label" data-zh="常見問答" data-en="FAQ">常見問答</div>
+<h2>FAQ</h2>
+<div class="faq-list">
+<div class="faq-item"><button class="faq-q">每樣本要跑多深？</button>
+<div class="faq-a"><span data-lang="zh">取決於：糞便 (高生物量) ~3-10 Gb 足夠 / 偵測 species；皮膚 / tissue 需 &gt; 10 Gb 因宿主 DNA 多；要 strain 級 ≥ 20 Gb；要組 MAG 對稀有菌需 ≥ 30 Gb 或 co-assembly。</span>
+<span data-lang="en">Depends: stool (high biomass) needs ~3-10 Gb to detect species; skin / tissue needs &gt;10 Gb due to host DNA; strain-level needs ≥20 Gb; MAG for rare taxa needs ≥30 Gb or co-assembly.</span></div></div>
+
+<div class="faq-item"><button class="faq-q">MEGAHIT vs metaSPAdes 該選哪個？</button>
+<div class="faq-a"><span data-lang="zh"><strong>MEGAHIT</strong>：大樣本、co-assembly、記憶體有限 (&lt; 200 GB)、需快速。<strong>metaSPAdes</strong>：完整度更高、解 bubble 更好、單樣本品質優先、有 ≥ 500 GB RAM。HMP2 與多數臨床研究用 metaSPAdes；環境海洋大樣本用 MEGAHIT。</span>
+<span data-lang="en"><strong>MEGAHIT</strong>: large samples, co-assembly, RAM-limited (&lt;200 GB), need speed. <strong>metaSPAdes</strong>: higher completeness, better bubble resolution, single-sample quality priority, ≥500 GB RAM available. HMP2 and most clinical studies use metaSPAdes; large environmental / marine studies prefer MEGAHIT.</span></div></div>
+
+<div class="faq-item"><button class="faq-q">Kraken2 DB 該用 Standard, PlusPF, 還是自建？</button>
+<div class="faq-a"><span data-lang="zh"><strong>Standard</strong> (~70 GB)：bacteria + archaea + virus + human。<strong>PlusPF</strong> (~110 GB)：再加 protozoa + fungi——多數人類研究最佳。<strong>PlusPFP</strong> (~140 GB)：再加 plant。<strong>自建</strong>適用：① 已知群落的小 DB；② 含 ftp-not-public 的 strains；③ 環境研究 + 自有 genome。</span>
+<span data-lang="en"><strong>Standard</strong> (~70 GB): bacteria + archaea + viruses + human. <strong>PlusPF</strong> (~110 GB): adds protozoa + fungi — best for most human studies. <strong>PlusPFP</strong> (~140 GB): adds plant. <strong>Custom</strong>: (1) small focused DB for known communities; (2) including unpublished strains; (3) environmental studies with custom genomes.</span></div></div>
+
+<div class="faq-item"><button class="faq-q">什麼是 confidence-aware Kraken2？</button>
+<div class="faq-a"><span data-lang="zh"><code>--confidence 0.1</code> 表示 read 中至少 10% 的 k-mer 要支持某 taxon 才分類。confidence=0 (預設) 太寬鬆；0.5+ 太嚴常常剩 unclassified；建議 0.1-0.2。</span>
+<span data-lang="en"><code>--confidence 0.1</code> means at least 10% of k-mers in the read must support a taxon for assignment. Default 0 is too lenient; 0.5+ leaves too much unclassified; 0.1-0.2 is a sweet spot.</span></div></div>
+
+<div class="faq-item"><button class="faq-q">CheckM vs CheckM2 vs BUSCO 哪個？</button>
+<div class="faq-a"><span data-lang="zh"><strong>CheckM2</strong> (2023, ML-based)：當代標配，比 CheckM1 快百倍且更準。<strong>BUSCO</strong>：適合單一物種 (有 lineage 預設)。<strong>CheckM1</strong>：老但相容性最廣。新研究預設 CheckM2 + 對特定關注菌補跑 BUSCO。</span>
+<span data-lang="en"><strong>CheckM2</strong> (2023, ML-based): the modern default, 100× faster than CheckM1 and more accurate. <strong>BUSCO</strong>: good for single species with a known lineage. <strong>CheckM1</strong>: older but widest compatibility. Modern default = CheckM2 + BUSCO on focal taxa.</span></div></div>
+
+<div class="faq-item"><button class="faq-q">什麼時候用長讀 (Nanopore / PacBio HiFi)？</button>
+<div class="faq-a"><span data-lang="zh">① 想要 closed (1-contig) genomes、② 解 strain 差異與重複序列、③ 整合性前噬菌體、④ 大插入序列 (CRISPR、AMR cassette)。短讀+長讀混合 (HybridSPAdes) 是最完整的設計。</span>
+<span data-lang="en">(1) Want closed (1-contig) genomes, (2) resolve strain differences and repeats, (3) integrated prophages, (4) large insertions (CRISPR arrays, AMR cassettes). Short-read + long-read hybrid (HybridSPAdes) gives the most complete picture.</span></div></div>
+
+<div class="faq-item"><button class="faq-q">怎麼偵測 AMR 基因？</button>
+<div class="faq-a"><span data-lang="zh"><strong>Read-based</strong>：ShortBRED、AMR++、ARGs-OAP，速度快。<strong>Assembly-based</strong>：RGI (CARD)、ResFinder、abricate；可看 contig context 判斷在染色體 / 質體上 (質體 = 易傳播)。</span>
+<span data-lang="en"><strong>Read-based</strong>: ShortBRED, AMR++, ARGs-OAP — fast. <strong>Assembly-based</strong>: RGI (CARD), ResFinder, abricate; reveals contig context (chromosomal vs plasmid; plasmid = transmissible).</span></div></div>
+</div>
+</section>
+
+<!-- ===== Quiz ===== -->
+<section class="quiz-section">
+<h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
+<div class="quiz-q" data-answer="1">
+<p data-lang="zh">1. 一個 10 Gb 糞便 shotgun 樣本，某菌豐度 0.5%、基因組 4 Mb。覆蓋深度？</p>
+<p data-lang="en">1. A 10 Gb stool shotgun, microbe at 0.5% abundance, 4 Mb genome. Coverage?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. ≈ 50×</span><span data-lang="en">A. ≈ 50×</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. ≈ 12.5×</span><span data-lang="en">B. ≈ 12.5×</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. ≈ 200×</span><span data-lang="en">C. ≈ 200×</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. ≈ 2×</span><span data-lang="en">D. ≈ 2×</span></div>
+</div><div class="quiz-feedback" id="fb1"></div></div>
+
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">2. 為什麼 binning 同時用 TNF 與多樣本 coverage？</p>
+<p data-lang="en">2. Why does binning use both TNF and multi-sample coverage?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 加快計算</span><span data-lang="en">A. Faster compute</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 只用一個即可，加另一個是多餘</span><span data-lang="en">B. One is enough; the other is redundant</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 兩種獨立訊號互補；同基因組 contigs 在所有樣本中共變</span><span data-lang="en">C. Two orthogonal signals; same-genome contigs co-vary across samples</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 替代 CheckM2 評估完整度</span><span data-lang="en">D. To replace CheckM2 completeness estimates</span></div>
+</div><div class="quiz-feedback" id="fb2"></div></div>
+
+<div class="quiz-q" data-answer="0">
+<p data-lang="zh">3. 你拿到一個 MAG，CheckM2 完整度 92%、汙染 7%。MIMAG 等級？</p>
+<p data-lang="en">3. A MAG: CheckM2 completeness 92%, contamination 7%. MIMAG tier?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. Medium quality (汙染 ≥ 5%)</span><span data-lang="en">A. Medium quality (contamination ≥ 5%)</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. High quality</span><span data-lang="en">B. High quality</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. Finished</span><span data-lang="en">C. Finished</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. Low quality</span><span data-lang="en">D. Low quality</span></div>
+</div><div class="quiz-feedback" id="fb3"></div></div>
+
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">4. Bracken 在 Kraken2 之後做什麼？</p>
+<p data-lang="en">4. What does Bracken do after Kraken2?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 重新對 reference 比對</span><span data-lang="en">A. Re-aligns reads to references</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 計算 k-mer 獨特性</span><span data-lang="en">B. Counts unique k-mers</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 用 Bayesian 把 LCA 卡住的 reads 重分配到 species</span><span data-lang="en">C. Bayesian redistribution of LCA-stuck reads to species</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 移除汙染</span><span data-lang="en">D. Removes contamination</span></div>
+</div><div class="quiz-feedback" id="fb4"></div></div>
+
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">5. 你研究腸道菌 + 抗藥基因。最佳策略？</p>
+<p data-lang="en">5. Studying gut microbes + AMR genes. Best strategy?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 16S V3-V4 + PICRUSt2 預測</span><span data-lang="en">A. 16S V3-V4 + PICRUSt2 inference</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 只用 Kraken2 + Bracken</span><span data-lang="en">B. Kraken2 + Bracken only</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. Shotgun + read-based RGI (CARD) + 組裝看 plasmid context</span><span data-lang="en">C. Shotgun + read-based RGI (CARD) + assembly for plasmid context</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 用 18S 真核 marker</span><span data-lang="en">D. 18S eukaryotic markers</span></div>
+</div><div class="quiz-feedback" id="fb5"></div></div>
+</section>
+
+<!-- ===== Further reading ===== -->
+<section class="section">
+<div class="section-label" data-zh="延伸閱讀" data-en="FURTHER READING">延伸閱讀</div>
+<h2 data-zh="重要論文" data-en="Key papers">重要論文</h2>
+<ul style="margin-left:24px;color:var(--c-ink-light);line-height:1.9">
+<li><strong>Wood, Lu, Langmead 2019</strong>. <em>Improved metagenomic analysis with Kraken 2</em>. Genome Biol 20:257.</li>
+<li><strong>Lu et al. 2017</strong>. <em>Bracken: estimating species abundance in metagenomics data</em>. PeerJ CS 3:e104.</li>
+<li><strong>Blanco-Míguez et al. 2023</strong>. <em>Extending and improving metagenomic taxonomic profiling with MetaPhlAn 4</em>. Nat Biotechnol 41:1633.</li>
+<li><strong>Nurk et al. 2017</strong>. <em>metaSPAdes: a new versatile metagenomic assembler</em>. Genome Res 27:824.</li>
+<li><strong>Li et al. 2015</strong>. <em>MEGAHIT: an ultra-fast single-node solution for large and complex metagenomics assembly</em>. Bioinformatics 31:1674.</li>
+<li><strong>Kang et al. 2019</strong>. <em>MetaBAT 2: an adaptive binning algorithm</em>. PeerJ 7:e7359.</li>
+<li><strong>Chklovski et al. 2023</strong>. <em>CheckM2: a rapid, scalable, accurate tool for assessing microbial genome quality</em>. Nat Methods 20:1203.</li>
+<li><strong>Chaumeil et al. 2022</strong>. <em>GTDB-Tk v2: memory friendly classification with the genome taxonomy database</em>. Bioinformatics 38:5315.</li>
+<li><strong>Bowers et al. 2017</strong>. <em>Minimum information about a single amplified genome (MISAG) and a metagenome-assembled genome (MIMAG)</em>. Nat Biotechnol 35:725.</li>
+<li><strong>Pasolli et al. 2019</strong>. <em>Extensive Unexplored Human Microbiome Diversity Revealed by Over 150,000 Genomes from Metagenomes</em>. Cell 176:649.</li>
+<li><strong>Olm et al. 2021</strong>. <em>inStrain profiles population microdiversity from metagenomic data</em>. Nat Biotechnol 39:727.</li>
+</ul>
 </section>
 
 <nav class="page-nav"><a href="amplicon.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 1：Amplicon" data-en="Step 1: Amplicon">Step 1：Amplicon</span></a><a href="function.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 3：Function" data-en="Step 3: Function">Step 3：Function</span></a></nav>
@@ -123,19 +680,53 @@ gtdbtk classify_wf \
 <script>
 window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
 function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
-function up(){
-  const r=+document.getElementById('sliderR').value/100;const s=+document.getElementById('sliderS').value;
-  document.getElementById('valR').textContent=(r*100).toFixed(1);document.getElementById('valREn').textContent=(r*100).toFixed(1);
+
+// MAG coverage sim
+function upMag(){
+  const r=+document.getElementById('sliderR').value/100;
+  const s=+document.getElementById('sliderS').value;
+  const g=+document.getElementById('sliderG').value;
+  document.getElementById('valR').textContent=(r*100).toFixed(2);
+  document.getElementById('valREn').textContent=(r*100).toFixed(2);
   document.getElementById('valS').textContent=s;document.getElementById('valSEn').textContent=s;
-  const genome=5e6;const speciesBp=s*1e9*r;const depth=speciesBp/genome;
+  document.getElementById('valG').textContent=g;document.getElementById('valGEn').textContent=g;
+  const genome=g*1e6;
+  const speciesBp=s*1e9*r;
+  const depth=speciesBp/genome;
   document.getElementById('depth').textContent=depth.toFixed(1)+'×';
-  let comp;
-  if(depth>=30)comp='&gt; 90%';
-  else if(depth>=15)comp='70-90%';
-  else if(depth>=8)comp='50-70%';
-  else if(depth>=3)comp='30-50%';
-  else comp='&lt; 30% (fragmented)';
+  let comp,tier;
+  if(depth>=30){comp='&gt; 95%';tier='High';}
+  else if(depth>=15){comp='80-95%';tier='High';}
+  else if(depth>=8){comp='50-80%';tier='Medium';}
+  else if(depth>=3){comp='30-50%';tier='Low';}
+  else{comp='&lt; 30%';tier='Fragmented';}
   document.getElementById('comp').innerHTML=comp;
+  document.getElementById('tier').textContent=tier;
 }
-['sliderR','sliderS'].forEach(id=>document.getElementById(id).addEventListener('input',up));up();
+['sliderR','sliderS','sliderG'].forEach(id=>document.getElementById(id).addEventListener('input',upMag));upMag();
+
+// Kraken2 confidence sim
+let confChart;
+function upConf(){
+  const c=+document.getElementById('sliderC2').value;
+  document.getElementById('valC2').textContent=c.toFixed(2);
+  // simulated empirical curves
+  const tpr=Math.max(0,1-c*0.6-Math.pow(c,1.5)*0.4);
+  const fpr=Math.max(0,0.25*Math.exp(-c*8));
+  const unc=Math.min(1,0.05+c*0.5+Math.pow(c,2)*0.5);
+  document.getElementById('tpRate').textContent=(tpr*100).toFixed(1)+'%';
+  document.getElementById('fpRate').textContent=(fpr*100).toFixed(2)+'%';
+  document.getElementById('unclass').textContent=(unc*100).toFixed(1)+'%';
+  const ctx=document.getElementById('confChart');
+  if(confChart) confChart.destroy();
+  confChart=new Chart(ctx,{type:'bar',data:{labels:['TPR','FPR','Unclassified'],datasets:[{data:[tpr*100,fpr*100,unc*100],backgroundColor:['#10b981','#ef4444','#94a3b8']}]},options:{plugins:{legend:{display:false}},scales:{y:{max:100,title:{display:true,text:'%'}}}}});
+}
+document.getElementById('sliderC2').addEventListener('input',upConf);upConf();
+
+// FAQ + level tabs
+document.querySelectorAll('.faq-q').forEach(b=>b.addEventListener('click',()=>{b.classList.toggle('open');b.nextElementSibling.classList.toggle('open');}));
+document.querySelectorAll('.level-tabs').forEach(tabs=>{tabs.querySelectorAll('.level-tab').forEach(t=>t.addEventListener('click',()=>{const tgt=t.dataset.tab;tabs.querySelectorAll('.level-tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===tgt));tabs.parentElement.querySelectorAll('.level-pane').forEach(p=>p.classList.toggle('active',p.dataset.pane===tgt));}));});
+
+// Quiz
+document.querySelectorAll('.quiz-q').forEach((q)=>{const ans=+q.dataset.answer;q.querySelectorAll('.quiz-opt').forEach(o=>{o.addEventListener('click',()=>{const idx=+o.dataset.idx;q.querySelectorAll('.quiz-opt').forEach(x=>x.classList.remove('selected','correct','incorrect'));o.classList.add('selected',idx===ans?'correct':'incorrect');const fb=q.querySelector('.quiz-feedback');fb.textContent=idx===ans?'✓ Correct!':'✗ Try again';fb.className='quiz-feedback '+(idx===ans?'show correct':'show incorrect');});});});
 </script></body></html>

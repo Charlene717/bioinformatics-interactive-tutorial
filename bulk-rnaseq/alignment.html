@@ -1,146 +1,634 @@
 <!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Alignment — Bulk RNA-seq</title>
-<link rel="stylesheet" href="../styles.css"></head><body class="theme-bulk">
+<title>Step 2: Alignment — Bulk RNA-seq</title>
+<link rel="stylesheet" href="../styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+</head><body class="theme-bulk">
 <nav class="top-nav"><div class="top-nav-inner">
   <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
   <ul class="top-nav-links">
     <li><a href="index.html">Bulk RNA</a></li><li><a href="qc-trim.html">QC</a></li><li><a href="alignment.html" class="active">Align</a></li><li><a href="quantification.html">Quant</a></li><li><a href="normalization.html">Norm</a></li><li><a href="de.html">DE</a></li><li><a href="visualization.html">Viz</a></li><li><a href="gsea.html">GSEA</a></li>
   </ul>
+  <button class="lang-toggle" id="langToggle">中 / EN</button>
 </div></nav>
 <div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
-<header class="page-hero"><div class="step-badge">STEP 2 / 7</div><h1 data-zh="比對到參考基因組" data-en="Alignment to Reference">比對到參考基因組</h1><p class="subtitle" data-lang="zh">把 reads 對應到基因組或轉錄組的位置——是 RNA-seq 流程中計算成本最高、結果影響最大的一步。</p><p class="subtitle" data-lang="en">Map reads to genome / transcriptome positions — the most compute-intensive, results-defining step of RNA-seq.</p></header><main class="content-wrap">
-
-<section class="section"><div class="section-label" data-zh="核心概念" data-en="CONCEPT">核心概念</div>
-<h2 data-zh="兩大派別" data-en="Two Approaches">兩大派別</h2>
-<div data-lang="zh"><p>現代 RNA-seq 量化大致分為兩類：</p></div>
-<div data-lang="en"><p>Modern RNA-seq quantification splits into two families:</p></div>
-<div class="card-grid cols-2">
-<div class="card"><div class="card-icon">🎯</div><h4 data-zh="拼接式比對 (Splice-aware Alignment)" data-en="Splice-aware Alignment">拼接式比對</h4><p data-lang="zh">把每條 read 確切定位到基因組 BAM。代表：<strong>STAR</strong>、<strong>HISAT2</strong>。輸出 BAM 可用於變異偵測、視覺化 (IGV)、SJ 分析等下游。</p><p data-lang="en">Maps every read to genome coordinates as BAM. Tools: <strong>STAR</strong>, <strong>HISAT2</strong>. BAM enables variant calling, IGV visualization, splice junction analysis.</p></div>
-<div class="card"><div class="card-icon">⚡</div><h4 data-zh="偽比對 (Pseudo-alignment)" data-en="Pseudo-alignment">偽比對</h4><p data-lang="zh">只記 read 屬於哪個轉錄本，不算精確位置。代表：<strong>Salmon</strong>、<strong>kallisto</strong>。速度快 10–100×、記憶體小，直接輸出表達量。</p><p data-lang="en">Only records which transcripts each read could come from, not exact positions. Tools: <strong>Salmon</strong>, <strong>kallisto</strong>. 10–100× faster, low memory, direct quantification.</p></div>
+<header class="page-hero">
+<div class="step-badge">STEP 2 / 7</div>
+<h1 data-zh="對齊到參考基因組" data-en="Alignment to Reference">對齊到參考基因組</h1>
+<p class="subtitle" data-lang="zh">把 reads 對應到基因組或轉錄組的位置——這是 RNA-seq 流程中計算成本最高、決策最深遠的一步。</p>
+<p class="subtitle" data-lang="en">Map reads to genome / transcriptome positions — the most compute-intensive, most consequential step of RNA-seq.</p>
+<div class="diff-chips" style="justify-content:center;margin-top:14px">
+<span class="diff-chip beg">🟢 <span data-zh="認識 splice-aware vs pseudo-alignment" data-en="Splice-aware vs pseudo-alignment">兩大派別</span></span>
+<span class="diff-chip int">🟡 <span data-zh="解讀 STAR / Salmon 輸出指標" data-en="Read STAR / Salmon outputs">解讀輸出</span></span>
+<span class="diff-chip adv">🔴 <span data-zh="演算法直覺 + bias correction 機制" data-en="Algorithm intuition + bias correction">演算法 + bias</span></span>
 </div>
+</header>
+<main class="content-wrap">
+
+<!-- ===== Why two families ===== -->
+<section class="section">
+<div class="section-label" data-zh="核心概念" data-en="CONCEPT">核心概念</div>
+<h2 data-zh="RNA-seq 比對：一個 splicing 帶來的麻煩" data-en="RNA-seq alignment: the splicing problem">一個 splicing 帶來的麻煩</h2>
+<div data-lang="zh">
+<p>DNA-seq 比對相對簡單：read 應該對應到基因組上「一段連續區域」。但 RNA-seq 不一樣——mRNA 是<span class="term">剪接<span class="tip">Splicing：pre-mRNA 中 intron 被切掉、exon 接在一起的過程。一條成熟 mRNA 通常由 5–15 個 exon 組成。</span></span>後的產物，所以一條 read 可能<strong>橫跨兩個 exon、中間穿越一段 intron</strong>（即「junction read」）。傳統 DNA-seq 比對器（BWA、Bowtie2）會把這種 read 判定為「無法比對」或「軟剪」。</p>
+<p>因此 RNA-seq 需要 <strong>splice-aware aligner</strong>——它知道參考基因組的 GT-AG splice site，可以把一條 read 拆成兩段、分別貼到兩個 exon。STAR 與 HISAT2 是現代兩大代表。</p>
+<p>而 2014 年 Salmon、kallisto 引入另一條路：<strong>不算 read 的「位置」</strong>，只算 read 「屬於哪一個轉錄本」。這叫 <span class="term">pseudo-alignment<span class="tip">Pseudo-alignment / Quasi-mapping：把 reads 拆成 k-mer，用 hash 表查出每個 k-mer 屬於哪些 transcript，最後用 EM 估計每個 transcript 的表達量。不輸出基因組座標。</span></span>，速度比 STAR 快 10–100 倍、記憶體小到能在筆電上跑。</p>
+</div>
+<div data-lang="en">
+<p>DNA-seq alignment is relatively simple: a read maps to one contiguous region of the genome. RNA-seq is different — mRNA is the <span class="term">spliced<span class="tip">Splicing: introns are removed and exons joined together from pre-mRNA. A mature mRNA typically consists of 5–15 exons.</span></span> product, so a single read may <strong>span two exons across an intron</strong> (a "junction read"). Traditional DNA aligners (BWA, Bowtie2) flag these as unmappable or soft-clip them.</p>
+<p>Hence RNA-seq needs <strong>splice-aware aligners</strong> that know GT-AG splice donor/acceptor sites and can split a read across two exons. STAR and HISAT2 are the modern leaders.</p>
+<p>In 2014 Salmon and kallisto introduced another path: <strong>skip exact positions</strong>, just record which transcripts a read could come from. This is <span class="term">pseudo-alignment<span class="tip">Pseudo-alignment / quasi-mapping: break reads into k-mers, hash-lookup which transcripts each k-mer maps to, then use EM to estimate transcript abundances. No genome coordinates output.</span></span> — 10–100× faster than STAR, with memory small enough to run on a laptop.</p>
+</div>
+
+<div class="analogy">
+<strong data-zh="比喻：" data-en="Analogy:">比喻：</strong>
+<span data-lang="zh">Splice-aware alignment 就像把每位旅客精確地分配到飛機座位（要知道 row 5、seat A）；pseudo-alignment 則是「我只想知道你搭哪個航班，座位不重要」——後者快得多，但若你想做 splicing 分析（座位視圖），就得用前者。</span>
+<span data-lang="en">Splice-aware alignment is like assigning each passenger to a precise seat (row 5, seat A); pseudo-alignment is "I only care which flight you took, seat doesn't matter" — far faster, but you need the former if you want splicing analysis (seat-level view).</span>
+</div>
+</section>
+
+<!-- ===== Two families overview ===== -->
+<section class="section">
+<div class="section-label" data-zh="兩大派別" data-en="TWO FAMILIES">兩大派別</h2></div>
+<h2 data-zh="兩條主流路線" data-en="Two Mainstream Routes">兩條主流路線</h2>
+<div class="vs-grid">
+<div class="vs-side">
+<h4>🎯 Splice-aware Alignment</h4>
+<div data-lang="zh">
+<ul>
+<li>代表：<strong>STAR</strong>、<strong>HISAT2</strong></li>
+<li>輸出：<strong>BAM</strong>（含座標、CIGAR、splice junction）</li>
+<li>速度：中等（30M PE ~ 20 分鐘 / 12 cores）</li>
+<li>記憶體：高（STAR 約 30 GB）</li>
+<li>下游：<span class="kw-inline">featureCounts</span>、IGV 視覺化、變異偵測、splicing 分析</li>
+</ul>
+</div>
+<div data-lang="en">
+<ul>
+<li>Tools: <strong>STAR</strong>, <strong>HISAT2</strong></li>
+<li>Output: <strong>BAM</strong> (coords, CIGAR, splice junctions)</li>
+<li>Speed: medium (30M PE ~ 20 min / 12 cores)</li>
+<li>Memory: high (~30 GB for STAR)</li>
+<li>Downstream: <span class="kw-inline">featureCounts</span>, IGV, variant calling, splicing</li>
+</ul>
+</div>
+</div>
+<div class="vs-mid">vs</div>
+<div class="vs-side">
+<h4>⚡ Pseudo-alignment</h4>
+<div data-lang="zh">
+<ul>
+<li>代表：<strong>Salmon</strong>、<strong>kallisto</strong></li>
+<li>輸出：<code>quant.sf</code>（transcript 表達估計 + 不確定度）</li>
+<li>速度：快（30M PE ~ 5 分鐘 / 8 cores）</li>
+<li>記憶體：低（~4 GB）</li>
+<li>下游：<span class="kw-inline">tximport</span> → DESeq2/edgeR；不能做變異偵測</li>
+</ul>
+</div>
+<div data-lang="en">
+<ul>
+<li>Tools: <strong>Salmon</strong>, <strong>kallisto</strong></li>
+<li>Output: <code>quant.sf</code> (transcript estimates + uncertainty)</li>
+<li>Speed: fast (30M PE ~ 5 min / 8 cores)</li>
+<li>Memory: low (~4 GB)</li>
+<li>Downstream: <span class="kw-inline">tximport</span> → DESeq2/edgeR; no variant calling</li>
+</ul>
+</div>
+</div>
+</div>
+
 <div class="flow-chain">
   <span class="fc-step">FASTQ</span><span class="fc-arrow">→</span>
   <span class="fc-step">STAR / HISAT2</span><span class="fc-arrow">→</span>
   <span class="fc-step">BAM</span><span class="fc-arrow">→</span>
   <span class="fc-step">featureCounts</span><span class="fc-arrow">→</span>
-  <span class="fc-step">counts</span>
+  <span class="fc-step">count matrix</span>
 </div>
-<div class="flow-chain" style="background:var(--c-accent-light);">
+<div class="flow-chain" style="background:#e8f4ee">
   <span class="fc-step">FASTQ</span><span class="fc-arrow">→</span>
   <span class="fc-step">Salmon / kallisto</span><span class="fc-arrow">→</span>
-  <span class="fc-step">quant.sf / abundance</span><span class="fc-arrow">→</span>
+  <span class="fc-step">quant.sf</span><span class="fc-arrow">→</span>
   <span class="fc-step">tximport</span><span class="fc-arrow">→</span>
   <span class="fc-step">DESeq2</span>
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="工具比較" data-en="COMPARISON">工具比較</div>
-<h2 data-zh="STAR vs HISAT2 vs Salmon" data-en="STAR vs HISAT2 vs Salmon">STAR vs HISAT2 vs Salmon</h2>
-<table class="comp-table"><thead><tr><th>Tool</th><th data-zh="演算法" data-en="Algorithm">演算法</th><th data-zh="速度" data-en="Speed">速度</th><th data-zh="記憶體" data-en="Memory">記憶體</th><th data-zh="特色" data-en="Notes">特色</th></tr></thead><tbody>
-<tr><td><strong>STAR</strong></td><td>Suffix Array</td><td>★★★★</td><td>~30 GB</td><td data-zh="ENCODE 標準；輸出最精準的 splice junctions" data-en="ENCODE standard; best splice junction accuracy">ENCODE 標準；SJ 最精準</td></tr>
-<tr><td><strong>HISAT2</strong></td><td>Graph-FM Index</td><td>★★★★</td><td>~8 GB</td><td data-zh="記憶體小；支援 graph genome" data-en="Low memory; graph genome support">記憶體小</td></tr>
-<tr><td><strong>Salmon</strong></td><td data-zh="selective alignment + EM" data-en="Selective alignment + EM">selective alignment + EM</td><td>★★★★★</td><td>~4 GB</td><td data-zh="GC / 位置偏差校正；轉錄本層級" data-en="GC / positional bias correction; transcript-level">GC bias 校正</td></tr>
-<tr><td><strong>kallisto</strong></td><td>k-mer / TBWT</td><td>★★★★★</td><td>~4 GB</td><td data-zh="最早的 pseudo-alignment；穩定快速" data-en="Original pseudo-aligner; fast & stable">最早的 pseudo-aligner</td></tr>
-</tbody></table>
+<!-- ===== Algorithm intuition ===== -->
+<section class="section">
+<div class="section-label" data-zh="演算法直覺" data-en="ALGORITHM INTUITION">演算法直覺</div>
+<h2 data-zh="背後在做什麼？" data-en="How do these algorithms actually work?">背後在做什麼？</h2>
+
+<div class="level-tabs">
+<button class="level-tab active" data-pane="al1">🟢 <span data-zh="初學者" data-en="Beginner">初學者</span></button>
+<button class="level-tab" data-pane="al2">🟡 <span data-zh="中階" data-en="Intermediate">中階</span></button>
+<button class="level-tab" data-pane="al3">🔴 <span data-zh="進階" data-en="Advanced">進階</span></button>
+</div>
+
+<div class="level-pane active" id="al1">
+<div data-lang="zh">
+<p><strong>STAR</strong>（Spliced Transcripts Alignment to a Reference）：拿到一條 read，先在基因組找「最長能完美匹配的種子」，然後從種子向兩邊延伸。如果延伸時碰到 intron，就跳過 intron 繼續貼。最後輸出每條 read 的座標到 BAM。</p>
+<p><strong>Salmon</strong>：把 read 切成 31 bp 的「k-mer」，用 hash 表快速查每個 k-mer 屬於哪些 transcript（不需要真的比對）。當很多 k-mer 都指向同一個 transcript，就把這條 read 算給那個 transcript。多重比對的 reads 用 EM 演算法分攤。</p>
+</div>
+<div data-lang="en">
+<p><strong>STAR</strong> (Spliced Transcripts Alignment to a Reference): given a read, finds the "longest perfectly matching seed" in the genome, then extends in both directions. If extension hits an intron, jumps over and continues. Outputs each read's coordinates to BAM.</p>
+<p><strong>Salmon</strong>: chops the read into 31 bp "k-mers", hash-lookups which transcripts each k-mer matches (no actual alignment). When many k-mers point to the same transcript, the read is assigned there. Multi-mapping reads are split via EM.</p>
+</div>
+</div>
+
+<div class="level-pane" id="al2">
+<div data-lang="zh">
+<p><strong>STAR 的 Maximum Mappable Prefix (MMP)：</strong>從 read 5' 端開始，用 <span class="term">Suffix Array<span class="tip">Suffix Array：將參考基因組的所有 suffix 字典序排列。可在 O(L log G) 時間查詢任意字串。STAR 索引就是 GRCh38 的完整 Suffix Array，約 30 GB。</span></span> 一次比對最長能匹配的前綴。匹配失敗就跳到下一個位置重新開始 MMP。剩下的零碎片段最後做 stitching。整個邏輯是 <em>seed-and-extend</em>，但 seed 不是固定長度而是「能匹配多長就多長」。</p>
+<p><strong>Salmon 的 quasi-mapping + EM：</strong>k-mer hash 找到候選 transcript（每條 read 有 1–N 個候選），再用 SMEM (super-maximal exact matches) 驗證真正的 mappability。最終透過 EM 解 「每個 read 應分給哪個 transcript」的 fractional assignment——這就是估計 <strong>TPM</strong> 的數學基礎。</p>
+</div>
+<div data-lang="en">
+<p><strong>STAR's Maximum Mappable Prefix (MMP):</strong> from the read's 5' end, find the longest matchable prefix using a <span class="term">Suffix Array<span class="tip">Suffix Array: all suffixes of the reference sorted lexicographically. Enables O(L log G) lookup. STAR's index is the full GRCh38 Suffix Array, ~30 GB.</span></span>. On mismatch, jump to next position and restart MMP. Leftover fragments are stitched together. This is <em>seed-and-extend</em> but seeds have variable length.</p>
+<p><strong>Salmon's quasi-mapping + EM:</strong> k-mer hash finds candidate transcripts (1–N candidates per read), validated by SMEM (super-maximal exact matches). Final fractional assignment via EM — this is the math foundation of <strong>TPM</strong> estimation.</p>
+</div>
+</div>
+
+<div class="level-pane" id="al3">
+<div data-lang="zh">
+<p><strong>STAR 細節：</strong>用 uncompressed Suffix Array + auxiliary lookup tables (SA → genome chromosome/position mapping)，這就是 30GB 記憶體的來源。Splice junction discovery 分兩階段：① 從 sjdbGTFfile 載入已知 junction；② 從 read 中發現新的 junction（GT-AG canonical donor/acceptor）。<code>--twopassMode Basic</code> 會先掃一次抓 novel junctions，再用這些 junction 第二次比對，提升新 isoform 偵測準確度。</p>
+<p><strong>Salmon 細節：</strong>使用 <strong>selective alignment</strong>（v1.0+）替換早期的 pure k-mer，會對 k-mer 候選做 chain & extend 驗證，準確度接近 STAR。<code>--gcBias</code> 用 fragment 起點與終點的 GC 含量建立 logistic regression，把 PCR 偏差校正回估計值；<code>--seqBias</code> 校正 random hexamer priming bias。Posterior 不確定度透過 <strong>bootstrap (Gibbs sampling)</strong> 估計，可用於 sleuth (Pimentel et al., 2017) 的 isoform-level DE。</p>
+<p>HISAT2 的 <strong>Graph-FM Index</strong>：以 graph 表示參考（含 SNPs / known splice sites），FM-index 可在 O(L) 完成查詢，記憶體 ~8 GB（遠低於 STAR），但 splice junction discovery 對 novel 弱於 STAR。</p>
+</div>
+<div data-lang="en">
+<p><strong>STAR internals:</strong> uncompressed Suffix Array + auxiliary lookup tables (SA → chromosome/position) — that's the 30 GB. Splice junction discovery is two-stage: (1) load known junctions from sjdbGTFfile; (2) discover novel junctions (GT-AG canonical donor/acceptor) from reads. <code>--twopassMode Basic</code> first-passes to collect novel junctions, then realigns using them, boosting novel isoform detection.</p>
+<p><strong>Salmon internals:</strong> uses <strong>selective alignment</strong> (v1.0+) instead of pure k-mer, performing chain & extend validation on k-mer candidates — accuracy approaching STAR. <code>--gcBias</code> builds a logistic regression on fragment-end GC content to correct PCR bias; <code>--seqBias</code> corrects random hexamer priming bias. Posterior uncertainty is estimated via <strong>bootstrap (Gibbs sampling)</strong>, usable in sleuth (Pimentel et al., 2017) for isoform-level DE.</p>
+<p>HISAT2's <strong>Graph-FM Index</strong>: represents the reference as a graph (SNPs + known splice sites). FM-index gives O(L) queries with ~8 GB memory (much less than STAR), but novel splice junction discovery is weaker.</p>
+</div>
+</div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
-<h2 data-zh="比對率對 DEG 偵測的影響" data-en="Mapping Rate vs DEG Recovery">比對率對 DEG 偵測的影響</h2>
-<div data-lang="zh"><p>調整 unique mapping rate（唯一比對率）與 duplicate rate，看可用 reads 數變化：</p></div>
-<div data-lang="en"><p>Drag mapping rate and duplicate rate sliders to see usable reads change:</p></div>
+<!-- ===== Tool comparison ===== -->
+<section class="section">
+<div class="section-label" data-zh="工具比較" data-en="COMPARISON">工具比較</div>
+<h2 data-zh="STAR vs HISAT2 vs Salmon vs kallisto" data-en="STAR vs HISAT2 vs Salmon vs kallisto">四大主流工具比較</h2>
+
+<table class="comp-table">
+<thead><tr><th>Tool</th><th data-zh="演算法" data-en="Algorithm">演算法</th><th data-zh="速度" data-en="Speed">速度</th><th data-zh="記憶體" data-en="Memory">記憶體</th><th data-zh="特色" data-en="Highlights">特色</th><th data-zh="權衡" data-en="Trade-off">權衡</th></tr></thead>
+<tbody>
+<tr><td><strong>STAR</strong></td><td>Suffix Array + MMP</td><td>★★★★</td><td>~30 GB</td><td data-zh="ENCODE / TCGA 標準；splice junction 最準" data-en="ENCODE / TCGA standard; best splice junctions">ENCODE 標準</td><td data-zh="記憶體吃" data-en="Memory-hungry">吃記憶體</td></tr>
+<tr><td><strong>HISAT2</strong></td><td>Graph-FM Index</td><td>★★★★</td><td>~8 GB</td><td data-zh="記憶體小；支援 SNP-aware graph" data-en="Low-memory; SNP-aware graph">輕量</td><td data-zh="novel junction 偵測較弱" data-en="Weaker novel junctions">novel 較弱</td></tr>
+<tr><td><strong>Salmon</strong></td><td data-zh="selective alignment + EM" data-en="Selective alignment + EM">selective alignment + EM</td><td>★★★★★</td><td>~4 GB</td><td data-zh="GC / position bias 校正；bootstrap 不確定度" data-en="GC / position bias correction; bootstrap uncertainty">bias correction</td><td data-zh="無 BAM、無變異偵測" data-en="No BAM, no variant calling">無 BAM</td></tr>
+<tr><td><strong>kallisto</strong></td><td>k-mer / T-DBG</td><td>★★★★★</td><td>~4 GB</td><td data-zh="最早 pseudo-aligner；穩定" data-en="Original pseudo-aligner; stable">最早 pseudo</td><td data-zh="無 bias correction（不如 Salmon）" data-en="No bias correction (vs. Salmon)">無 bias 校正</td></tr>
+<tr><td>BWA / Bowtie2</td><td>FM Index</td><td>★★★</td><td>~5 GB</td><td data-zh="DNA-seq 標準；非 splice-aware" data-en="DNA-seq standard; not splice-aware">DNA 用</td><td data-zh="❌ 不要用於 RNA-seq" data-en="❌ Not for RNA-seq">RNA 不適用</td></tr>
+</tbody></table>
+
+<div class="protip"><strong data-zh="2023 後的共識：" data-en="2023+ consensus:">2023 後的共識：</strong>
+<span data-lang="zh">如果你只關心基因表達 + DE → <strong>Salmon + tximport + DESeq2</strong> 是當代最佳實踐（快、節能、結果與 STAR 幾乎相同）。如果你需要 splicing、variant calling、IGV 視覺化 → 用 <strong>STAR</strong>。混合：可以 STAR 跑一次拿 BAM，再用 Salmon 模式 (--alignment-based) 從 BAM 量化、套用 bias correction。</span>
+<span data-lang="en">If you only care about gene expression + DE → <strong>Salmon + tximport + DESeq2</strong> is the modern best practice (fast, energy-efficient, near-identical results to STAR). For splicing, variant calling, IGV visualization → use <strong>STAR</strong>. Hybrid: STAR for BAM, then Salmon in --alignment-based mode for bias-corrected quantification.</span>
+</div>
+</section>
+
+<!-- ===== Interactive 1: depth / mapping ===== -->
+<section class="section">
+<div class="section-label" data-zh="互動模擬 1" data-en="INTERACTIVE 1">互動模擬 1</div>
+<h2 data-zh="比對率對 DEG 偵測的影響" data-en="Mapping rate → DEG detection power">比對率與 DEG 偵測力</h2>
+<div data-lang="zh"><p>調整總 reads、唯一比對率、PCR 重複率，看「實際可用 reads」與 DE 偵測力的關係：</p></div>
+<div data-lang="en"><p>Drag total reads, unique mapping rate, and PCR-dup rate; observe usable reads vs. DE power:</p></div>
+
 <div class="interactive-panel">
-<div class="slider-group"><label data-lang="zh">總 reads (M)<span id="valTot">30</span></label><label data-lang="en">Total reads (M)<span id="valTotEn">30</span></label><input type="range" id="sliderTot" min="5" max="100" value="30" step="1"></div>
-<div class="slider-group"><label data-lang="zh">唯一比對率 (%)<span id="valUmap">85</span></label><label data-lang="en">Unique mapping rate (%)<span id="valUmapEn">85</span></label><input type="range" id="sliderUmap" min="40" max="98" value="85" step="1"></div>
-<div class="slider-group"><label data-lang="zh">重複率 (%)<span id="valDup">12</span></label><label data-lang="en">Duplicate rate (%)<span id="valDupEn">12</span></label><input type="range" id="sliderDup" min="0" max="60" value="12" step="1"></div>
+<div class="slider-group"><label data-zh="總 reads (M)" data-en="Total reads (M)">Total reads (M) <span id="valTot">30</span></label><input type="range" id="sliderTot" min="5" max="100" value="30" step="1"></div>
+<div class="slider-group"><label data-zh="唯一比對率 (%)" data-en="Unique mapping rate (%)">Unique mapping (%) <span id="valUmap">85</span></label><input type="range" id="sliderUmap" min="40" max="98" value="85" step="1"></div>
+<div class="slider-group"><label data-zh="重複率 (%)" data-en="Duplicate rate (%)">Duplicate rate (%) <span id="valDup">12</span></label><input type="range" id="sliderDup" min="0" max="60" value="12" step="1"></div>
 <div class="stat-row">
-<div class="stat-box"><div class="sb-num" id="usable">--</div><div class="sb-lbl" data-zh="可用 reads (M)" data-en="Usable reads (M)">可用 reads (M)</div></div>
-<div class="stat-box"><div class="sb-num" id="quality">--</div><div class="sb-lbl" data-zh="品質評估" data-en="Quality">品質評估</div></div>
+<div class="stat-box"><div class="sb-num" id="usable">--</div><div class="sb-lbl" data-zh="可用 reads (M)" data-en="Usable (M)">可用 reads (M)</div></div>
+<div class="stat-box"><div class="sb-num" id="quality">--</div><div class="sb-lbl" data-zh="樣本品質" data-en="Sample QA">品質</div></div>
 <div class="stat-box"><div class="sb-num" id="degCap">--</div><div class="sb-lbl" data-zh="DEG 偵測力" data-en="DEG Power">DEG 偵測力</div></div>
 </div>
-<div id="advice" style="font-size:.9rem;color:var(--c-ink-light);"></div>
+<div id="advice" style="font-size:.9rem;color:var(--c-ink-light);margin-top:6px;"></div>
 </div>
-<div class="callout tip"><span class="callout-icon">📏</span><div data-lang="zh"><strong>業界基準：</strong>RNA-seq 樣本通常需要至少 <strong>20 M usable reads</strong>（去除 rRNA、重複後）才能可靠偵測中低表達基因；ENCODE 建議 30 M paired-end。</div><div data-lang="en"><strong>Field benchmark:</strong> Reliable detection of mid-low expressors typically needs ≥ <strong>20 M usable reads</strong> per sample after rRNA / dup removal; ENCODE recommends 30 M PE.</div></div>
+<div class="callout tip"><span class="callout-icon">📏</span><div data-lang="zh"><strong>業界基準：</strong>每樣本 <strong>20 M usable reads</strong>（rRNA、PCR dup 去除後）足以可靠偵測 |LFC| &gt; 1 的中低豐度基因；ENCODE 建議 30 M PE。</div><div data-lang="en"><strong>Benchmark:</strong> <strong>20 M usable reads</strong> per sample (after rRNA, dup removal) reliably detects |LFC| &gt; 1 in mid-low expressors; ENCODE recommends 30 M PE.</div></div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="程式碼" data-en="CODE">程式碼</div><h2 data-zh="實作範例" data-en="Code Examples">實作範例</h2>
+<!-- ===== Interactive 2: mapping vs splicing ===== -->
+<section class="section">
+<div class="section-label" data-zh="互動模擬 2" data-en="INTERACTIVE 2">互動模擬 2</div>
+<h2 data-zh="STAR 比對指標走勢" data-en="STAR alignment metrics trends">STAR 比對指標走勢</h2>
+<div data-lang="zh"><p>模擬 12 個樣本的 STAR Log.final.out 指標——拖滑桿改變整體樣本品質，觀察「健康」與「警示」分界：</p></div>
+<div data-lang="en"><p>Simulate 12 samples' STAR Log.final.out — drag to vary overall quality, watch the "healthy" vs "warning" boundary:</p></div>
+
+<div class="interactive-panel">
+<div class="slider-group"><label data-zh="樣本整體品質 (0=差, 1=優)" data-en="Sample overall quality (0=bad, 1=great)">Quality <span id="valQual">0.7</span></label><input type="range" id="sliderQual" min="0" max="1" value="0.7" step="0.05"></div>
+<div class="chart-container" style="height:300px;"><canvas id="starChart"></canvas></div>
+<p style="font-size:.82rem;color:var(--c-ink-muted);text-align:center;margin-top:6px">
+<span data-lang="zh">綠線：Uniquely mapped %。紅線：% mapped to too many loci（rRNA / repeats）。健康樣本應綠 ≥ 75%、紅 ≤ 5%。</span>
+<span data-lang="en">Green: Uniquely mapped %. Red: % mapped to too many loci (rRNA / repeats). Healthy: green ≥ 75%, red ≤ 5%.</span>
+</p>
+</div>
+</section>
+
+<!-- ===== Alignment quality metrics ===== -->
+<section class="section">
+<div class="section-label" data-zh="比對品質" data-en="ALIGNMENT QC">比對品質</div>
+<h2 data-zh="STAR Log.final.out 必看指標" data-en="STAR Log.final.out: must-read metrics">STAR Log.final.out 必看指標</h2>
+
+<div class="card-grid cols-2">
+<div class="card"><h4>Uniquely mapped reads %</h4>
+<p data-lang="zh">健康樣本應 <strong>&gt; 75%</strong>。&lt; 60% 警示：rRNA 汙染、跨物種汙染、index 錯誤、嚴重 RNA 降解。<br>檢查方法：先看 % multi-mapped 與 % too many loci，若這兩個高，rRNA 嫌疑大。</p>
+<p data-lang="en">Healthy &gt; <strong>75%</strong>. Under 60% → rRNA contamination, cross-species contamination, wrong reference, or severe RNA degradation.<br>Check: high % multi-mapped + % too many loci → rRNA likely.</p>
+</div>
+
+<div class="card"><h4>% mapped to multiple loci</h4>
+<p data-lang="zh">正常 5–10%（如 paralogs、HLA、Y-chromosome）。<strong>&gt; 20%</strong> 警示：rRNA、重複序列、index 不完整。</p>
+<p data-lang="en">Normal 5–10% (paralogs, HLA, Y-chromosome). <strong>&gt; 20%</strong> → rRNA, repeats, incomplete index.</p>
+</div>
+
+<div class="card"><h4>% too many loci</h4>
+<p data-lang="zh">這些 reads 對應 &gt; 10 個位置——通常是 rRNA、ribosomal repeats、telomere。健康應 <strong>&lt; 5%</strong>。</p>
+<p data-lang="en">Reads mapping to &gt; 10 loci — usually rRNA, ribosomal repeats, telomere. Healthy <strong>&lt; 5%</strong>.</p>
+</div>
+
+<div class="card"><h4>Mismatch rate per base</h4>
+<p data-lang="zh">應 &lt; 0.5%。過高暗示參考錯誤、品系差異、或定序品質差。</p>
+<p data-lang="en">Should be &lt; 0.5%. Higher suggests wrong reference, strain mismatch, or poor sequencing.</p>
+</div>
+
+<div class="card"><h4>Splice junction reads</h4>
+<p data-lang="zh">健康 ~30–40% reads 跨 junction。過低可能是 single-exon library（如某些病毒）或 intron-retention。</p>
+<p data-lang="en">Healthy ~30–40% reads span junctions. Low values may indicate single-exon libraries or intron retention.</p>
+</div>
+
+<div class="card"><h4>3' / 5' bias (Picard)</h4>
+<p data-lang="zh">用 <code>CollectRnaSeqMetrics</code>。3' bias &gt; 1.5 暗示 RNA 嚴重降解；建議 RIN ≥ 7 才送定序。</p>
+<p data-lang="en">From <code>CollectRnaSeqMetrics</code>. 3' bias &gt; 1.5 → severe RNA degradation; aim for RIN ≥ 7 before sequencing.</p>
+</div>
+</div>
+</section>
+
+<!-- ===== Reference build & index ===== -->
+<section class="section">
+<div class="section-label" data-zh="參考檔案" data-en="REFERENCE">參考檔案</div>
+<h2 data-zh="選對 reference + GTF" data-en="Pick the right reference + GTF">選對 reference + GTF</h2>
+<div data-lang="zh"><p>「reference」這個詞容易讓人混淆，因為它有兩個檔案、且 RNA-seq 流程兩者都要：</p></div>
+<div data-lang="en"><p>"Reference" actually means two files in RNA-seq, and you need both:</p></div>
+
+<table class="comp-table">
+<thead><tr><th data-zh="檔案" data-en="File">檔案</th><th data-zh="是什麼" data-en="What">是什麼</th><th data-zh="推薦來源" data-en="Source">來源</th></tr></thead>
+<tbody>
+<tr><td><strong>Genome FASTA (.fa)</strong></td><td data-zh="物種的 DNA 序列（一個 chromosome 一條 entry）" data-en="Genomic DNA per chromosome">基因組序列</td><td>Ensembl primary_assembly / GENCODE</td></tr>
+<tr><td><strong>Annotation GTF (.gtf)</strong></td><td data-zh="每個 exon / transcript / gene 的座標、ID、strand" data-en="Coords of exons/transcripts/genes">基因註釋</td><td>GENCODE（推薦）/ Ensembl</td></tr>
+<tr><td><strong>Transcript FASTA</strong> (for Salmon)</td><td data-zh="從 genome+GTF 萃取的轉錄本序列" data-en="Transcripts extracted from genome+GTF">轉錄本序列</td><td>GENCODE pc_transcripts</td></tr>
+</tbody></table>
+
+<div class="protip"><strong data-zh="GENCODE 比 Ensembl 好用：" data-en="GENCODE &gt; Ensembl:">GENCODE 比 Ensembl 好用：</strong>
+<span data-lang="zh">兩者其實同步，但 GENCODE 提供 <strong>chrM、chr1...chrY 的命名</strong>（Ensembl 用 1, 2, ..., MT），與 IGV、UCSC、TCGA 命名一致，省去重命名步驟。</span>
+<span data-lang="en">GENCODE and Ensembl share the same data, but GENCODE uses <strong>chrM, chr1...chrY</strong> (Ensembl uses 1, 2, ..., MT) — matching IGV, UCSC, TCGA conventions, saving rename headaches.</span>
+</div>
+
+<div class="pitfall"><strong data-zh="陷阱：" data-en="Pitfall:">陷阱：</strong>
+<span data-lang="zh">用了 patch-level 不同的 reference / GTF（如 GRCh38.p13 genome + p10 GTF），會導致少數基因座標對不上、counts 全為 0。<strong>genome 與 GTF 必須來自同一發行版</strong>。</span>
+<span data-lang="en">Mixing patch levels (e.g., GRCh38.p13 genome + p10 GTF) shifts coordinates for some genes → counts = 0. <strong>Genome and GTF MUST come from the same release.</strong></span>
+</div>
+</section>
+
+<!-- ===== Code examples ===== -->
+<section class="section">
+<div class="section-label" data-zh="程式碼" data-en="CODE">程式碼</div>
+<h2 data-zh="完整實作範例" data-en="Complete Code Examples">完整實作範例</h2>
 <div class="code-tabs"><div class="code-tab-btns">
 <button class="code-tab-btn active" onclick="switchTab(this,'star')">STAR</button>
 <button class="code-tab-btn" onclick="switchTab(this,'hisat')">HISAT2</button>
 <button class="code-tab-btn" onclick="switchTab(this,'salmon')">Salmon</button>
+<button class="code-tab-btn" onclick="switchTab(this,'kall')">kallisto</button>
+<button class="code-tab-btn" onclick="switchTab(this,'qc')">Post-align QC</button>
 </div>
-<div class="code-tab-content active" id="star"><pre><span class="comment"># 1. 建索引（一次性）</span>
+
+<div class="code-tab-content active" id="star"><pre><span class="comment"># 1. 建索引（一次性，~1 hr, 30GB RAM）</span>
 STAR --runMode genomeGenerate \
   --genomeDir star_idx/ \
-  --genomeFastaFiles GRCh38.fa \
-  --sjdbGTFfile gencode.v44.gtf \
-  --sjdbOverhang <span class="num">100</span> --runThreadN <span class="num">12</span>
+  --genomeFastaFiles GRCh38.primary_assembly.genome.fa \
+  --sjdbGTFfile gencode.v44.annotation.gtf \
+  --sjdbOverhang <span class="num">100</span> \
+  --runThreadN <span class="num">12</span>
 
-<span class="comment"># 2. 比對</span>
+<span class="comment"># 2. 兩階段比對 (推薦：可發現新 splice junctions)</span>
 STAR --runThreadN <span class="num">12</span> \
   --genomeDir star_idx/ \
-  --readFilesIn R1.fq.gz R2.fq.gz \
+  --readFilesIn trim_R1.fq.gz trim_R2.fq.gz \
   --readFilesCommand zcat \
   --outSAMtype BAM SortedByCoordinate \
+  --outSAMunmapped Within \
   --quantMode GeneCounts \
-  --outFileNamePrefix sample1.</pre></div>
-<div class="code-tab-content" id="hisat"><pre><span class="comment"># 建索引（從 UCSC 預建可省時）</span>
-hisat2-build GRCh38.fa hisat_idx
+  --twopassMode Basic \
+  --outFileNamePrefix sample1. \
+  --outFilterMultimapNmax <span class="num">20</span> \
+  --alignSJoverhangMin <span class="num">8</span> \
+  --alignSJDBoverhangMin <span class="num">1</span>
 
-<span class="comment"># 比對 + sort</span>
+<span class="comment"># 重點輸出 / Key outputs:
+#   sample1.Aligned.sortedByCoord.out.bam    ← downstream featureCounts
+#   sample1.ReadsPerGene.out.tab             ← STAR 內建 gene count
+#   sample1.SJ.out.tab                       ← splice junctions
+#   sample1.Log.final.out                    ← QC metrics（給 MultiQC）</span></pre></div>
+
+<div class="code-tab-content" id="hisat"><pre><span class="comment"># 建索引（從 UCSC 預建可省時：grch38_genome.tar.gz）</span>
+hisat2-build -p <span class="num">12</span> GRCh38.fa hisat_idx
+
+<span class="comment"># 比對 + sort BAM</span>
 hisat2 -p <span class="num">12</span> -x hisat_idx \
-  -<span class="num">1</span> R1.fq.gz -<span class="num">2</span> R2.fq.gz \
+  -<span class="num">1</span> trim_R1.fq.gz -<span class="num">2</span> trim_R2.fq.gz \
   --rna-strandness RF \
+  --no-unal \
   --summary-file sample1.summary.txt \
-  | samtools sort -@ <span class="num">8</span> -o sample1.bam -</pre></div>
-<div class="code-tab-content" id="salmon"><pre><span class="comment"># 1. 建轉錄本索引（含 decoy）</span>
+  --new-summary \
+  | samtools sort -@ <span class="num">8</span> -o sample1.bam -
+
+samtools index sample1.bam
+
+<span class="comment"># --rna-strandness RF = dUTP stranded (reverse strand for R1)
+# 若 unstranded library：省略此旗標</span></pre></div>
+
+<div class="code-tab-content" id="salmon"><pre><span class="comment"># 1. 建轉錄本索引（含 decoy，~10 min, 4GB RAM）
+# decoy = 整個 genome，幫忙吸收會錯誤對到 intronic / intergenic 的 reads</span>
+grep "^&gt;" GRCh38.fa | cut -d " " -f 1 | sed 's/&gt;//g' &gt; decoys.txt
+cat gencode.v44.transcripts.fa GRCh38.fa &gt; gentrome.fa
+
 salmon index -t gentrome.fa --decoys decoys.txt \
   -i salmon_idx -k <span class="num">31</span> --threads <span class="num">12</span>
 
-<span class="comment"># 2. 量化（自動偵測 library type）</span>
+<span class="comment"># 2. 量化（自動偵測 library type；GC + sequence bias correction）</span>
 salmon quant -i salmon_idx -l A \
-  -<span class="num">1</span> R1.fq.gz -<span class="num">2</span> R2.fq.gz \
+  -<span class="num">1</span> trim_R1.fq.gz -<span class="num">2</span> trim_R2.fq.gz \
   --validateMappings \
   --gcBias --seqBias \
-  -p <span class="num">12</span> -o sample1_salmon</pre></div>
+  --numGibbsSamples <span class="num">20</span> \
+  --threads <span class="num">8</span> \
+  -o sample1_salmon
+
+<span class="comment"># 重點輸出：
+#   sample1_salmon/quant.sf       ← transcript-level TPM + NumReads
+#   sample1_salmon/lib_format_counts.json
+#   sample1_salmon/aux_info/bootstrap/   ← Gibbs samples
+# 用 tximport 整合到 gene-level → DESeq2</span></pre></div>
+
+<div class="code-tab-content" id="kall"><pre><span class="comment"># kallisto 流程更簡單（無 decoy 機制）</span>
+kallisto index -i kall_idx gencode.v44.transcripts.fa
+
+kallisto quant -i kall_idx \
+  -o sample1_kall \
+  --rf-stranded \
+  -t <span class="num">8</span> -b <span class="num">100</span> \
+  trim_R1.fq.gz trim_R2.fq.gz
+
+<span class="comment"># -b 100 = 100 次 bootstrap，供 sleuth 估計 isoform-level uncertainty</span></pre></div>
+
+<div class="code-tab-content" id="qc"><pre><span class="comment"># 1. Picard CollectRnaSeqMetrics (3'/5' bias、ribosomal %)</span>
+picard CollectRnaSeqMetrics \
+  I=sample1.bam \
+  O=sample1.rnaseq.metrics \
+  REF_FLAT=refFlat.txt \
+  STRAND=SECOND_READ_TRANSCRIPTION_STRAND \
+  RIBOSOMAL_INTERVALS=rRNA.interval_list
+
+<span class="comment"># 2. RSeQC infer_experiment.py 驗證 strandedness</span>
+infer_experiment.py -r gencode.v44.bed -i sample1.bam
+
+<span class="comment"># 3. 對所有 BAM、log、metrics 跑 MultiQC</span>
+multiqc star_out/ picard_out/ rseqc_out/ -o multiqc/
+
+<span class="comment"># 4. samtools flagstat 看 PE/PE proper、duplicate、mapped</span>
+samtools flagstat sample1.bam &gt; sample1.flagstat.txt</pre></div>
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="進階" data-en="ADVANCED">進階</div>
-<h2 data-zh="比對品質指標" data-en="Alignment Quality Metrics">比對品質指標</h2>
-<div class="card-grid cols-3">
-<div class="card"><h4>Uniquely mapped %</h4><p data-lang="zh">良好樣本應 &gt; 75%。若 &lt; 60%，常見原因：rRNA 汙染、宿主／非預期生物汙染、index 錯誤。</p><p data-lang="en">Healthy samples &gt;75%. Below 60% often means rRNA contamination, foreign-organism content, or wrong reference.</p></div>
-<div class="card"><h4>% mapped to too many loci</h4><p data-lang="zh">&gt; 5% 表示 rRNA 或重複序列汙染。</p><p data-lang="en">&gt;5% suggests rRNA or repetitive content.</p></div>
-<div class="card"><h4 data-zh="3' / 5' 偏差" data-en="3' / 5' bias">3' / 5' 偏差</h4><p data-lang="zh">用 Picard CollectRnaSeqMetrics。3' bias 高 → RNA 降解嚴重；建議 RIN ≥ 7。</p><p data-lang="en">Use Picard CollectRnaSeqMetrics. High 3' bias → severe RNA degradation; aim for RIN ≥ 7.</p></div>
+<!-- ===== Strandedness ===== -->
+<section class="section">
+<div class="section-label" data-zh="鏈特異性" data-en="STRANDEDNESS">鏈特異性</div>
+<h2 data-zh="Strandedness：永遠先確認的設定" data-en="Strandedness: always confirm first">Strandedness — 永遠先確認</h2>
+<div data-lang="zh"><p>Library prep 是否保留鏈方向（strand），會嚴重影響 counts。設錯 strandedness 會少算 50% 以上 reads——是 RNA-seq 初學者最常見的災難。</p></div>
+<div data-lang="en"><p>Whether the library preserves strand direction dramatically affects counts. Setting strandedness wrong loses &gt; 50% of reads — the #1 disaster for RNA-seq beginners.</p></div>
+
+<table class="comp-table">
+<thead><tr><th data-zh="Library 類型" data-en="Library type">Library 類型</th><th>featureCounts <code>-s</code></th><th>htseq-count <code>-s</code></th><th>Salmon <code>-l</code></th><th>HISAT2 <code>--rna-strandness</code></th></tr></thead>
+<tbody>
+<tr><td data-zh="Unstranded（舊式 / SMART-seq）" data-en="Unstranded (old / SMART-seq)">Unstranded</td><td>0</td><td>no</td><td>U / IU</td><td>—</td></tr>
+<tr><td data-zh="Forward (less common, ScriptSeq)" data-en="Forward (less common)">Forward stranded</td><td>1</td><td>yes</td><td>SF / ISF</td><td>FR</td></tr>
+<tr><td data-zh="<strong>Reverse (TruSeq dUTP — 最常見)</strong>" data-en="<strong>Reverse (TruSeq dUTP — most common)</strong>"><strong>Reverse (dUTP)</strong></td><td><strong>2</strong></td><td>reverse</td><td>SR / ISR</td><td>RF</td></tr>
+</tbody></table>
+
+<div class="protip"><strong data-zh="不知道是哪一種？" data-en="Don't know which?">不知道是哪一種？</strong>
+<span data-lang="zh">執行 <code>infer_experiment.py -r refseq.bed -i sample.bam</code>，輸出會告訴你：「Fraction explained by 1++,1--,2+-,2-+ : 0.95」表示 reverse stranded。或用 Salmon <code>-l A</code> 自動偵測。</span>
+<span data-lang="en">Run <code>infer_experiment.py -r refseq.bed -i sample.bam</code>; output like "Fraction explained by 1++,1--,2+-,2-+ : 0.95" → reverse stranded. Or use Salmon's <code>-l A</code> auto-detection.</span>
 </div>
 </section>
 
-<section class="quiz-section"><h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
-<div class="quiz-q" data-answer="2"><p data-lang="zh">下列何者輸出 BAM 檔，可用於下游 IGV 視覺化與變異偵測？</p><p data-lang="en">Which produces BAM suitable for IGV and variant calling?</p><div class="quiz-options">
+<!-- ===== Case study ===== -->
+<section class="case-study">
+<div class="cs-label">CASE STUDY</div>
+<h4 data-zh="Salmon vs STAR：誰才是「正確答案」？" data-en="Salmon vs STAR: which is "right"?">Salmon vs STAR：誰才是「正確答案」？</h4>
+<div data-lang="zh">
+<p>2017 年 Robert Patro 發表 Salmon (Nat. Methods)，引發了一場「pseudo-alignment 夠不夠準」的論戰。Soneson 等人 (F1000Research 2016) 比較了 Salmon、kallisto、STAR+featureCounts 在 SEQC dataset 與模擬數據上的表現：</p>
+<ul style="margin:8px 0 8px 20px;color:var(--c-ink-light)">
+<li><strong>Gene-level DE</strong>：三者結果高度一致（Spearman ρ &gt; 0.95），DEG 重疊 &gt; 90%。</li>
+<li><strong>Isoform-level</strong>：Salmon 與 kallisto 比 STAR+RSEM 略遜於精確 isoform 估計，但 EM 演算法穩定。</li>
+<li><strong>Bias correction</strong>：Salmon 的 <code>--gcBias</code>、<code>--seqBias</code> 在高 GC、低 GC 基因上顯著減少假陽性。</li>
+<li><strong>節能</strong>：30M PE 樣本 Salmon 用 0.5 CPU-hr，STAR 用 5 CPU-hr——對大計畫（&gt; 100 樣本）差距顯著。</li>
+</ul>
+<p>結論：對 gene-level 表達 DE，<strong>Salmon 與 STAR 等價</strong>；速度與資源優勢使 Salmon 成為近年 best practice。但若你的研究關心 splicing、需要 BAM、要做變異偵測，STAR 仍不可取代。</p>
+</div>
+<div data-lang="en">
+<p>The 2017 Salmon paper (Patro et al., Nat. Methods) sparked an "is pseudo-alignment accurate enough?" debate. Soneson et al. (F1000Research 2016) benchmarked Salmon, kallisto, STAR+featureCounts on SEQC and simulated data:</p>
+<ul style="margin:8px 0 8px 20px;color:var(--c-ink-light)">
+<li><strong>Gene-level DE</strong>: all three highly concordant (Spearman ρ &gt; 0.95), DEG overlap &gt; 90%.</li>
+<li><strong>Isoform-level</strong>: Salmon and kallisto slightly trailed STAR+RSEM on precise isoform estimation, but EM is stable.</li>
+<li><strong>Bias correction</strong>: Salmon's <code>--gcBias</code> + <code>--seqBias</code> markedly reduced false positives on high/low-GC genes.</li>
+<li><strong>Energy</strong>: 30M PE sample: Salmon 0.5 CPU-hr, STAR 5 CPU-hr — huge difference at scale (&gt; 100 samples).</li>
+</ul>
+<p>Conclusion: for gene-level DE, <strong>Salmon ≈ STAR</strong>; speed/resource benefits made Salmon current best practice. But splicing, BAM, and variant calling still require STAR.</p>
+</div>
+</section>
+
+<!-- ===== Pitfalls ===== -->
+<section class="section">
+<div class="section-label" data-zh="陷阱" data-en="PITFALLS">陷阱</div>
+<h2 data-zh="比對階段的常見錯誤" data-en="Common alignment mistakes">比對常見錯誤</h2>
+
+<div class="pitfall"><strong data-zh="① 用 BWA / Bowtie2 比對 RNA-seq" data-en="(1) Using BWA / Bowtie2 on RNA-seq">① 用 BWA / Bowtie2 比對 RNA-seq</strong>
+<div data-lang="zh">這些是 DNA aligner，無法跨 splice junction，會把 ~30% 的 junction reads 丟掉或軟剪。永遠用 splice-aware aligner（STAR / HISAT2）。</div>
+<div data-lang="en">These are DNA aligners — they cannot span splice junctions and will drop or soft-clip ~30% of junction reads. Always use splice-aware aligners (STAR / HISAT2).</div>
+</div>
+
+<div class="pitfall"><strong data-zh="② Salmon 沒加 decoy" data-en="(2) Salmon index without decoy">② Salmon 沒加 decoy</strong>
+<div data-lang="zh">不加 decoy（即不把 genome 加進 transcriptome FASTA），會讓本該對到 intron / intergenic 的 reads 強制分配給某個 transcript，造成假陽性。<strong>永遠用 gentrome.fa + decoys.txt</strong>。</div>
+<div data-lang="en">Without decoy (i.e., not including the genome alongside the transcriptome), reads that should map to introns/intergenic get forced into transcripts → false positives. <strong>Always use gentrome.fa + decoys.txt</strong>.</div>
+</div>
+
+<div class="pitfall"><strong data-zh="③ Strandedness 設錯" data-en="(3) Wrong strandedness">③ Strandedness 設錯</strong>
+<div data-lang="zh">最常見：dUTP library 卻設 <code>-s 0</code> 或 <code>-s 1</code>。結果：counts 約剩一半，DEGs 全是假陽性。永遠先跑 <code>infer_experiment.py</code> 驗證。</div>
+<div data-lang="en">Most common: dUTP library set to <code>-s 0</code> or <code>-s 1</code>. Result: half the counts, mostly false DEGs. Always verify with <code>infer_experiment.py</code> first.</div>
+</div>
+
+<div class="pitfall"><strong data-zh="④ Genome 與 GTF patch level 不同" data-en="(4) Genome and GTF on different patch levels">④ Genome / GTF patch 不一致</strong>
+<div data-lang="zh">GRCh38.p13 genome + p10 GTF 會讓部分 gene 找不到對應 exon。下載時務必一同從同一個 GENCODE release 取。</div>
+<div data-lang="en">GRCh38.p13 genome + p10 GTF means some genes can't find their exons. Always download genome + GTF from the same GENCODE release.</div>
+</div>
+
+<div class="pitfall"><strong data-zh="⑤ STAR <code>--sjdbOverhang</code> 設錯" data-en="(5) Wrong STAR --sjdbOverhang">⑤ STAR <code>--sjdbOverhang</code> 設錯</strong>
+<div data-lang="zh"><code>--sjdbOverhang</code> 應該設為 <code>read length − 1</code>。常見錯誤：用 PE 150 卻仍用 STAR 預設 100。會導致長 read 的 junction 偵測力下降 5–10%。</div>
+<div data-lang="en"><code>--sjdbOverhang</code> should be <code>read length − 1</code>. Common mistake: using PE 150 with STAR's default 100 → 5–10% drop in junction detection for long reads.</div>
+</div>
+</section>
+
+<!-- ===== Pro tips ===== -->
+<section class="section">
+<div class="section-label" data-zh="專家建議" data-en="PRO TIPS">專家建議</div>
+<h2 data-zh="加快與改善比對品質" data-en="Speed up & sharpen alignment">加快與改善比對品質</h2>
+
+<div class="protip"><strong data-zh="① 預先建索引一次就好" data-en="(1) Build index once">① 索引建一次，全實驗室共用</strong>
+<span data-lang="zh">STAR index 30 GB / Salmon 5 GB，建一次能用多年（只要 GENCODE 版本不變）。實驗室伺服器上 <code>/data/reference/star_idx_v44/</code> 共享路徑。</span>
+<span data-lang="en">STAR index 30 GB / Salmon 5 GB — build once, reuse for years (as long as GENCODE version stays put). Use a shared lab path like <code>/data/reference/star_idx_v44/</code>.</span>
+</div>
+
+<div class="protip"><strong data-zh="② STAR + Salmon 雙跑" data-en="(2) Dual-run: STAR + Salmon">② STAR + Salmon 雙跑（推薦）</strong>
+<span data-lang="zh">STAR 拿 BAM 做 QC + IGV 視覺化 + variant calling；Salmon 從 BAM (--alignment-based) 拿 TPM + bias correction。最佳兼顧速度與分析靈活性。</span>
+<span data-lang="en">STAR for BAM (QC + IGV + variants); Salmon in --alignment-based mode on the BAM for bias-corrected TPMs. Best of both worlds.</span>
+</div>
+
+<div class="protip"><strong data-zh="③ 多執行緒不是越多越好" data-en="(3) More threads ≠ faster">③ 多執行緒不是越多越好</strong>
+<span data-lang="zh">STAR 在 16 threads 後速度幾乎飽和；Salmon 在 12 threads 後飽和。把 64-core server 開 64 個 process 比 1 個 process 用 64 threads 還快。</span>
+<span data-lang="en">STAR saturates at ~16 threads; Salmon at ~12. A 64-core server is faster with 64 single-thread processes than 1 process with 64 threads.</span>
+</div>
+
+<div class="protip"><strong data-zh="④ 使用 pipeline orchestrator" data-en="(4) Use a pipeline orchestrator">④ 用 nf-core/rnaseq 或 snakemake</strong>
+<span data-lang="zh">生產環境不要手寫 for-loop。nf-core/rnaseq 已內建 fastp + STAR + Salmon + featureCounts + MultiQC，並可在 SLURM/AWS 上自動排程。</span>
+<span data-lang="en">For production, don't write for-loops. nf-core/rnaseq bundles fastp + STAR + Salmon + featureCounts + MultiQC and auto-schedules on SLURM/AWS.</span>
+</div>
+</section>
+
+<!-- ===== Discussion ===== -->
+<section class="discussion">
+<h4>💭 <span data-zh="思考問題" data-en="Discussion questions">思考問題</span></h4>
+<ol>
+<li data-lang="zh">你的同事用 BWA 比對 RNA-seq，因為「BWA 比 STAR 還快」。請列舉至少三個你會反對他這樣做的具體理由。</li>
+<li data-lang="en">Your colleague uses BWA on RNA-seq because "BWA is faster than STAR." Give at least three concrete reasons to push back.</li>
+<li data-lang="zh">若 STAR Log.final.out 顯示 unique mapping 65%、multi-mapped 25%、unmapped 10%——可能的問題是什麼？怎麼診斷？</li>
+<li data-lang="en">A STAR log shows unique 65%, multi-mapped 25%, unmapped 10%. What could be wrong, and how do you diagnose?</li>
+<li data-lang="zh">為什麼 Salmon 的 <code>--gcBias</code> 對「比較不同實驗室間的數據」特別重要？沒做會發生什麼？</li>
+<li data-lang="en">Why is Salmon's <code>--gcBias</code> especially important when comparing data across labs? What happens without it?</li>
+<li data-lang="zh">如果你有 200 個樣本要分析，計算預算只有 2000 CPU-hr，你會選 STAR 還是 Salmon？理由？</li>
+<li data-lang="en">200 samples, 2000 CPU-hr budget — STAR or Salmon? Why?</li>
+</ol>
+</section>
+
+<!-- ===== FAQ ===== -->
+<section class="section">
+<div class="section-label" data-zh="FAQ" data-en="FAQ">FAQ</div>
+<h2 data-zh="常見問題" data-en="Frequently Asked Questions">常見問題</h2>
+<div class="faq-list">
+<div class="faq-item"><button class="faq-q"><span data-zh="STAR 為什麼吃 30 GB 記憶體？" data-en="Why does STAR need 30 GB?">STAR 為什麼吃 30 GB 記憶體？</span></button><div class="faq-a"><p data-lang="zh">STAR 把整個 Suffix Array 載入記憶體 (~25 GB) + auxiliary lookup tables (~5 GB)。這是 O(1) 查詢的代價。HISAT2 用壓縮過的 Graph-FM Index 只要 8 GB，但查詢稍慢。</p><p data-lang="en">STAR loads the full Suffix Array (~25 GB) + auxiliary tables (~5 GB) into RAM — the price of O(1) lookups. HISAT2 uses a compressed Graph-FM Index (~8 GB) but slower lookup.</p></div></div>
+
+<div class="faq-item"><button class="faq-q"><span data-zh="Salmon 不輸出 BAM，IGV 怎麼看？" data-en="Salmon has no BAM — how to view in IGV?">Salmon 沒 BAM，IGV 怎麼看？</span></button><div class="faq-a"><p data-lang="zh">Salmon 用 <code>--writeMappings</code> 可以額外輸出 SAM，但這違背了 pseudo-alignment 的速度優勢。實務上要 IGV/變異偵測就用 STAR；Salmon 專注定量。</p><p data-lang="en">Salmon's <code>--writeMappings</code> can write SAM, but that defeats the pseudo-alignment speedup. For IGV / variants, use STAR; reserve Salmon for quantification.</p></div></div>
+
+<div class="faq-item"><button class="faq-q"><span data-zh="兩階段 STAR --twopassMode 一定要做？" data-en="Is STAR --twopassMode required?">兩階段 STAR 一定要做？</span></button><div class="faq-a"><p data-lang="zh">不是強制，但建議做。第一階段只用 known junctions；第二階段加入發現的 novel junctions 重比一次。對 splicing 研究、新 isoform 發現有幫助；對純 gene-level DE 影響微小。</p><p data-lang="en">Not mandatory but recommended. Pass 1 uses known junctions only; pass 2 adds discovered novel junctions and re-aligns. Helps splicing / novel isoform discovery; minor impact on gene-level DE.</p></div></div>
+
+<div class="faq-item"><button class="faq-q"><span data-zh="Salmon 與 kallisto 哪個好？" data-en="Salmon vs kallisto?">Salmon vs kallisto？</span></button><div class="faq-a"><p data-lang="zh">2023 後共識：<strong>Salmon</strong>。原因：① decoy-aware selective alignment 更準；② <code>--gcBias</code> + <code>--seqBias</code> 校正；③ posterior bootstrap 較完整。kallisto 仍很好用，但無 bias correction。</p><p data-lang="en">2023 consensus: <strong>Salmon</strong>. (1) decoy-aware selective alignment is more accurate; (2) <code>--gcBias</code> + <code>--seqBias</code>; (3) richer posterior bootstrap. kallisto is still good but lacks bias correction.</p></div></div>
+
+<div class="faq-item"><button class="faq-q"><span data-zh="multi-mapped reads 怎麼處理？" data-en="How to handle multi-mapped reads?">multi-mapped reads 怎麼辦？</span></button><div class="faq-a"><p data-lang="zh">featureCounts 預設丟棄 (<code>-M 0</code>)；STAR ReadsPerGene 也丟棄。Salmon 用 EM 分數攤分（保留訊號）。建議：DE 分析丟棄即可；若關心 paralog/HLA，用 Salmon 的 EM。</p><p data-lang="en">featureCounts drops them by default (<code>-M 0</code>); STAR ReadsPerGene also drops. Salmon partitions them via EM (preserving signal). Recommendation: drop for DE; use Salmon's EM if studying paralogs/HLA.</p></div></div>
+
+<div class="faq-item"><button class="faq-q"><span data-zh="為什麼我的 mapping rate 只有 50%？" data-en="Why is my mapping rate only 50%?">為什麼我的 mapping rate 只有 50%？</span></button><div class="faq-a"><p data-lang="zh">常見三大原因：① rRNA 汙染（poly-A 失敗）→ 用 FastQ Screen 查；② 跨物種汙染（如人類樣本汙染了小鼠）；③ 用錯 reference（如 GRCh37 vs GRCh38）。</p><p data-lang="en">Three usual suspects: (1) rRNA contamination (failed poly-A) → check with FastQ Screen; (2) cross-species contamination (e.g., mouse in human sample); (3) wrong reference (GRCh37 vs GRCh38).</p></div></div>
+</div>
+</section>
+
+<!-- ===== Quiz ===== -->
+<section class="quiz-section">
+<h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
+
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">1. 下列哪個工具輸出 BAM 檔，可用於下游 IGV 視覺化與變異偵測？</p>
+<p data-lang="en">1. Which tool outputs a BAM suitable for IGV viewing and variant calling?</p>
+<div class="quiz-options">
 <div class="quiz-opt" data-idx="0"><span data-lang="zh">A. Salmon</span><span data-lang="en">A. Salmon</span></div>
 <div class="quiz-opt" data-idx="1"><span data-lang="zh">B. kallisto</span><span data-lang="en">B. kallisto</span></div>
 <div class="quiz-opt" data-idx="2"><span data-lang="zh">C. STAR</span><span data-lang="en">C. STAR</span></div>
 <div class="quiz-opt" data-idx="3"><span data-lang="zh">D. FastQC</span><span data-lang="en">D. FastQC</span></div>
 </div><div class="quiz-feedback" id="fb1"></div></div>
-<div class="quiz-q" data-answer="0"><p data-lang="zh">Salmon 中的 <code>--gcBias</code> 旗標主要校正什麼？</p><p data-lang="en">What does Salmon's <code>--gcBias</code> flag correct?</p><div class="quiz-options">
+
+<div class="quiz-q" data-answer="0">
+<p data-lang="zh">2. Salmon 中的 <code>--gcBias</code> 旗標主要校正什麼？</p>
+<p data-lang="en">2. What does Salmon's <code>--gcBias</code> flag correct?</p>
+<div class="quiz-options">
 <div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 片段 GC 含量造成的覆蓋偏差</span><span data-lang="en">A. Fragment-GC-content coverage bias</span></div>
 <div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 接頭汙染</span><span data-lang="en">B. Adapter contamination</span></div>
 <div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 批次效應</span><span data-lang="en">C. Batch effect</span></div>
 <div class="quiz-opt" data-idx="3"><span data-lang="zh">D. PCR 重複</span><span data-lang="en">D. PCR duplicates</span></div>
 </div><div class="quiz-feedback" id="fb2"></div></div>
+
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">3. dUTP TruSeq library 在 featureCounts 中應該設 <code>-s</code> 為？</p>
+<p data-lang="en">3. For a dUTP TruSeq library, <code>-s</code> in featureCounts should be?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 0 (unstranded)</span><span data-lang="en">A. 0 (unstranded)</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 1 (forward)</span><span data-lang="en">B. 1 (forward)</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 2 (reverse)</span><span data-lang="en">C. 2 (reverse)</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 自動偵測</span><span data-lang="en">D. Auto-detect</span></div>
+</div><div class="quiz-feedback" id="fb3"></div></div>
+
+<div class="quiz-q" data-answer="1">
+<p data-lang="zh">4. Salmon 建索引時的 "decoy" 指的是？</p>
+<p data-lang="en">4. What does "decoy" mean when building a Salmon index?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 假基因 (pseudogene)</span><span data-lang="en">A. Pseudogenes</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 把整個基因組加入索引，吸收會錯誤對到 intron/intergenic 的 reads</span><span data-lang="en">B. Include the genome to absorb reads that would falsely map to intron/intergenic</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 隨機產生的假 reads</span><span data-lang="en">C. Randomly generated fake reads</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 控制組樣本</span><span data-lang="en">D. Control samples</span></div>
+</div><div class="quiz-feedback" id="fb4"></div></div>
+
+<div class="quiz-q" data-answer="3">
+<p data-lang="zh">5. STAR 的 unique mapping rate 為 55%、% mapped to too many loci 為 25%。最可能的原因是？</p>
+<p data-lang="en">5. STAR shows unique mapping 55% and "too many loci" 25%. Most likely cause?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 樣本退化</span><span data-lang="en">A. RNA degradation</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. STAR 參數錯誤</span><span data-lang="en">B. Wrong STAR params</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 樣本量太少</span><span data-lang="en">C. Sample size too small</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. rRNA 或重複序列汙染</span><span data-lang="en">D. rRNA or repeat contamination</span></div>
+</div><div class="quiz-feedback" id="fb5"></div></div>
 </section>
 
-<nav class="page-nav"><a href="qc-trim.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 1：QC 與 Trimming" data-en="Step 1: QC & Trimming">Step 1：QC 與 Trimming</span></a><a href="quantification.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 3：Quantification" data-en="Step 3: Quantification">Step 3：Quantification</span></a></nav>
+<!-- ===== Further reading ===== -->
+<section class="section">
+<div class="section-label" data-zh="延伸閱讀" data-en="FURTHER READING">延伸閱讀</div>
+<h2 data-zh="深入文獻" data-en="Deeper Reading">深入文獻</h2>
+<ul style="margin-left:24px;color:var(--c-ink-light);font-size:.93rem;line-height:1.8">
+<li>Dobin A, et al. <em>STAR: ultrafast universal RNA-seq aligner.</em> Bioinformatics 2013.</li>
+<li>Kim D, et al. <em>Graph-based genome alignment and genotyping with HISAT2 and HISAT-genotype.</em> Nat. Biotech. 2019.</li>
+<li>Patro R, et al. <em>Salmon provides fast and bias-aware quantification of transcript expression.</em> Nat. Methods 2017.</li>
+<li>Bray NL, et al. <em>Near-optimal probabilistic RNA-seq quantification.</em> Nat. Biotech. 2016 (kallisto).</li>
+<li>Soneson C, et al. <em>Differential analyses for RNA-seq: transcript-level estimates improve gene-level inferences.</em> F1000Research 2016. — <strong data-zh="STAR vs Salmon benchmark" data-en="STAR vs Salmon benchmark">benchmark 必讀</strong></li>
+<li>Srivastava A, et al. <em>Alignment and mapping methodology influence transcript abundance estimation.</em> Genome Biology 2020.</li>
+</ul>
+</section>
+
+<nav class="page-nav">
+<a href="qc-trim.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 1：QC 與 Trimming" data-en="Step 1: QC & Trimming">Step 1：QC 與 Trimming</span></a>
+<a href="quantification.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 3：Quantification" data-en="Step 3: Quantification">Step 3：Quantification</span></a>
+</nav>
 </main>
 <footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
 <script src="../i18n.js"></script>
 <script>
 window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
 function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
+
+// Level tabs
+document.querySelectorAll('.level-tab').forEach(t => t.addEventListener('click', () => {
+  const parent = t.parentElement;
+  parent.querySelectorAll('.level-tab').forEach(x => x.classList.remove('active'));
+  t.classList.add('active');
+  parent.parentElement.querySelectorAll('.level-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById(t.dataset.pane).classList.add('active');
+}));
+
+// FAQ accordion
+document.querySelectorAll('.faq-q').forEach(b => b.addEventListener('click', () => {
+  b.classList.toggle('open');
+  b.nextElementSibling.classList.toggle('open');
+}));
+
+// Mapping rate sim
 function upMap(){
   const tot=+document.getElementById('sliderTot').value;const umap=+document.getElementById('sliderUmap').value;const dup=+document.getElementById('sliderDup').value;
-  document.getElementById('valTot').textContent=tot;document.getElementById('valTotEn').textContent=tot;
-  document.getElementById('valUmap').textContent=umap;document.getElementById('valUmapEn').textContent=umap;
-  document.getElementById('valDup').textContent=dup;document.getElementById('valDupEn').textContent=dup;
+  document.getElementById('valTot').textContent=tot;document.getElementById('valUmap').textContent=umap;document.getElementById('valDup').textContent=dup;
   const usable=tot*(umap/100)*(1-dup/100);
   document.getElementById('usable').textContent=usable.toFixed(1);
   const L=I18n.get();
@@ -149,12 +637,25 @@ function upMap(){
   else if(usable>=15){q=L==='zh'?'可':'OK';deg=L==='zh'?'中':'Mid';advice=L==='zh'?'可以分析，但低豐度基因的偵測會受限。':'Workable, but detection of low-abundance genes will be limited.';}
   else if(usable>=8){q=L==='zh'?'弱':'Weak';deg=L==='zh'?'弱':'Low';advice=L==='zh'?'建議增加定序深度或檢查 rRNA 汙染。':'Consider deeper sequencing or check for rRNA contamination.';}
   else{q=L==='zh'?'不足':'Poor';deg=L==='zh'?'極低':'Very low';advice=L==='zh'?'⚠ usable reads 不足以做可靠的 DE 分析。':'⚠ Usable reads too low for reliable DE analysis.';}
-  document.getElementById('quality').textContent=q;
-  document.getElementById('degCap').textContent=deg;
-  document.getElementById('advice').innerHTML=advice;
+  document.getElementById('quality').textContent=q;document.getElementById('degCap').textContent=deg;document.getElementById('advice').innerHTML=advice;
 }
 ['sliderTot','sliderUmap','sliderDup'].forEach(id=>document.getElementById(id).addEventListener('input',upMap));
 document.addEventListener('langchange',upMap);upMap();
-window._QF={zh:{q1_y:'STAR 與 HISAT2 是基因組比對器，輸出 BAM。Salmon/kallisto 不輸出位置資訊。',q1_n:'答案是 C：STAR 輸出 BAM。',q2_y:'GC bias 來自 PCR / 片段化偏好，--gcBias 進行片段層級的偏差校正。',q2_n:'答案是 A：GC bias 是片段 GC 含量引起的覆蓋偏差。'},en:{q1_y:'STAR/HISAT2 are genome aligners producing BAM. Salmon/kallisto do not output coordinates.',q1_n:'Answer is C: STAR outputs BAM.',q2_y:'GC bias arises from PCR / fragmentation; --gcBias performs fragment-level correction.',q2_n:'Answer is A: GC bias is a coverage bias due to fragment GC content.'}};
-const QF=window._QF||{};document.querySelectorAll(".quiz-q").forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll(".quiz-opt").forEach(o=>{o.addEventListener("click",()=>{if(q.classList.contains("answered"))return;q.classList.add("answered");const fb=document.getElementById("fb"+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?"correct":"wrong");if(!ok)q.querySelectorAll(".quiz-opt")[ans].classList.add("correct");const L=I18n.get();fb.className="quiz-feedback show "+(ok?"correct-fb":"wrong-fb");fb.textContent=(ok?"✅ ":"❌ ")+(QF[L]&&QF[L]["q"+(qi+1)+"_"+(ok?"y":"n")]||"");});});});
+
+// STAR sample distribution sim
+const starChart=new Chart(document.getElementById('starChart'),{type:'bar',data:{labels:['S1','S2','S3','S4','S5','S6','S7','S8','S9','S10','S11','S12'],datasets:[
+  {label:'Uniquely mapped %',data:[],backgroundColor:'rgba(90,174,97,0.7)'},
+  {label:'% too many loci',data:[],backgroundColor:'rgba(192,57,43,0.7)'}
+]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{title:{display:true,text:'%'},min:0,max:100}}}});
+function upStar(){
+  const q=+document.getElementById('sliderQual').value;
+  document.getElementById('valQual').textContent=q.toFixed(2);
+  const uni=[],bad=[];for(let i=0;i<12;i++){const noise=(Math.random()-0.5)*15;const u=Math.min(95,Math.max(30,50+40*q+noise));const t=Math.max(0.5,Math.min(35,30-30*q+(Math.random()-0.5)*8));uni.push(u);bad.push(t);}
+  starChart.data.datasets[0].data=uni;starChart.data.datasets[1].data=bad;starChart.update('none');
+}
+document.getElementById('sliderQual').addEventListener('input',upStar);upStar();
+
+// Quiz
+const QF={zh:{q1_y:'STAR 與 HISAT2 是基因組比對器，輸出 BAM。Salmon/kallisto 不輸出位置資訊。',q1_n:'答案是 C：STAR 輸出 BAM。',q2_y:'GC bias 來自 PCR / 片段化偏好，--gcBias 進行片段層級的偏差校正。',q2_n:'答案是 A：片段 GC 引起的覆蓋偏差。',q3_y:'dUTP 為反鏈 library，<code>-s 2</code>。',q3_n:'答案是 C：dUTP → -s 2 (reverse stranded)。',q4_y:'decoy = 整個 genome，吸收會錯誤對到 intron/intergenic 的 reads，減少假陽性。',q4_n:'答案是 B：decoy 是 genome，吸收 false-positive 對應。',q5_y:'unique 低且 too many loci 高 → 高度懷疑 rRNA 或重複序列汙染。',q5_n:'答案是 D：rRNA / 重複序列汙染。'},en:{q1_y:'STAR/HISAT2 are genome aligners producing BAM. Salmon/kallisto do not output coordinates.',q1_n:'Answer is C: STAR outputs BAM.',q2_y:'GC bias arises from PCR / fragmentation; --gcBias is fragment-level correction.',q2_n:'Answer is A: fragment GC coverage bias.',q3_y:'dUTP is reverse-stranded → -s 2.',q3_n:'Answer is C: dUTP → -s 2.',q4_y:'Decoy = the genome, absorbs reads that would falsely map to intron/intergenic, reducing false positives.',q4_n:'Answer is B: decoy = genome.',q5_y:'Low unique + high too-many-loci → strong rRNA / repeats contamination.',q5_n:'Answer is D: rRNA / repeat contamination.'}};
+document.querySelectorAll(".quiz-q").forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll(".quiz-opt").forEach(o=>{o.addEventListener("click",()=>{if(q.classList.contains("answered"))return;q.classList.add("answered");const fb=document.getElementById("fb"+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?"correct":"wrong");if(!ok)q.querySelectorAll(".quiz-opt")[ans].classList.add("correct");const L=I18n.get();fb.className="quiz-feedback show "+(ok?"correct-fb":"wrong-fb");fb.innerHTML=(ok?"✅ ":"❌ ")+(QF[L]&&QF[L]["q"+(qi+1)+"_"+(ok?"y":"n")]||"");});});});
 </script></body></html>

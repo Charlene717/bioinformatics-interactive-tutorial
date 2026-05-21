@@ -1,58 +1,128 @@
 <!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>SV / CNV — Variant Calling</title>
-<link rel="stylesheet" href="../styles.css"></head><body class="theme-variant">
+<link rel="stylesheet" href="../styles.css">
+</head><body class="theme-variant">
 <nav class="top-nav"><div class="top-nav-inner">
   <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
-  <ul class="top-nav-links">
-    <li><a href="index.html">Variant</a></li><li><a href="preprocessing.html">Preproc</a></li><li><a href="calling.html">Calling</a></li><li><a href="filtering.html">Filter</a></li><li><a href="annotation.html">Annot</a></li>
-  </ul>
+  <ul class="top-nav-links"><li><a href="index.html">Variant</a></li><li><a href="preprocessing.html">Preproc</a></li><li><a href="calling.html">Calling</a></li><li><a href="filtering.html">Filter</a></li><li><a href="annotation.html">Annot</a></li><li><a href="sv-cnv.html" class="active">SV/CNV</a></li></ul>
 </div></nav>
 <div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
-<header class="page-hero"><div class="step-badge">STEP 5 / 5</div><h1 data-zh="SV / CNV 偵測" data-en="SV / CNV Detection">SV / CNV 偵測</h1><p class="subtitle" data-lang="zh">大片段變異——SNV/Indel 之外的另一個世界。</p><p class="subtitle" data-lang="en">Large-scale variants — another world beyond SNV/Indel.</p></header><main class="content-wrap">
 
-<section class="section"><div class="section-label" data-zh="核心概念" data-en="CONCEPT">核心概念</div>
-<h2 data-zh="SV vs CNV" data-en="SV vs CNV">SV vs CNV</h2>
-<div data-lang="zh"><p>結構變異 (Structural Variant, SV) 涵蓋 &gt; 50 bp 的大片段變化，包括 deletion (DEL)、duplication (DUP)、insertion (INS)、inversion (INV)、translocation (TRA)、breakend (BND)。拷貝數變異 (CNV) 是 SV 的子集，特指 DEL 與 DUP，數量變化以 kb 至 Mb 計。</p></div>
-<div data-lang="en"><p>Structural variants (SV) cover &gt; 50 bp changes: deletion (DEL), duplication (DUP), insertion (INS), inversion (INV), translocation (TRA), breakend (BND). Copy-number variants (CNV) are a subset — DEL and DUP at kb to Mb scale.</p></div>
-</section>
+<header class="page-hero"><div class="step-badge">STEP 5 / 5 · VARIANT</div>
+<h1 data-zh="SV / CNV 偵測" data-en="SV / CNV Detection">SV / CNV 偵測</h1>
+<p class="subtitle" data-lang="zh">大片段變異——SNV/Indel 之外的另一個世界。臨床診斷率提升的關鍵。</p>
+<p class="subtitle" data-lang="en">Large-scale variants — another world beyond SNV/Indel. Key to improving clinical diagnostic yield.</p>
+<div style="margin-top:18px"><span class="diff-chip beg">🟢 Beginner</span><span class="diff-chip int">🟡 Intermediate</span><span class="diff-chip adv">🔴 Advanced</span><span class="diff-chip expert">🔵 Clinical</span></div>
+</header>
 
-<section class="section"><div class="section-label" data-zh="偵測訊號" data-en="SIGNALS">偵測訊號</div>
-<h2 data-zh="從 reads 推 SV 的四種訊號" data-en="Four Read-based SV Signals">四種訊號</h2>
-<div class="card-grid cols-2">
-<div class="card"><h4>1. Read depth (RD)</h4><p data-lang="zh">DUP 區域 reads 翻倍、DEL 區域 reads 減半——對 CNV 最直觀，需大量定序。工具：CNVkit、Control-FREEC、GATK gCNV。</p><p data-lang="en">DUP doubles depth, DEL halves it — most intuitive for CNV; needs decent depth. Tools: CNVkit, Control-FREEC, GATK gCNV.</p></div>
-<div class="card"><h4>2. Read pair (RP)</h4><p data-lang="zh">paired-end 之間距離若超出預期（或方向倒置），暗示有 DEL / INV。</p><p data-lang="en">If paired-end distance/orientation deviates from expected, suggests DEL / INV.</p></div>
-<div class="card"><h4>3. Split read (SR)</h4><p data-lang="zh">read 一半比對 chr1、一半比對 chr5 → translocation 或 INS 的標記。</p><p data-lang="en">Half a read aligns to chr1 and half to chr5 → translocation or insertion marker.</p></div>
-<div class="card"><h4>4. De novo assembly</h4><p data-lang="zh">無法比對的 reads 組裝後與基因組比對，找到 novel insertion / inversion。</p><p data-lang="en">Unmapped reads assembled then re-aligned — finds novel insertions / inversions.</p></div>
+<main class="content-wrap">
+
+<section class="section">
+<div class="section-label" data-zh="開場故事" data-en="MOTIVATION">開場故事</div>
+<h2 data-zh="為什麼 SNV 之外還要做 SV / CNV？" data-en="Why bother beyond SNVs?">為什麼還要做 SV / CNV？</h2>
+<div data-lang="zh">
+<p>一個現實：罕見遺傳病的傳統 WGS + SNV/Indel calling 診斷率約 30-40%。這代表<strong>有 60% 病人即使做了全基因組定序，仍找不到致病變異</strong>。其中很大部分是 SV/CNV——例如：</p>
+<ul style="margin-left:24px;color:var(--c-ink-light);">
+<li><strong>BRCA1/BRCA2 large deletions</strong>：佔遺傳性乳癌約 10-15% 病例</li>
+<li><strong>22q11.2 deletion syndrome</strong>：1/2000 新生兒、心臟畸形 + 顎裂 + 免疫缺陷</li>
+<li><strong>FMR1 CGG repeat expansion</strong>：脆性 X 症候群、智能障礙</li>
+<li><strong>SMN1 exon 7 deletion</strong>：脊髓性肌肉萎縮症 (SMA)</li>
+</ul>
+<p>這些變異<strong>用 SNV caller 完全看不到</strong>。所以 SV/CNV 偵測不是「進階選項」，而是任何完整臨床基因組分析的標配。2024 年的趨勢：long-read 技術讓 SV 偵測敏感度從 short-read 的 50% 提升到 95%+。</p>
 </div>
-<div class="callout tip"><span class="callout-icon">💡</span><div data-lang="zh"><strong>長讀定序 (PacBio HiFi、ONT) 的優勢：</strong>單條 read 跨越大部分 SV 與重複序列，靈敏度遠勝 short reads。短讀對 &lt; 1 kb SV 漏報率高。</div><div data-lang="en"><strong>Long-read advantage (PacBio HiFi, ONT):</strong> single reads span most SVs and repeats. Short reads miss many &lt; 1 kb SVs.</div></div>
+<div data-lang="en">
+<p>A reality: traditional WGS + SNV/Indel calling diagnoses only 30–40% of rare-disease patients. That means <strong>60% of patients, even after whole-genome sequencing, have no causative variant identified</strong>. Much of that is SV/CNV — for example:</p>
+<ul style="margin-left:24px;color:var(--c-ink-light);">
+<li><strong>BRCA1/BRCA2 large deletions</strong>: ~10–15% of hereditary breast cancer cases</li>
+<li><strong>22q11.2 deletion syndrome</strong>: 1/2000 newborns; heart defects + cleft palate + immune deficiency</li>
+<li><strong>FMR1 CGG repeat expansion</strong>: Fragile X syndrome; intellectual disability</li>
+<li><strong>SMN1 exon 7 deletion</strong>: Spinal Muscular Atrophy (SMA)</li>
+</ul>
+<p>These variants are <strong>invisible to SNV callers</strong>. So SV/CNV calling isn't "optional advanced" — it's standard in any complete clinical genomic analysis. 2024 trend: long-read sequencing boosts SV sensitivity from short-read's ~50% to 95%+.</p>
+</div>
+
+<div class="analogy" data-lang="zh"><strong>類比：</strong>SNV 像「找文章中的錯字」、SV/CNV 像「找文章中整段被刪除或重複的段落」。前者很重要但只佔錯誤的一部分；後者一漏就嚴重曲解原意。</div>
+<div class="analogy" data-lang="en"><strong>Analogy:</strong> SNVs are like finding typos; SV/CNVs are like finding deleted or duplicated paragraphs. Both matter, but missing a paragraph fundamentally distorts the meaning.</div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="工具" data-en="TOOLS">工具</div>
-<h2 data-zh="主流工具" data-en="Mainstream Tools">主流工具</h2>
+<section class="section">
+<div class="section-label" data-zh="核心概念" data-en="CONCEPT">核心概念</div>
+<h2 data-zh="一、SV vs CNV：定義與類型" data-en="I. SV vs CNV: definitions and types">一、SV vs CNV：定義與類型</h2>
+<div data-lang="zh"><p><span class="term">結構變異 (SV)<span class="term-tip">Structural Variant. &gt; 50 bp 的大片段變化。涵蓋 DEL、DUP、INS、INV、TRA、BND。</span></span> 是 &gt; 50 bp 的大片段變化，包括 deletion (DEL)、duplication (DUP)、insertion (INS)、inversion (INV)、translocation (TRA)、breakend (BND)。<span class="term">CNV<span class="term-tip">Copy Number Variant. SV 的子集，特指 DEL 與 DUP，數量變化以 kb 至 Mb 計。</span></span> 是 SV 的子集，特指 DEL 與 DUP，數量變化以 kb 至 Mb 計。</p></div>
+<div data-lang="en"><p><span class="term">Structural Variants (SVs)<span class="term-tip">&gt; 50 bp large variants: DEL, DUP, INS, INV, TRA, BND.</span></span> are &gt; 50 bp changes: deletion (DEL), duplication (DUP), insertion (INS), inversion (INV), translocation (TRA), breakend (BND). <span class="term">CNVs<span class="term-tip">Copy Number Variants — subset of SVs covering DEL and DUP at kb–Mb scale.</span></span> are a CNV subset of SVs covering DEL/DUP at kb–Mb scale.</p></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="偵測訊號" data-en="SIGNALS">偵測訊號</div>
+<h2 data-zh="二、從 reads 推 SV 的四種訊號" data-en="II. Four read-based SV signals">二、四種偵測訊號</h2>
+<div class="card-grid cols-2">
+<div class="card"><h4>1. Read depth (RD)</h4>
+<div data-lang="zh"><p>DUP 區域 reads 翻倍、DEL 區域 reads 減半——對 CNV 最直觀。工具：CNVkit、Control-FREEC、GATK gCNV。</p></div>
+<div data-lang="en"><p>DUP doubles depth, DEL halves it — most intuitive for CNV. Tools: CNVkit, Control-FREEC, GATK gCNV.</p></div>
+</div>
+<div class="card"><h4>2. Read pair (RP)</h4>
+<div data-lang="zh"><p>paired-end 之間距離若超出預期或方向倒置，暗示 DEL / INV。</p></div>
+<div data-lang="en"><p>Abnormal paired-end distance/orientation suggests DEL / INV.</p></div>
+</div>
+<div class="card"><h4>3. Split read (SR)</h4>
+<div data-lang="zh"><p>read 一半比對 chr1、一半比對 chr5 → translocation 或 INS 的標記。</p></div>
+<div data-lang="en"><p>Half a read maps to chr1, half to chr5 → translocation or insertion marker.</p></div>
+</div>
+<div class="card"><h4>4. De novo assembly</h4>
+<div data-lang="zh"><p>無法比對的 reads 組裝後與基因組比對，找到 novel INS / INV。</p></div>
+<div data-lang="en"><p>Unmapped reads assembled and re-aligned — finds novel INS / INV.</p></div>
+</div>
+</div>
+
+<div class="protip"><strong data-zh="長讀定序優勢" data-en="Long-read advantage">長讀定序優勢</strong><span data-zh="：PacBio HiFi 與 Oxford Nanopore 單條 read 可跨越大部分 SV 與重複序列，能直接觀察 breakpoint。short-read 對 &lt; 1 kb SV 漏報率高達 50%；long-read 可達 95%+ 敏感度。2024 年臨床標準正在從 short-read 過渡到 long-read。" data-en=": PacBio HiFi and Oxford Nanopore reads span most SVs and repeats, observing breakpoints directly. Short reads miss ~50% of SVs &lt; 1 kb; long reads achieve 95%+ sensitivity. The 2024 clinical standard is transitioning from short to long read."></span></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="工具" data-en="TOOLS">工具</div>
+<h2 data-zh="三、主流工具" data-en="III. Mainstream tools">三、主流工具</h2>
 <table class="comp-table"><thead><tr><th>Tool</th><th data-zh="型態" data-en="Type">型態</th><th data-zh="訊號" data-en="Signals">訊號</th><th data-zh="特色" data-en="Notes">特色</th></tr></thead><tbody>
 <tr><td><strong>Manta</strong></td><td>SV (short-read)</td><td>RP + SR + assembly</td><td data-zh="速度快、germline + somatic 兩用" data-en="Fast; germline + somatic">業界主力</td></tr>
-<tr><td><strong>Delly</strong></td><td>SV (short-read)</td><td>RP + SR</td><td data-zh="支援多樣本聯合呼叫" data-en="Multi-sample joint calling">多樣本</td></tr>
-<tr><td><strong>GRIDSS2</strong></td><td>SV (short-read)</td><td data-zh="local assembly" data-en="Local assembly">assembly</td><td data-zh="高靈敏度；癌症 SV 強" data-en="High sensitivity; strong for cancer SVs">癌症</td></tr>
-<tr><td><strong>pbsv / Sniffles2</strong></td><td>SV (long-read)</td><td>SR + 長 read</td><td data-zh="PacBio / ONT 偵測 indel + SV" data-en="PacBio / ONT for indels + SVs">長讀</td></tr>
+<tr><td><strong>Delly</strong></td><td>SV (short-read)</td><td>RP + SR</td><td data-zh="支援多樣本聯合呼叫" data-en="Multi-sample joint">多樣本</td></tr>
+<tr><td><strong>GRIDSS2</strong></td><td>SV (short-read)</td><td data-zh="local assembly" data-en="Local assembly">assembly</td><td data-zh="高靈敏度；癌症 SV 強" data-en="High sensitivity; cancer SVs">癌症</td></tr>
+<tr><td><strong>Sniffles2</strong></td><td>SV (long-read)</td><td>SR + 長 read</td><td data-zh="PacBio/ONT 偵測 indel+SV" data-en="PacBio/ONT for indels + SVs">長讀</td></tr>
 <tr><td><strong>GATK gCNV</strong></td><td>CNV</td><td>RD</td><td data-zh="WES 友好；HMM 模型" data-en="WES-friendly HMM model">WES CNV</td></tr>
-<tr><td><strong>CNVkit</strong></td><td>CNV</td><td>RD</td><td data-zh="支援 WES、targeted；視覺化好" data-en="WES / targeted; nice visualization">視覺化</td></tr>
-<tr><td>Control-FREEC</td><td>CNV</td><td>RD</td><td data-zh="同時偵測 LOH" data-en="Also detects LOH">含 LOH</td></tr>
+<tr><td><strong>CNVkit</strong></td><td>CNV</td><td>RD</td><td data-zh="支援 WES、targeted；視覺化好" data-en="WES/targeted; nice viz">視覺化</td></tr>
+<tr><td><strong>ExpansionHunter</strong></td><td data-zh="重複擴增" data-en="Repeat expansion">repeat</td><td>RD + repeat</td><td data-zh="FMR1、HTT 等已知擴增" data-en="Known expansions: FMR1, HTT">CGG repeat</td></tr>
 </tbody></table>
 </section>
 
-<section class="section"><div class="section-label" data-zh="程式碼" data-en="CODE">程式碼</div>
-<h2 data-zh="實作範例" data-en="Code Examples">實作範例</h2>
+<section class="section">
+<div class="section-label" data-zh="案例研究" data-en="CASE STUDY">案例研究</div>
+<h2 data-zh="四、真實案例：BRCA1 大片段缺失的家族" data-en="IV. Real case: BRCA1 large deletion family">四、BRCA1 大片段缺失</h2>
+<div class="case-study">
+<div class="case-meta">Walsh et al. 2010 · PNAS · BROCA panel</div>
+<h4 data-zh="📂 為什麼 SNV-only 漏掉 12% 的乳癌家族" data-en="📂 Why SNV-only missed 12% of breast-cancer families">📂 SNV-only 漏掉的 12%</h4>
+<div data-lang="zh">
+<p><span class="real-data" data-zh="真實資料" data-en="Real Data">真實資料</span> Walsh 等人對 360 個有家族病史的乳癌患者做基因檢測。傳統 Sanger + SNV-only 找到致病變異 26%。<strong>加入 BRCA1/BRCA2 大片段缺失（用 MLPA / 後來的 NGS-CNV）後，診斷率躍升至 38%</strong>。</p>
+<p><strong>關鍵發現：</strong>BRCA1 exon 13 duplication 與 exon 22 deletion 是<strong>建立者突變 (founder mutation)</strong>——在 Ashkenazi Jewish 與某些拉丁裔族群有 1-3% 攜帶率。沒做 CNV 分析的家族檢測，等於漏掉了這些高致病性變異。</p>
+<p><strong>啟示：</strong>2024 年 ACMG 建議：<strong>所有遺傳性癌症 panel 都應同時做 SNV + CNV 分析</strong>。最便宜的方式是用 short-read WGS + CNVkit；中高端用 long-read。</p>
+</div>
+<div data-lang="en">
+<p><span class="real-data">Real Data</span> Walsh et al. tested 360 breast-cancer probands with family history. Sanger + SNV-only identified pathogenic variants in 26%. <strong>Adding BRCA1/BRCA2 large deletions (via MLPA, later NGS-CNV) raised yield to 38%</strong>.</p>
+<p><strong>Key finding:</strong> BRCA1 exon 13 duplication and exon 22 deletion are <strong>founder mutations</strong> — 1–3% carrier rate in Ashkenazi Jewish and some Latino populations. Family testing without CNV analysis misses these highly pathogenic variants.</p>
+<p><strong>Takeaway:</strong> 2024 ACMG: <strong>all hereditary cancer panels should include SNV + CNV analysis</strong>. Cheap option: short-read WGS + CNVkit; high-end: long-read.</p>
+</div>
+</div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="程式碼" data-en="CODE">程式碼</div>
+<h2 data-zh="五、實作範例" data-en="V. Code examples">五、實作範例</h2>
 <div class="code-tabs"><div class="code-tab-btns">
-<button class="code-tab-btn active" onclick="switchTab(this,'manta')">Manta germline</button>
+<button class="code-tab-btn active" onclick="switchTab(this,'manta')">Manta</button>
 <button class="code-tab-btn" onclick="switchTab(this,'gcnv')">GATK gCNV</button>
 <button class="code-tab-btn" onclick="switchTab(this,'cnvkit')">CNVkit</button>
+<button class="code-tab-btn" onclick="switchTab(this,'sniffles')">Sniffles2 (long-read)</button>
 </div>
-<div class="code-tab-content active" id="manta"><pre><span class="comment"># Manta germline</span>
-configManta.py \
+<div class="code-tab-content active" id="manta"><pre>configManta.py \
   --bam analysis_ready.bam \
   --referenceFasta GRCh38.fa \
   --runDir manta_run/
-
 manta_run/runWorkflow.py -j <span class="num">8</span>
 <span class="comment"># 輸出在 manta_run/results/variants/diploidSV.vcf.gz</span></pre></div>
 <div class="code-tab-content" id="gcnv"><pre><span class="comment"># 1. 計算 read counts</span>
@@ -60,31 +130,44 @@ gatk CollectReadCounts \
   -I sample.bam -L exons.preprocessed.interval_list \
   --interval-merging-rule OVERLAPPING_ONLY \
   -O sample.counts.hdf5
-
-<span class="comment"># 2. 群體式呼叫 CNV (cohort mode)</span>
+<span class="comment"># 2. 群體式 CNV calling</span>
 gatk GermlineCNVCaller \
-  --input sample1.counts.hdf5 --input sample2.counts.hdf5 ... \
+  --input sample1.counts.hdf5 ... \
   --contig-ploidy-calls ploidy_calls/ \
-  --output cnv_out/ --output-prefix cohort \
-  --run-mode COHORT</pre></div>
+  --output cnv_out/ --run-mode COHORT</pre></div>
 <div class="code-tab-content" id="cnvkit"><pre>cnvkit.py batch \
   tumor.bam --normal normal.bam \
   --targets exons.bed --annotate refFlat.txt \
   --fasta GRCh38.fa \
   --output-reference my_reference.cnn \
   --output-dir cnvkit_out/
-
-<span class="comment"># 視覺化</span>
-cnvkit.py scatter -s sample.cns sample.cnr -o sample.scatter.png
-cnvkit.py diagram  -s sample.cns sample.cnr -o sample.diagram.pdf</pre></div>
+cnvkit.py scatter -s sample.cns sample.cnr -o sample.scatter.png</pre></div>
+<div class="code-tab-content" id="sniffles"><pre><span class="comment"># Long-read SV calling — PacBio HiFi 或 ONT</span>
+sniffles --input long_read.bam \
+  --vcf output.vcf.gz \
+  --tandem-repeats human_GRCh38_no_alt_analysis_set.trf.bed \
+  --threads <span class="num">8</span></pre></div>
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="陷阱" data-en="PITFALLS">陷阱</div>
-<h2 data-zh="常見錯誤" data-en="Common Pitfalls">常見錯誤</h2>
-<div class="callout danger"><span class="callout-icon">🚫</span><div data-lang="zh"><strong>WES 樣本跑 WGS-only 工具：</strong>WES 在 introns 沒覆蓋，許多 SV 工具會錯誤呼叫。WES 適合 GATK gCNV、CNVkit；別用 Manta 對 WES 跑 SV。</div><div data-lang="en"><strong>WES + WGS-only tools:</strong> WES lacks intronic coverage; many SV tools mis-call. Use GATK gCNV / CNVkit for WES; don't run Manta SV on WES.</div></div>
-<div class="callout danger"><span class="callout-icon">🚫</span><div data-lang="zh"><strong>只用單一工具：</strong>每個 SV 工具靈敏度與精準度互補。建議跑 Manta + Delly + GRIDSS，取交集或用 SURVIVOR 合併。</div><div data-lang="en"><strong>Single-tool reliance:</strong> SV callers have complementary sensitivity/precision. Run Manta + Delly + GRIDSS; intersect or merge with SURVIVOR.</div></div>
-<div class="callout danger"><span class="callout-icon">🚫</span><div data-lang="zh"><strong>沒過濾低品質區：</strong>centromere、telomere、segmental duplication 是 SV 假陽性的溫床——用 ENCODE blacklist + segmental dup region 過濾。</div><div data-lang="en"><strong>Skipping low-quality regions:</strong> centromeres, telomeres, segmental dups are SV FP hotspots — filter with ENCODE blacklist + segmental dup tracks.</div></div>
+<section class="section">
+<div class="section-label" data-zh="陷阱" data-en="PITFALLS">陷阱</div>
+<h2 data-zh="六、陷阱" data-en="VI. Pitfalls">六、陷阱</h2>
+<div class="pitfall"><strong data-zh="陷阱 1：WES 樣本跑 WGS-only 工具" data-en="Pitfall 1: WES sample with WGS-only tools">陷阱 1：WES 跑 Manta</strong><span data-zh="。WES 在 introns 沒覆蓋，許多 SV 工具會錯誤呼叫。WES 適合 GATK gCNV、CNVkit；別用 Manta 對 WES 跑 SV。" data-en=". WES lacks intronic coverage; many SV tools mis-call. Use GATK gCNV / CNVkit for WES; don't run Manta SV on WES."></span></div>
+<div class="pitfall"><strong data-zh="陷阱 2：只用單一工具" data-en="Pitfall 2: Relying on a single tool">陷阱 2：單一工具</strong><span data-zh="。每個 SV 工具靈敏度與精準度互補。建議跑 Manta + Delly + GRIDSS，取交集或用 SURVIVOR 合併。" data-en=". SV callers have complementary sensitivity/precision. Run Manta + Delly + GRIDSS; intersect or merge with SURVIVOR."></span></div>
+<div class="pitfall"><strong data-zh="陷阱 3：沒過濾低品質區" data-en="Pitfall 3: Skipping low-quality regions">陷阱 3：未過濾低品質區</strong><span data-zh="。centromere、telomere、segmental duplication 是 SV 假陽性的溫床——用 ENCODE blacklist + segmental dup 過濾。" data-en=". Centromeres, telomeres, segmental duplications are SV FP hotspots — filter with ENCODE blacklist + segmental dup tracks."></span></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="FAQ" data-en="FAQ">FAQ</div>
+<h2 data-zh="七、常見問答" data-en="VII. FAQ">七、常見問答</h2>
+<div class="faq-list">
+<div class="faq-item"><button class="faq-q" data-zh="❓ 何時該升級到 long-read？" data-en="❓ When to upgrade to long-read?">❓ 何時升級 long-read？</button>
+<div class="faq-a"><div data-lang="zh"><p>若你的臨床診斷率仍低 (&lt; 40%) 且懷疑 SV 比例高（如智能障礙、自閉症等神經發育疾病），long-read 顯著提升敏感度。成本：PacBio HiFi 30× 約 $800、Nanopore 約 $500（2024 價）。</p></div><div data-lang="en"><p>If your clinical yield is &lt; 40% and you suspect high SV burden (e.g., intellectual disability, autism spectrum), long-read significantly boosts sensitivity. Cost: PacBio HiFi 30× ~$800; Nanopore ~$500 (2024).</p></div></div></div>
+
+<div class="faq-item"><button class="faq-q" data-zh="❓ CNV 與 SV 該分開報告嗎？" data-en="❓ Should CNV and SV be reported separately?">❓ CNV / SV 分開報告？</button>
+<div class="faq-a"><div data-lang="zh"><p>建議分開：CNV 用 read depth + segmentation，重點在 dose 變化；SV 用 RP/SR/assembly，重點在 breakpoint。臨床報告應分項列出。但在內部分析中，可用 SURVIVOR 等工具合併以避免重複報告同一變異。</p></div><div data-lang="en"><p>Recommend separate: CNV via depth + segmentation (focus on dosage); SV via RP/SR/assembly (focus on breakpoints). Clinical reports should list separately. For internal analysis, SURVIVOR can merge to avoid duplicate reporting.</p></div></div></div>
+</div>
 </section>
 
 <nav class="page-nav"><a href="annotation.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 4：Annotation" data-en="Step 4: Annotation">Step 4：Annotation</span></a><a href="../index.html"><span class="nav-dir" data-zh="完成 ✓" data-en="Done ✓">完成 ✓</span><span class="nav-title" data-zh="返回 Hub" data-en="Back to Hub">返回 Hub</span></a></nav>
@@ -92,6 +175,7 @@ cnvkit.py diagram  -s sample.cns sample.cnr -o sample.diagram.pdf</pre></div>
 <footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
 <script src="../i18n.js"></script>
 <script>
-window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
-function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
+window.addEventListener('scroll',()=>{const h=document.documentElement;document.getElementById('progressBar').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+'%';});
+function switchTab(b,id){const p=b.closest('.code-tabs');p.querySelectorAll('.code-tab-btn').forEach(x=>x.classList.remove('active'));p.querySelectorAll('.code-tab-content').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById(id).classList.add('active');}
+document.querySelectorAll('.faq-q').forEach(b=>b.addEventListener('click',()=>{b.classList.toggle('open');b.nextElementSibling.classList.toggle('open');}));
 </script></body></html>

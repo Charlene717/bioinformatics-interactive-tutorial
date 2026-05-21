@@ -1,83 +1,245 @@
 <!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Variant Calling — Variant Calling</title>
-<link rel="stylesheet" href="../styles.css"></head><body class="theme-variant">
+<title>Step 2: Variant Calling — Bioinformatics Tutorial</title>
+<link rel="stylesheet" href="../styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+</head><body class="theme-variant">
 <nav class="top-nav"><div class="top-nav-inner">
   <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
   <ul class="top-nav-links">
-    <li><a href="index.html">Variant</a></li><li><a href="preprocessing.html">Preproc</a></li><li><a href="calling.html" class="active">Calling</a></li><li><a href="filtering.html">Filter</a></li><li><a href="annotation.html">Annot</a></li>
+    <li><a href="index.html">Variant</a></li><li><a href="preprocessing.html">Preproc</a></li><li><a href="calling.html" class="active">Calling</a></li><li><a href="filtering.html">Filter</a></li><li><a href="annotation.html">Annot</a></li><li><a href="sv-cnv.html">SV/CNV</a></li>
   </ul>
 </div></nav>
 <div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
-<header class="page-hero"><div class="step-badge">STEP 2 / 5</div><h1 data-zh="變異偵測" data-en="Variant Calling">變異偵測</h1><p class="subtitle" data-lang="zh">Germline、Somatic 與 CNN-based 三種主要策略。</p><p class="subtitle" data-lang="en">Germline, Somatic, and CNN-based — three mainstream approaches.</p></header><main class="content-wrap">
 
-<section class="section"><div class="section-label" data-zh="核心概念" data-en="CONCEPT">核心概念</div>
-<h2 data-zh="Germline vs Somatic" data-en="Germline vs Somatic">Germline vs Somatic</h2>
-<div class="card-grid cols-2">
-<div class="card"><div class="card-icon">🧬</div><h4>Germline（生殖系）</h4><p data-lang="zh">遺傳自父母的變異，存在於全身細胞。預期 VAF 為 0%、50% (het) 或 100% (hom)。GATK HaplotypeCaller 是標準。</p><p data-lang="en">Inherited variants present in every cell. Expected VAF: 0%, 50% (het), or 100% (hom). GATK HaplotypeCaller is standard.</p></div>
-<div class="card"><div class="card-icon">🦠</div><h4>Somatic（體細胞）</h4><p data-lang="zh">後天發生的變異（癌症突變）。VAF 連續變化（亞群體性），常 &lt; 50% 甚至 &lt; 10%。需 paired tumor-normal 設計與 Mutect2。</p><p data-lang="en">Acquired variants (cancer mutations). Continuous VAF (subclonality), often &lt; 50% or even &lt; 10%. Needs paired tumor-normal + Mutect2.</p></div>
+<header class="page-hero"><div class="step-badge">STEP 2 / 5</div>
+<h1 data-zh="變異偵測" data-en="Variant Calling">變異偵測</h1>
+<p class="subtitle" data-lang="zh">Germline、Somatic 與 CNN-based 三種主要策略——從機率模型到深度學習。</p>
+<p class="subtitle" data-lang="en">Germline, somatic, and CNN-based — from probabilistic models to deep learning.</p>
+<div style="margin-top:14px">
+<span class="diff-chip beg">🟢 概念</span>
+<span class="diff-chip int">🟡 HaplotypeCaller</span>
+<span class="diff-chip adv">🔴 Mutect2 + PoN</span>
+<span class="diff-chip expert">🔵 DeepVariant CNN</span>
+</div>
+</header>
+
+<main class="content-wrap">
+
+<section class="section"><div class="section-label" data-zh="為什麼重要" data-en="WHY THIS MATTERS">為什麼重要</div>
+<h2 data-zh="從 reads 推 variants：一個機率推理問題" data-en="From reads to variants: a probabilistic inference problem">從 reads 推 variants 的本質</h2>
+<div data-lang="zh">
+<p>當你看到一個位點上有 10 條 reads，其中 4 條顯示 A、6 條顯示 G——這個樣本的<strong>真實 genotype</strong> 是什麼？是 ref/alt heterozygous？還是 ref/ref + 4 個 sequencing errors？還是 alt/alt + 4 個 errors？</p>
+<p>這就是 variant calling 的核心——一個<strong>機率推理問題</strong>：給定觀察 (reads)，找最可能的 genotype。本章將揭開 <span class="term">HaplotypeCaller<span class="tip">GATK 旗艦 germline caller；在 active region 內做 local de novo assembly，再用 PairHMM 算 read-haplotype likelihood。</span></span>、<span class="term">Mutect2<span class="tip">GATK somatic caller；建立 tumor-normal 比較 + Panel of Normals + germline AF prior。</span></span>、<span class="term">DeepVariant<span class="tip">Google 開發；把 read pileup 轉成圖像，用 CNN 分類 genotype。2018 PrecisionFDA Truth Challenge 冠軍。</span></span> 三大主流方法的核心數學。</p>
+</div>
+<div data-lang="en">
+<p>You see a site with 10 reads: 4 show A, 6 show G. What's the <strong>true genotype</strong>? ref/alt heterozygous? ref/ref + 4 sequencing errors? alt/alt + 4 errors?</p>
+<p>This is the heart of variant calling — a <strong>probabilistic inference</strong> problem: given observations (reads), find the most likely genotype. This chapter dissects the core math behind <span class="term">HaplotypeCaller<span class="tip">GATK's flagship germline caller; local de novo assembly within active regions, then PairHMM for read-haplotype likelihoods.</span></span>, <span class="term">Mutect2<span class="tip">GATK somatic caller; builds tumor-normal contrast + Panel of Normals + germline AF prior.</span></span>, and <span class="term">DeepVariant<span class="tip">Built by Google; turns read pileup into images and classifies genotypes with a CNN. Won the 2018 PrecisionFDA Truth Challenge.</span></span>.</p>
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="主流工具" data-en="TOOLS">主流工具</div>
-<h2 data-zh="工具比較" data-en="Tool Comparison">工具比較</h2>
-<table class="comp-table"><thead><tr><th>Tool</th><th data-zh="情境" data-en="Scenario">情境</th><th data-zh="方法" data-en="Method">方法</th><th data-zh="特色" data-en="Notes">特色</th></tr></thead><tbody>
-<tr><td><strong>GATK HaplotypeCaller</strong></td><td>Germline</td><td data-zh="local de novo + PairHMM" data-en="Local de novo + PairHMM">local re-assembly</td><td data-zh="GATK Best Practice 標準" data-en="GATK Best Practice standard">業界標準</td></tr>
-<tr><td><strong>DeepVariant</strong></td><td>Germline</td><td data-zh="CNN 影像分類" data-en="CNN image classification">深度學習</td><td data-zh="準確度業界領先，速度快" data-en="State-of-the-art accuracy, fast">最準</td></tr>
-<tr><td><strong>Strelka2</strong></td><td>Germline + Somatic</td><td data-zh="indel realignment + 機率模型" data-en="Indel realignment + probabilistic">indel 強</td><td data-zh="indel 表現特別好" data-en="Strong on indels">indel 強</td></tr>
-<tr><td><strong>GATK Mutect2</strong></td><td>Somatic</td><td data-zh="local re-assembly + PoN" data-en="Local re-assembly + panel-of-normals">配對 + PoN</td><td data-zh="paired-mode、tumor-only 兩用；含 contamination 模型" data-en="Paired and tumor-only; contamination model">最標準</td></tr>
-<tr><td>VarScan2</td><td>Somatic</td><td data-zh="基本統計 + heuristic" data-en="Basic stats + heuristics">heuristic</td><td data-zh="老牌、輕量；不如 Mutect2" data-en="Old, light; outperformed by Mutect2">輕量</td></tr>
+<section class="section"><div class="section-label" data-zh="核心概念" data-en="CONCEPT">核心概念</div>
+<h2 data-zh="Genotype Likelihood：所有 caller 的基石" data-en="Genotype Likelihood: the foundation">Genotype Likelihood 公式</h2>
+<div data-lang="zh"><p>對二倍體一個位點，可能的 genotype 為 G ∈ {AA, AC, AG, AT, CC, CG, ...}（共 10 種，含 ref/alt 4 鹼基組合）。Bayesian 推論：</p></div>
+<div data-lang="en"><p>For a diploid site, possible genotypes are G ∈ {AA, AC, AG, AT, CC, CG, ...} (10 combos including all base pairs). Bayesian inference:</p></div>
+<div class="formula-box">
+P(G | reads) ∝ P(reads | G) · P(G)<br>
+P(reads | G) = ∏<sub>i</sub> P(read<sub>i</sub> | G)<br>
+P(read<sub>i</sub> | G=AB) = ½ · P(read<sub>i</sub> | A) + ½ · P(read<sub>i</sub> | B)
+<span class="formula-label">Posterior ∝ Likelihood × Prior · het is mixture of two homozygous likelihoods</span>
+</div>
+<div data-lang="zh"><p>每個 read 的 P(read | base) 由 base quality 決定：<code>P(observe X | true X) = 1 − 10<sup>−Q/10</sup></code>。Prior P(G) 從 dbSNP / Hardy-Weinberg 而來。</p></div>
+<div data-lang="en"><p>P(read | base) per-read comes from base quality: <code>P(observe X | true X) = 1 − 10<sup>−Q/10</sup></code>. Prior P(G) is from dbSNP / Hardy-Weinberg.</p></div>
+
+<div class="analogy"><div data-lang="zh"><strong>把 caller 想像成醫師看 X 光：</strong>10 條 reads 是 10 張不同角度的 X 光片，每張清晰度 (BQ) 不同。醫師 (caller) 結合「片子的內容」+「這種病在族群的盛行率 (prior)」算出「最可能的診斷 (genotype)」。</div>
+<div data-lang="en"><strong>A caller is like a doctor reading X-rays:</strong> 10 reads are 10 X-rays at different angles, each with different clarity (BQ). The doctor combines image content + disease prevalence in the population (prior) to derive the most likely diagnosis (genotype).</div></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="Germline vs Somatic" data-en="GERMLINE VS SOMATIC">Germline vs Somatic</h2>
+<h2 data-zh="兩條路線的本質差異" data-en="Fundamental Differences">兩條路線的本質差異</h2>
+<div class="vs-grid">
+<div class="vs-side"><h4>🧬 Germline</h4>
+<div data-lang="zh"><ul style="margin-left:18px;color:var(--c-ink-light);"><li><strong>VAF 分布：</strong>離散 0% / 50% / 100%（Hardy-Weinberg）</li><li><strong>Prior：</strong>強 (dbSNP, Hardy-Weinberg)</li><li><strong>樣本設計：</strong>單樣本或 cohort joint genotyping</li><li><strong>失敗模式：</strong>het 被叫成 hom (depth 不均)；low-complexity indel 漏報</li><li><strong>主要工具：</strong>HaplotypeCaller、DeepVariant、Strelka2 (germline)</li></ul></div>
+<div data-lang="en"><ul style="margin-left:18px;color:var(--c-ink-light);"><li><strong>VAF distribution:</strong> discrete 0% / 50% / 100% (Hardy-Weinberg)</li><li><strong>Prior:</strong> strong (dbSNP, HW)</li><li><strong>Design:</strong> single or cohort joint genotyping</li><li><strong>Failure modes:</strong> het called as hom (uneven depth); low-complexity indels missed</li><li><strong>Tools:</strong> HaplotypeCaller, DeepVariant, Strelka2 (germline)</li></ul></div>
+</div>
+<div class="vs-mid">VS</div>
+<div class="vs-side"><h4>🦠 Somatic</h4>
+<div data-lang="zh"><ul style="margin-left:18px;color:var(--c-ink-light);"><li><strong>VAF 分布：</strong>連續 0–50%（subclonality），常 &lt; 10%</li><li><strong>Prior：</strong>弱（不能假設 Hardy-Weinberg）</li><li><strong>樣本設計：</strong>paired tumor-normal，或 tumor-only + PoN</li><li><strong>失敗模式：</strong>FFPE artifact (C→T)、orientation bias (G→T)、germline 混入</li><li><strong>主要工具：</strong>Mutect2、Strelka2 (somatic)、VarScan2、MuSE</li></ul></div>
+<div data-lang="en"><ul style="margin-left:18px;color:var(--c-ink-light);"><li><strong>VAF distribution:</strong> continuous 0–50% (subclonality), often &lt; 10%</li><li><strong>Prior:</strong> weak (no HW assumption)</li><li><strong>Design:</strong> paired tumor-normal, or tumor-only + PoN</li><li><strong>Failure modes:</strong> FFPE artifact (C→T), orientation bias (G→T), germline contamination</li><li><strong>Tools:</strong> Mutect2, Strelka2 (somatic), VarScan2, MuSE</li></ul></div>
+</div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="工具比較" data-en="TOOLS">工具比較</div>
+<h2 data-zh="Germline Callers 對比" data-en="Germline Callers Compared">Germline Callers 對比</h2>
+<table class="comp-table"><thead><tr><th>Tool</th><th data-zh="方法" data-en="Method">方法</th><th data-zh="速度" data-en="Speed">速度</th><th data-zh="SNV F1 (GIAB)" data-en="SNV F1 (GIAB)">SNV F1</th><th data-zh="Indel F1 (GIAB)" data-en="Indel F1 (GIAB)">Indel F1</th><th data-zh="特色" data-en="Notes">特色</th></tr></thead><tbody>
+<tr><td><strong>GATK HaplotypeCaller</strong></td><td data-zh="local re-assembly + PairHMM" data-en="Local re-assembly + PairHMM">local re-asm + PairHMM</td><td>★★★</td><td>99.7%</td><td>99.4%</td><td data-zh="Best Practice 標準；indel friendly" data-en="Best Practice standard; indel friendly">業界標準</td></tr>
+<tr><td><strong>DeepVariant</strong></td><td data-zh="CNN 影像分類" data-en="CNN image classification">CNN</td><td>★★★★</td><td>99.95%</td><td>99.7%</td><td data-zh="準確度業界領先；硬體加速" data-en="SOTA accuracy; hardware-accelerated">最準</td></tr>
+<tr><td><strong>Strelka2 (germline)</strong></td><td data-zh="indel realignment + probabilistic" data-en="Indel realignment + probabilistic">機率模型</td><td>★★★★★</td><td>99.6%</td><td>99.5%</td><td data-zh="極快；indel 強" data-en="Very fast; strong indels">indel 強</td></tr>
+<tr><td><strong>Octopus</strong></td><td data-zh="haplotype-based Bayesian" data-en="Haplotype-based Bayesian">Bayesian</td><td>★★</td><td>99.6%</td><td>99.5%</td><td data-zh="Polyploid 支援" data-en="Polyploid support">多倍體</td></tr>
+<tr><td><strong>DRAGEN</strong></td><td data-zh="FPGA 加速" data-en="FPGA-accelerated">FPGA</td><td>★★★★★</td><td>99.95%</td><td>99.8%</td><td data-zh="商業；30× WGS 30 min" data-en="Commercial; 30× WGS in 30 min">最快 + 最準</td></tr>
+</tbody></table>
+
+<h2 data-zh="Somatic Callers 對比" data-en="Somatic Callers Compared" style="margin-top:30px">Somatic Callers 對比</h2>
+<table class="comp-table"><thead><tr><th>Tool</th><th data-zh="VAF 下限" data-en="VAF floor">VAF 下限</th><th data-zh="模式" data-en="Modes">模式</th><th data-zh="優勢" data-en="Strength">優勢</th><th data-zh="弱點" data-en="Weakness">弱點</th></tr></thead><tbody>
+<tr><td><strong>GATK Mutect2</strong></td><td>~3%</td><td data-zh="paired + tumor-only + multi-T" data-en="Paired + tumor-only + multi-T">paired / tumor-only / multi-T</td><td data-zh="contamination model；orientation bias 修正" data-en="Contamination model; orientation bias correction">PoN + 模型完整</td><td data-zh="計算重；參數多" data-en="Compute-heavy; many params">複雜</td></tr>
+<tr><td><strong>Strelka2 (somatic)</strong></td><td>~3%</td><td>paired</td><td data-zh="極快；indel 表現佳" data-en="Very fast; strong indels">快</td><td data-zh="不支援 tumor-only" data-en="No tumor-only">無 tumor-only</td></tr>
+<tr><td><strong>VarScan2</strong></td><td>~5%</td><td data-zh="paired + tumor-only" data-en="Paired + tumor-only">paired / tumor-only</td><td data-zh="輕量、簡單" data-en="Light, simple">輕量</td><td data-zh="heuristic-based；FP 多" data-en="Heuristic; more FPs">FP 多</td></tr>
+<tr><td><strong>MuSE</strong></td><td>~5%</td><td>paired</td><td data-zh="Markov substitution model；ICGC PCAWG 標準之一" data-en="Markov subst. model; one of ICGC PCAWG standards">PCAWG 標準</td><td data-zh="indel 弱" data-en="Weak on indels">indel 弱</td></tr>
+<tr><td><strong>Lancet</strong></td><td>~5%</td><td>paired</td><td data-zh="micro-assembly；indel 強" data-en="Micro-assembly; strong indels">indel 強</td><td>慢</td></tr>
+<tr><td><strong>DeepSomatic</strong></td><td>~3%</td><td data-zh="paired + tumor-only" data-en="Paired + tumor-only">paired</td><td data-zh="CNN-based；2024 推出" data-en="CNN-based; released 2024">最新</td><td data-zh="工具新、社群小" data-en="New tool, small community">新</td></tr>
 </tbody></table>
 </section>
 
-<section class="section"><div class="section-label" data-zh="Germline 流程" data-en="GERMLINE">Germline 流程</div>
-<h2 data-zh="HaplotypeCaller → GVCF → 聯合 genotyping" data-en="HaplotypeCaller → GVCF → Joint genotyping">HaplotypeCaller 流程</h2>
-<div data-lang="zh"><p>對多樣本族群最佳實踐是 <strong>GVCF + joint genotyping</strong>：每樣本單獨產生 GVCF，再用 <code>GenotypeGVCFs</code> 一起 call。這能讓「在某樣本 ref-ref 但其他樣本有變異的位置」被正確記錄為 ref/ref 而非缺失。</p></div>
-<div data-lang="en"><p>For cohorts, GATK Best Practice is <strong>GVCF + joint genotyping</strong>: per-sample GVCFs, then <code>GenotypeGVCFs</code> together. Positions that are ref-ref in some samples but variant in others get recorded as ref/ref rather than missing.</p></div>
-<div class="code-tabs"><div class="code-tab-btns">
-<button class="code-tab-btn active" onclick="switchTab(this,'gvcf')">HC → GVCF</button>
-<button class="code-tab-btn" onclick="switchTab(this,'joint')">Joint genotyping</button>
-<button class="code-tab-btn" onclick="switchTab(this,'dv')">DeepVariant</button>
+<section class="section"><div class="section-label" data-zh="HaplotypeCaller 深入" data-en="HAPLOTYPECALLER">HaplotypeCaller 深入</div>
+<h2 data-zh="四步本地重組裝魔法" data-en="The 4-step local re-assembly magic">HaplotypeCaller 四步驟</h2>
+<div class="steps-vertical">
+<div class="step-item" data-num="1"><h4 data-zh="Active Region 偵測" data-en="Active Region Detection">Active Region 偵測</h4>
+<div data-lang="zh"><p>掃描全基因組，找「有 mismatch / soft-clip / indel 訊號」的小視窗 (~300 bp)。其餘區域跳過，<strong>速度提升 10–20×</strong>。</p></div>
+<div data-lang="en"><p>Scan the genome for small windows (~300 bp) with mismatch / soft-clip / indel signals. Skip the rest — <strong>10–20× speedup</strong>.</p></div>
 </div>
-<div class="code-tab-content active" id="gvcf"><pre><span class="comment"># 1. 每樣本生 GVCF</span>
-gatk HaplotypeCaller \
-  -I patient_01.bam -R GRCh38.fa \
-  -ERC GVCF \
-  -O patient_01.g.vcf.gz
-
-<span class="comment"># 對 WES：加 --intervals 限制目標</span>
-<span class="comment"># gatk HaplotypeCaller -L exons.bed ...</span></pre></div>
-<div class="code-tab-content" id="joint"><pre><span class="comment"># 2. 合併 GVCF（族群）</span>
-gatk CombineGVCFs \
-  -R GRCh38.fa \
-  -V patient_01.g.vcf.gz \
-  -V patient_02.g.vcf.gz ... \
-  -O cohort.g.vcf.gz
-
-<span class="comment"># 或用 GenomicsDBImport（大族群更快）</span>
-gatk GenomicsDBImport \
-  --genomicsdb-workspace-path my_db \
-  --sample-name-map cohort.sample_map \
-  --intervals chr1
-
-<span class="comment"># 3. Joint genotyping</span>
-gatk GenotypeGVCFs \
-  -R GRCh38.fa -V cohort.g.vcf.gz \
-  -O cohort.vcf.gz</pre></div>
-<div class="code-tab-content" id="dv"><pre><span class="comment"># DeepVariant 對 WGS 較簡單</span>
-run_deepvariant \
-  --model_type=WGS \
-  --ref=GRCh38.fa \
-  --reads=analysis_ready.bam \
-  --output_vcf=patient_01.vcf.gz \
-  --output_gvcf=patient_01.g.vcf.gz \
-  --num_shards=<span class="num">32</span></pre></div>
+<div class="step-item" data-num="2"><h4 data-zh="局部 de novo 組裝" data-en="Local de novo assembly">局部組裝</h4>
+<div data-lang="zh"><p>在 active region 內，用 reads 建 <span class="term">de Bruijn graph<span class="tip">把 reads 切成 k-mers 後構成的圖；路徑表示可能的 haplotypes。GATK 預設 k = 10, 25。</span></span>，列出所有候選 haplotypes。這一步讓 HaplotypeCaller 對 indel 與 cluster mutation 特別強。</p></div>
+<div data-lang="en"><p>Within each active region, build a <span class="term">de Bruijn graph<span class="tip">A graph of k-mers from reads; paths represent candidate haplotypes. GATK uses k = 10, 25 by default.</span></span> from reads and enumerate candidate haplotypes. This is why HaplotypeCaller excels at indels and clustered mutations.</p></div>
+</div>
+<div class="step-item" data-num="3"><h4 data-zh="PairHMM 算 read-haplotype likelihood" data-en="PairHMM: read-haplotype likelihood">PairHMM</h4>
+<div data-lang="zh"><p><span class="term">PairHMM<span class="tip">Pair Hidden Markov Model；考慮 match/mismatch/insertion/deletion 三種狀態的 HMM，計算「read 來自此 haplotype 的機率」。是 GATK 最耗時的步驟，常用 SIMD 加速。</span></span> 算 P(read | haplotype)，視 base quality 與 indel quality 而定。</p></div>
+<div data-lang="en"><p><span class="term">PairHMM<span class="tip">Pair Hidden Markov Model — an HMM with match/mismatch/insertion/deletion states that computes P(read | haplotype). The most compute-heavy step in GATK; often SIMD-accelerated.</span></span> computes P(read | haplotype), driven by base and indel qualities.</p></div>
+</div>
+<div class="step-item" data-num="4"><h4 data-zh="Genotype 機率推論" data-en="Genotype inference">Genotype 機率推論</h4>
+<div data-lang="zh"><p>有了 read-haplotype likelihood，可推 P(reads | genotype = h1/h2) = ∏<sub>i</sub> ½ · [P(read<sub>i</sub> | h1) + P(read<sub>i</sub> | h2)]。最後比較所有 (h1, h2) 組合，輸出最高機率 genotype + Phred-scaled GQ。</p></div>
+<div data-lang="en"><p>With read-haplotype likelihoods, P(reads | genotype = h1/h2) = ∏<sub>i</sub> ½ · [P(read<sub>i</sub> | h1) + P(read<sub>i</sub> | h2)]. Compare all (h1, h2) pairs, output the max-probability genotype + Phred-scaled GQ.</p></div>
+</div>
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="Somatic 流程" data-en="SOMATIC">Somatic 流程</div>
-<h2 data-zh="Mutect2 paired tumor-normal" data-en="Mutect2 Paired Tumor-Normal">Mutect2 paired tumor-normal</h2>
-<div class="code-tabs"><div class="code-tab-btns"><button class="code-tab-btn active" onclick="switchTab(this,'mutect')">Mutect2</button></div>
-<div class="code-tab-content active" id="mutect"><pre><span class="comment"># 1. 主呼叫（含 Panel of Normals + germline resource）</span>
+<section class="section"><div class="section-label" data-zh="GVCF 魔法" data-en="GVCF MAGIC">GVCF 魔法</div>
+<h2 data-zh="為什麼要 GVCF + Joint Genotyping？" data-en="Why GVCF + Joint Genotyping?">GVCF + Joint Genotyping</h2>
+<div class="level-tabs">
+<button class="level-tab active" data-tab="gvcf-prob">🟢 問題</button>
+<button class="level-tab" data-tab="gvcf-sol">🟡 GVCF 解法</button>
+<button class="level-tab" data-tab="gvcf-tech">🔴 技術細節</button>
+</div>
+<div class="level-pane active" data-pane="gvcf-prob">
+<div data-lang="zh"><p>傳統做法：每樣本單獨 call VCF，最後 merge。問題：</p>
+<ul style="margin-left:18px;color:var(--c-ink-light);"><li><strong>真陰位 vs 缺失：</strong>樣本 A 在 chr1:1000 是 ref/ref，VCF 不會記錄。樣本 B 在同位是 het。Merge 後 A 變成「缺失」，但其實 A 是<em>有 reads 但呼叫 ref/ref</em>。</li><li><strong>聯合 calibration 失效：</strong>無法做 cohort-wide VQSR、無法檢測 Mendelian violation。</li></ul></div>
+<div data-lang="en"><p>Traditional approach: per-sample VCFs, merge at end. Problems:</p>
+<ul style="margin-left:18px;color:var(--c-ink-light);"><li><strong>True-negative vs missing:</strong> Sample A is ref/ref at chr1:1000 — not in VCF. Sample B is het. After merge, A becomes "missing" though it was actually <em>covered and called ref/ref</em>.</li><li><strong>No joint calibration:</strong> cohort-wide VQSR and Mendelian-violation checks become impossible.</li></ul></div>
+</div>
+<div class="level-pane" data-pane="gvcf-sol">
+<div data-lang="zh"><p>GVCF (Genomic VCF) = 每樣本記錄<strong>所有位置</strong>，包括 ref-only：</p>
+<ul style="margin-left:18px;color:var(--c-ink-light);"><li>變異位置：與普通 VCF 同</li><li>非變異區：用 <code>&lt;NON_REF&gt;</code> 描述 ref block，內含「若有變異會多少 likelihood」資訊</li></ul>
+<p>下游 <code>GenotypeGVCFs</code> 合併所有 GVCF，<strong>聯合呼叫</strong>每個位點，把 cohort-level 訊息納入 prior。</p></div>
+<div data-lang="en"><p>GVCF (Genomic VCF) records <strong>every position per sample</strong>, including ref-only:</p>
+<ul style="margin-left:18px;color:var(--c-ink-light);"><li>Variant positions: as in normal VCF</li><li>Non-variant: described as ref blocks via <code>&lt;NON_REF&gt;</code> with likelihoods conditioned on hypothetical alt alleles</li></ul>
+<p>Downstream <code>GenotypeGVCFs</code> merges all GVCFs and <strong>jointly</strong> calls each site, incorporating cohort-level signal into the prior.</p></div>
+</div>
+<div class="level-pane" data-pane="gvcf-tech">
+<div data-lang="zh"><p>GVCF 為了不爆容量，將連續 ref 位置「壓縮」為 ref blocks（同 GQ band 合併）。所以 GVCF 比 BAM 小一個量級，比普通 VCF 大 3–5×。</p>
+<p><strong>大族群 (&gt;1000 樣本)：</strong>建議用 <code>GenomicsDBImport</code> 而非 <code>CombineGVCFs</code>，<strong>速度與記憶體都更友善</strong>。</p>
+<p><strong>cohort-wide 不可省：</strong>同一族群 50 個樣本一起 genotyping，比 50 個獨立 call 後合併，多偵測 ~3% 真陽性 (低 VAF / borderline het)。</p></div>
+<div data-lang="en"><p>GVCFs compress consecutive ref positions into ref blocks (sharing GQ bands) to avoid bloat. GVCFs are an order of magnitude smaller than BAM, but 3–5× larger than a typical VCF.</p>
+<p><strong>Large cohorts (&gt;1000):</strong> use <code>GenomicsDBImport</code> instead of <code>CombineGVCFs</code> — far better memory and speed.</p>
+<p><strong>Cohort-wide is not optional:</strong> jointly calling 50 samples vs merging 50 independent calls detects ~3% more true positives (low VAF / borderline het).</p></div>
+</div>
+
+<div class="code-tabs" style="margin-top:24px"><div class="code-tab-btns">
+<button class="code-tab-btn active" onclick="switchTab(this,'gvcf')">HC → GVCF</button>
+<button class="code-tab-btn" onclick="switchTab(this,'joint')">Joint genotyping</button>
+<button class="code-tab-btn" onclick="switchTab(this,'dv')">DeepVariant</button>
+<button class="code-tab-btn" onclick="switchTab(this,'trio')">Trio (de novo)</button>
+</div>
+<div class="code-tab-content active" id="gvcf"><pre><span class="comment"># 1. 每樣本生 GVCF (-ERC GVCF 是關鍵)</span>
+gatk HaplotypeCaller \
+  -I HG002.analysis_ready.bam -R GRCh38.fa \
+  -ERC GVCF \
+  --pair-hmm-implementation AVX_LOGLESS_CACHING \
+  -O HG002.g.vcf.gz
+
+<span class="comment"># 對 WES：加 --intervals 限制目標</span>
+<span class="comment"># gatk HaplotypeCaller -L exons.bed --interval-padding 100 ...</span></pre></div>
+<div class="code-tab-content" id="joint"><pre><span class="comment"># 小族群 (&lt; 200 樣本) 用 CombineGVCFs</span>
+gatk CombineGVCFs \
+  -R GRCh38.fa \
+  -V HG002.g.vcf.gz -V HG003.g.vcf.gz -V HG004.g.vcf.gz \
+  -O trio.g.vcf.gz
+
+<span class="comment"># 大族群用 GenomicsDBImport (memory-friendly)</span>
+gatk GenomicsDBImport \
+  --genomicsdb-workspace-path my_db \
+  --sample-name-map cohort.sample_map \
+  -L chr1 --reader-threads 4
+
+<span class="comment"># 聯合 genotyping</span>
+gatk GenotypeGVCFs \
+  -R GRCh38.fa -V gendb://my_db \
+  -O cohort.vcf.gz</pre></div>
+<div class="code-tab-content" id="dv"><pre><span class="comment"># DeepVariant（單樣本，最簡單）</span>
+run_deepvariant \
+  --model_type=WGS \
+  --ref=GRCh38.fa \
+  --reads=HG002.analysis_ready.bam \
+  --output_vcf=HG002.dv.vcf.gz \
+  --output_gvcf=HG002.dv.g.vcf.gz \
+  --num_shards=<span class="num">32</span>
+
+<span class="comment"># DeepVariant + GLnexus 做 joint cohort calling</span>
+glnexus_cli --config DeepVariantWGS \
+  HG002.dv.g.vcf.gz HG003.dv.g.vcf.gz HG004.dv.g.vcf.gz \
+  | bcftools view - -Oz -o trio.dv.vcf.gz</pre></div>
+<div class="code-tab-content" id="trio"><pre><span class="comment"># Trio de novo SNV — GATK CalculateGenotypePosteriors + VariantAnnotator</span>
+<span class="comment"># 1. Joint genotyping with pedigree</span>
+gatk GenotypeGVCFs -V trio.g.vcf.gz -R GRCh38.fa \
+  -O trio.vcf.gz \
+  --pedigree trio.ped
+
+<span class="comment"># 2. 算 posterior + Mendel violation flag</span>
+gatk CalculateGenotypePosteriors \
+  -V trio.vcf.gz --pedigree trio.ped \
+  --supporting-callsets gnomad.vcf.gz \
+  -O trio.post.vcf.gz
+
+<span class="comment"># 3. 標 de novo + 過濾</span>
+gatk VariantAnnotator -V trio.post.vcf.gz \
+  --pedigree trio.ped \
+  --annotation PossibleDeNovo \
+  -O trio.dn.vcf.gz
+
+<span class="comment"># Pedigree (.ped) 格式：FamilyID IndividualID PaternalID MaternalID Sex Phenotype</span>
+<span class="comment"># FAM1  HG002  HG003  HG004  1  2</span>
+<span class="comment"># FAM1  HG003  0      0      1  1</span>
+<span class="comment"># FAM1  HG004  0      0      2  1</span></pre></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="DeepVariant 拆解" data-en="DEEPVARIANT DECONSTRUCTED">DeepVariant 拆解</div>
+<h2 data-zh="為什麼影像分類能打敗 HMM？" data-en="Why does image classification beat HMMs?">CNN 的勝出邏輯</h2>
+<div data-lang="zh"><p>DeepVariant 的核心發想：<strong>把每個候選位點的 read pileup 轉成 RGB 圖像</strong>，再用 Inception-v3 CNN 分類 (homozygous_ref / het / hom_alt)。</p>
+<ul style="margin-left:18px;color:var(--c-ink-light);"><li><strong>Channels：</strong>read base、base quality、mapping quality、strand、insertion/deletion 等</li><li><strong>Pixels：</strong>每 read 一橫條，每 reference 位置一豎欄</li><li><strong>訓練：</strong>用 GIAB truth set 訓練；轉移學習適應不同平台</li></ul>
+<p>優勢：CNN 能自動學到傳統 HMM 寫不出來的微妙模式（如「strand bias + low BQ + 同 cycle 位置」三特徵組合的 artifact）。在 GIAB benchmark 上 SNV F1 ~99.95%。</p>
+</div>
+<div data-lang="en"><p>DeepVariant's core idea: <strong>turn each candidate site's read pileup into an RGB image</strong>, then classify (hom_ref / het / hom_alt) with an Inception-v3 CNN.</p>
+<ul style="margin-left:18px;color:var(--c-ink-light);"><li><strong>Channels:</strong> read base, base quality, mapping quality, strand, insertion/deletion</li><li><strong>Pixels:</strong> one row per read, one column per reference position</li><li><strong>Training:</strong> on GIAB truth set; transfer-learnable across platforms</li></ul>
+<p>The CNN learns subtle joint patterns that HMMs cannot capture (e.g., "strand bias + low BQ + same-cycle artifact" three-way combo). On GIAB, SNV F1 ~99.95%.</p>
+</div>
+<div class="protip"><div data-lang="zh"><strong>DeepVariant 訓練模型：</strong>WGS、WES、PacBio HiFi、ONT、Hybrid 各有專屬模型。錯用 (例 WGS 模型跑 WES) 會 F1 掉 1–2%。</div>
+<div data-lang="en"><strong>DeepVariant model checkpoints:</strong> WGS, WES, PacBio HiFi, ONT, Hybrid each have dedicated models. Using wrong (e.g., WGS model on WES) drops F1 by 1–2%.</div></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="Mutect2 + Somatic" data-en="MUTECT2 + SOMATIC">Mutect2 + Somatic</div>
+<h2 data-zh="Paired Tumor-Normal 與 PoN 策略" data-en="Paired Tumor-Normal & PoN">Mutect2 paired tumor-normal</h2>
+<div data-lang="zh"><p>Mutect2 的核心：<strong>tumor 出現的變異 + normal 沒有 + 不在 PoN + AF prior 低</strong> = 高機率 somatic。</p>
+<p>四個核心元件：</p>
+<ul style="margin-left:18px;color:var(--c-ink-light);"><li><span class="term">PoN<span class="tip">Panel of Normals — 用同 protocol 30+ 個 normal 樣本建的 VCF，標記「技術產生的」recurring artifacts。每個實驗室應建自己的 PoN。</span></span>：標記 recurring technical artifacts</li><li><strong>germline AF prior：</strong>用 gnomAD AF 當作「這位點是 germline」的 prior，避免把 het germline 誤判 somatic</li><li><strong>contamination model：</strong>估計 tumor 中 normal 細胞（含 germline）的混入比例</li><li><strong>orientation bias：</strong>FFPE 樣本 C→T、氧化造成 G→T，需 F1R2 / F2R1 read orientation 校正</li></ul></div>
+<div data-lang="en"><p>Mutect2's core: <strong>present in tumor + absent in normal + not in PoN + low AF prior</strong> ≈ high somatic probability.</p>
+<p>Four key components:</p>
+<ul style="margin-left:18px;color:var(--c-ink-light);"><li><span class="term">PoN<span class="tip">Panel of Normals — built from 30+ normals run on the same protocol, marks recurring technical artifacts. Every lab should build its own PoN.</span></span>: flags recurring technical artifacts</li><li><strong>germline AF prior:</strong> uses gnomAD AF as "is this germline?" prior, preventing germline het being called somatic</li><li><strong>contamination model:</strong> estimates fraction of normal cells (carrying germline) in tumor</li><li><strong>orientation bias:</strong> FFPE C→T and oxidation G→T artifacts; corrected via F1R2 / F2R1 read orientation</li></ul></div>
+
+<div class="code-tabs" style="margin-top:20px"><div class="code-tab-btns">
+<button class="code-tab-btn active" onclick="switchTab(this,'mutect')">Mutect2 paired</button>
+<button class="code-tab-btn" onclick="switchTab(this,'pon')">Build PoN</button>
+<button class="code-tab-btn" onclick="switchTab(this,'tonly')">Tumor-only</button>
+</div>
+<div class="code-tab-content active" id="mutect"><pre><span class="comment"># 1. 主呼叫（含 PoN + germline AF prior）</span>
 gatk Mutect2 \
   -R GRCh38.fa \
   -I tumor.bam -tumor patient01_T \
@@ -89,34 +251,222 @@ gatk Mutect2 \
 
 <span class="comment"># 2. 校正方向偏差</span>
 gatk LearnReadOrientationModel \
-  -I f1r2.tar.gz -O read-orient-model.tar.gz
+  -I f1r2.tar.gz -O orient.tar.gz
 
-<span class="comment"># 3. 估計汙染（contamination）</span>
-gatk GetPileupSummaries -I tumor.bam -V af-only-gnomad.vcf.gz -L exons.bed -O tumor.pileups.table
-gatk CalculateContamination -I tumor.pileups.table -O contamination.table
+<span class="comment"># 3. 估計汙染</span>
+gatk GetPileupSummaries -I tumor.bam \
+  -V af-only-gnomad.vcf.gz -L exons.bed -O tumor.pileups.table
+gatk CalculateContamination \
+  -I tumor.pileups.table -O contamination.table
 
 <span class="comment"># 4. 過濾</span>
 gatk FilterMutectCalls \
   -V somatic.vcf.gz -R GRCh38.fa \
   --contamination-table contamination.table \
-  --ob-priors read-orient-model.tar.gz \
+  --ob-priors orient.tar.gz \
   -O somatic.filtered.vcf.gz</pre></div>
+<div class="code-tab-content" id="pon"><pre><span class="comment"># 建 PoN 三步驟（用 30+ 個 normal）</span>
+<span class="comment"># 1. 每 normal 跑 Mutect2 tumor-only 模式</span>
+<span class="kw">for</span> nm <span class="kw">in</span> normal1 normal2 ... normal30; <span class="kw">do</span>
+  gatk Mutect2 -R GRCh38.fa -I $nm.bam -O $nm.pon.vcf.gz --max-mnp-distance 0
+<span class="kw">done</span>
+
+<span class="comment"># 2. GenomicsDBImport 合併</span>
+gatk GenomicsDBImport -R GRCh38.fa --genomicsdb-workspace-path pon_db \
+  -V normal1.pon.vcf.gz -V normal2.pon.vcf.gz ...
+
+<span class="comment"># 3. 建 PoN VCF（保留出現在 ≥ 2 個 normal 的變異）</span>
+gatk CreateSomaticPanelOfNormals -R GRCh38.fa \
+  -V gendb://pon_db --min-sample-count 2 -O pon.vcf.gz</pre></div>
+<div class="code-tab-content" id="tonly"><pre><span class="comment"># Tumor-only：當沒有配對 normal 時（很有挑戰）</span>
+gatk Mutect2 \
+  -R GRCh38.fa \
+  -I tumor.bam \
+  --panel-of-normals pon.vcf.gz \
+  --germline-resource af-only-gnomad.vcf.gz \
+  -O tumor_only.vcf.gz
+
+<span class="comment"># tumor-only 必加嚴格過濾：</span>
+gatk FilterMutectCalls -V tumor_only.vcf.gz \
+  --max-events-in-region 2 \
+  --min-allele-fraction 0.05 \
+  -O tumor_only.filtered.vcf.gz
+
+<span class="comment"># 警告：tumor-only 大量 germline 殘留，需 gnomAD AF &lt; 0.001 過濾</span></pre></div>
 </div>
 </section>
 
 <section class="section"><div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
-<h2 data-zh="VAF 與偵測力" data-en="VAF & Detection Power">VAF 與偵測力</h2>
-<div data-lang="zh"><p>調整 VAF（變異等位基因頻率）與深度，看是否被視為「顯著」變異：</p></div>
-<div data-lang="en"><p>Tune VAF and depth; see whether the site is called significant:</p></div>
+<h2 data-zh="VAF 與深度：誰能被偵測？" data-en="VAF & Depth: Who is Detectable?">VAF & 深度模擬</h2>
+<div data-lang="zh"><p>調整 VAF 與深度，看「是否被視為顯著變異」並理解需要多少 alt reads：</p></div>
+<div data-lang="en"><p>Tune VAF and depth; see whether the site is callable and how many alt reads are needed:</p></div>
 <div class="interactive-panel">
 <div class="slider-group"><label>VAF (%) <span id="valVAF">10</span></label><input type="range" id="sliderVAF" min="1" max="50" value="10" step="0.5"></div>
-<div class="slider-group"><label data-lang="zh">深度 (X)<span id="valDP">50</span></label><label data-lang="en">Depth (X)<span id="valDPEn">50</span></label><input type="range" id="sliderDP" min="5" max="200" value="50" step="1"></div>
+<div class="slider-group"><label><span data-zh="深度 (X)" data-en="Depth (X)">深度</span> <span id="valDP">50</span></label><input type="range" id="sliderDP" min="5" max="200" value="50" step="1"></div>
 <div class="stat-row">
 <div class="stat-box"><div class="sb-num" id="altReads">--</div><div class="sb-lbl" data-zh="預期 alt reads" data-en="Expected alt reads">預期 alt reads</div></div>
-<div class="stat-box"><div class="sb-num" id="callable">--</div><div class="sb-lbl" data-zh="可被偵測？" data-en="Callable?">可偵測？</div></div>
+<div class="stat-box"><div class="sb-num" id="binomP">--</div><div class="sb-lbl" data-zh="P(≥4 alt reads)" data-en="P(≥4 alt reads)">P(≥4 alt)</div></div>
+<div class="stat-box"><div class="sb-num" id="callable">--</div><div class="sb-lbl" data-zh="可偵測？" data-en="Callable?">可偵測？</div></div>
 </div>
 </div>
-<div class="callout tip"><span class="callout-icon">💡</span><div data-lang="zh"><strong>大致原則：</strong>Germline（het VAF ~50%）→ 即使 10× 也大致可叫。Somatic VAF 10% → 至少需 30× 才有合理偵測力；VAF 5% 需 ≥ 60-100×。</div><div data-lang="en"><strong>Rule of thumb:</strong> Germline (het ~50% VAF) → callable at 10× in most cases. Somatic VAF 10% needs ≥ 30×; VAF 5% needs ≥ 60-100×.</div></div>
+<div class="callout tip"><span class="callout-icon">💡</span><div data-lang="zh"><strong>大致原則：</strong>Germline (het VAF ~50%) → 10× 也大致可叫。Somatic VAF 10% → 至少需 30× 才有合理偵測力；VAF 5% 需 ≥ 60–100×；VAF 1% 需 ≥ 1000× (UMI-based deep panel)。</div>
+<div data-lang="en"><strong>Rule of thumb:</strong> Germline (het ~50% VAF) callable at 10×. Somatic 10% needs ≥ 30×; 5% needs ≥ 60–100×; 1% needs ≥ 1000× (UMI deep panel).</div></div>
+
+<h2 data-zh="VAF 分布模擬：Germline vs Somatic" data-en="VAF Distribution: Germline vs Somatic" style="margin-top:32px">VAF 分布模擬</h2>
+<div data-lang="zh"><p>切換 tumor purity 與 subclonal fraction，觀察 VAF 直方圖的形狀：</p></div>
+<div data-lang="en"><p>Toggle tumor purity and subclonal fraction; watch the VAF histogram morph:</p></div>
+<div class="interactive-panel">
+<div class="slider-group"><label><span data-zh="Tumor purity (%)" data-en="Tumor purity (%)">Tumor purity</span> <span id="valPurity">80</span>%</label><input type="range" id="sliderPurity" min="20" max="100" value="80" step="5"></div>
+<div class="slider-group"><label><span data-zh="Subclonal fraction (%)" data-en="Subclonal fraction (%)">Subclonal fraction</span> <span id="valSub">30</span>%</label><input type="range" id="sliderSub" min="0" max="80" value="30" step="5"></div>
+<div class="chart-container" style="height:280px"><canvas id="vafChart"></canvas></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="案例" data-en="CASE STUDY">案例</div>
+<h2 data-zh="TCGA 與 DeepVariant：兩段歷史" data-en="TCGA & DeepVariant: two histories">TCGA · PrecisionFDA 案例</h2>
+<div class="case-study">
+<div class="case-meta">TCGA · 2006–2018 · 11,000 cases · 33 cancers</div>
+<h4 data-zh="📂 案例 1：TCGA 揭開癌症體細胞圖譜" data-en="📂 Case 1: TCGA unveiled cancer's somatic landscape">案例 1：TCGA 揭開癌症體細胞圖譜</h4>
+<div data-lang="zh"><p>TCGA (The Cancer Genome Atlas, NCI/NHGRI) 對 11,000 個腫瘤-normal 配對做 WES/WGS/RNA-seq，發現：</p>
+<ul style="margin-left:18px;color:var(--c-ink-light);"><li>不同癌症的 driver mutation 數量差距達 1000 倍（兒童白血病 ~5 個 vs 黑色素瘤 ~500 個）</li><li>50% 癌症有 TP53 突變；BRAF p.V600E 在黑色素瘤 50% 出現 → vemurafenib 標靶藥物誕生</li><li>同類組織不同病人有「molecular subtype」，如乳癌的 luminal A/B、HER2+、basal-like → 治療策略個別化</li></ul>
+<p>關鍵生物資訊：MC3 (Multi-Caller Consensus) 用 Mutect2 + VarScan + MuSE + ... 七個 caller 取交集 → 公開高信心 somatic call set。</p></div>
+<div data-lang="en"><p>TCGA (NCI/NHGRI) sequenced 11,000 tumor-normal pairs across 33 cancers (WES/WGS/RNA-seq), revealing:</p>
+<ul style="margin-left:18px;color:var(--c-ink-light);"><li>Driver counts differ 1000× across cancers (pediatric AML ~5 vs melanoma ~500)</li><li>50% of cancers carry TP53; BRAF p.V600E in 50% of melanomas → vemurafenib targeted therapy</li><li>Same-tissue tumors show "molecular subtypes" — luminal A/B, HER2+, basal-like in breast cancer — personalizing treatment</li></ul>
+<p>Bioinformatics highlight: MC3 (Multi-Caller Consensus) used Mutect2 + VarScan + MuSE + ... seven callers, intersection released as the high-confidence somatic set.</p></div>
+</div>
+
+<div class="case-study">
+<div class="case-meta">Google · 2017 · DeepVariant · PrecisionFDA Truth Challenge</div>
+<h4 data-zh="📂 案例 2：DeepVariant 從醫療工程奇蹟到工業標準" data-en="📂 Case 2: DeepVariant from engineering marvel to industry standard">案例 2：DeepVariant 的崛起</h4>
+<div data-lang="zh"><p>2017 年 PrecisionFDA Truth Challenge 的目標：用 GIAB 樣本評估 caller 準確度。Google 提交 DeepVariant，以「不寫一行 genomics 邏輯，純粹用 CNN 學」打敗所有手寫 caller，獲 SNV 最高 F1。</p>
+<p>影響：(1) 開啟「ML-first」變異偵測時代；(2) 證明 genomics 可用 image-classification 範式；(3) 引出 DeepSomatic、Clair3 (ONT)、PEPPER 等系列工具；(4) Google 開源 DeepVariant 後，Illumina DRAGEN、Nvidia Parabricks 都集成。</p>
+<p>反思：DeepVariant 不解釋為什麼某位點被判 het，給臨床審查帶來新的挑戰——「黑盒可信度」的爭論至今未息。</p></div>
+<div data-lang="en"><p>The 2017 PrecisionFDA Truth Challenge evaluated callers on GIAB samples. Google submitted DeepVariant: with no hand-coded genomics logic — pure CNN — it beat every hand-engineered caller and won the SNV F1.</p>
+<p>Impact: (1) opened the "ML-first" variant calling era; (2) proved genomics works as image classification; (3) seeded DeepSomatic, Clair3 (ONT), PEPPER; (4) once open-sourced, was integrated into Illumina DRAGEN and Nvidia Parabricks.</p>
+<p>Reflection: DeepVariant doesn't explain <em>why</em> a site is het — challenging for clinical review. The "black-box trustworthiness" debate continues.</p></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="決策樹" data-en="DECISION TREE">決策樹</div>
+<h2 data-zh="該用哪個 caller？" data-en="Which caller to use?">Caller 選擇決策樹</h2>
+<div class="decision-tree"><h4>🌳 <span data-zh="決策流程" data-en="Decision flow">決策流程</span></h4>
+<div data-lang="zh">
+<div class="dt-node"><span class="dt-q">Q1:</span><div>是 germline 還是 somatic？ <span class="dt-arrow">→</span> Germline 走 HaplotypeCaller/DeepVariant；Somatic 走 Mutect2/Strelka2。</div></div>
+<div class="dt-node"><span class="dt-q">Q2:</span><div>樣本 &lt; 30？<span class="dt-arrow">→ 是 →</span> 用 DeepVariant + GLnexus (joint by tools，不依賴 cohort size)。</div></div>
+<div class="dt-node"><span class="dt-q">Q3:</span><div>有 FPGA / GPU 加速？<span class="dt-arrow">→ 是 →</span> DRAGEN 或 Nvidia Parabricks，速度 5–10×。</div></div>
+<div class="dt-node"><span class="dt-q">Q4:</span><div>長讀 (PacBio/ONT)？<span class="dt-arrow">→</span> PacBio HiFi 用 DeepVariant；ONT 用 Clair3 / DeepVariant-ONT。</div></div>
+<div class="dt-node"><span class="dt-q">Q5:</span><div>低 VAF (&lt; 5%) somatic？<span class="dt-arrow">→</span> 必用 UMI-based + 至少 1000× depth，工具：smCounter2 / Vardict / Mutect2 deep-mode。</div></div>
+<div class="dt-node"><span class="dt-q">Q6:</span><div>沒有 paired normal？<span class="dt-arrow">→</span> Mutect2 tumor-only + PoN + gnomAD AF prior，但 FP 多，VUS 比例高。</div></div>
+</div>
+<div data-lang="en">
+<div class="dt-node"><span class="dt-q">Q1:</span><div>Germline or somatic? <span class="dt-arrow">→</span> Germline: HaplotypeCaller/DeepVariant; Somatic: Mutect2/Strelka2.</div></div>
+<div class="dt-node"><span class="dt-q">Q2:</span><div>&lt; 30 samples? <span class="dt-arrow">→ Yes →</span> DeepVariant + GLnexus (joint by tools, cohort-size agnostic).</div></div>
+<div class="dt-node"><span class="dt-q">Q3:</span><div>FPGA/GPU available? <span class="dt-arrow">→ Yes →</span> DRAGEN or Nvidia Parabricks — 5–10× faster.</div></div>
+<div class="dt-node"><span class="dt-q">Q4:</span><div>Long-read (PacBio/ONT)? <span class="dt-arrow">→</span> HiFi: DeepVariant; ONT: Clair3 / DeepVariant-ONT.</div></div>
+<div class="dt-node"><span class="dt-q">Q5:</span><div>Low-VAF (&lt; 5%) somatic? <span class="dt-arrow">→</span> UMI-based + ≥ 1000× depth; tools: smCounter2 / Vardict / Mutect2 deep-mode.</div></div>
+<div class="dt-node"><span class="dt-q">Q6:</span><div>No paired normal? <span class="dt-arrow">→</span> Mutect2 tumor-only + PoN + gnomAD AF prior — but many FPs and high VUS rate.</div></div>
+</div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="陷阱與 tips" data-en="PITFALLS & TIPS">陷阱與 tips</div>
+<h2 data-zh="常見陷阱" data-en="Common Pitfalls">常見陷阱</h2>
+<div class="pitfall"><div data-lang="zh"><strong>跳過 GVCF 直接 -ERC NONE：</strong>單樣本快但喪失 cohort joint genotyping 的所有好處。50 樣本族群這樣做 → 漏 ~3% 真陽性。</div>
+<div data-lang="en"><strong>Skipping GVCF with -ERC NONE:</strong> faster per-sample but loses all cohort joint-genotyping benefits. A 50-sample cohort misses ~3% true positives.</div></div>
+<div class="pitfall"><div data-lang="zh"><strong>Mutect2 沒給 PoN：</strong>少了 technical artifact 過濾，FP 暴增 5–10×。即使建 PoN 用 5 個 normal 也比沒有好。</div>
+<div data-lang="en"><strong>Mutect2 without PoN:</strong> losing technical artifact filtering means 5–10× more FPs. Even a 5-normal PoN beats none.</div></div>
+<div class="pitfall"><div data-lang="zh"><strong>不分 WES / WGS 都用 -ERC GVCF 全基因組掃：</strong>WES 應加 <code>-L exons.bed --interval-padding 100</code>，否則 90% 時間花在 off-target。</div>
+<div data-lang="en"><strong>WES without intervals:</strong> always add <code>-L exons.bed --interval-padding 100</code> for WES; otherwise 90% compute is wasted off-target.</div></div>
+<div class="protip"><div data-lang="zh"><strong>並行加速：</strong>用 <code>--intervals</code> 分 chr 並行跑（24 工作分到 24 cores），最後 <code>MergeVcfs</code> 合併。WGS 從 24 小時降到 1.5 小時。</div>
+<div data-lang="en"><strong>Parallelize:</strong> split by chromosome with <code>--intervals</code> across 24 cores, then <code>MergeVcfs</code>. WGS drops from 24 h to ~1.5 h.</div></div>
+<div class="protip"><div data-lang="zh"><strong>Cross-caller consensus：</strong>對重要結果 (driver gene、disease panel)，用兩個獨立 caller (HaplotypeCaller + DeepVariant) 取交集做最終 call。FP &lt; 0.1%。</div>
+<div data-lang="en"><strong>Cross-caller consensus:</strong> for critical regions (drivers, disease panels), intersect two independent callers (HaplotypeCaller + DeepVariant). FP &lt; 0.1%.</div></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="FAQ" data-en="FAQ">FAQ</div>
+<h2 data-zh="Calling 常見問題" data-en="Calling FAQ">Calling FAQ</h2>
+<div class="faq-list">
+<button class="faq-q">Q1. <span data-zh="HaplotypeCaller vs DeepVariant 哪個比較準？" data-en="HaplotypeCaller vs DeepVariant — which is more accurate?">HaplotypeCaller vs DeepVariant 哪個準？</span></button>
+<div class="faq-a"><div data-lang="zh">GIAB benchmark：DeepVariant SNV F1 ≈ 99.95%，HaplotypeCaller ≈ 99.7%；indel F1 DeepVariant 99.7% vs HC 99.4%。但 DeepVariant 是 black box；臨床判讀仍偏好 HC（每個 INFO 欄位都可解釋）。實務上：研究用 DV，臨床用 HC 或兩者交集。</div>
+<div data-lang="en">GIAB: DeepVariant SNV F1 ≈ 99.95%, HaplotypeCaller ≈ 99.7%; indel DV 99.7% vs HC 99.4%. But DV is a black box; clinical labs often prefer HC (every INFO field explainable). Practical: DV for research, HC or intersection for clinical.</div></div>
+
+<button class="faq-q">Q2. <span data-zh="Joint genotyping 真的有那麼大差別嗎？" data-en="Does joint genotyping really make that big a difference?">Joint genotyping 差別多大？</span></button>
+<div class="faq-a"><div data-lang="zh">cohort &gt; 50 樣本：joint 比 single-sample merge 多偵測 2–5% TP（多為低 GQ het）。trio 用 PossibleDeNovo 標記 de novo SNV (germline mutation rate ~1.2 × 10⁻⁸ per bp per generation)。</div>
+<div data-lang="en">Cohort &gt; 50: joint detects 2–5% more TP than single-sample merge (mostly low-GQ hets). Trio joint allows PossibleDeNovo annotation (germline mutation rate ~1.2 × 10⁻⁸ per bp per generation).</div></div>
+
+<button class="faq-q">Q3. <span data-zh="Mutect2 沒配對 normal 怎麼辦？" data-en="What if Mutect2 has no paired normal?">沒配對 normal 怎麼辦？</span></button>
+<div class="faq-a"><div data-lang="zh">tumor-only 模式 + 大 PoN (≥ 50 個 normal) + 嚴格 gnomAD AF &lt; 0.001 過濾。準確度約損失 30% TP，VUS 比例 2–3 倍。臨床診斷不建議；研究 driver landscape 可接受。</div>
+<div data-lang="en">Tumor-only + large PoN (≥ 50 normals) + strict gnomAD AF &lt; 0.001 filter. ~30% TP loss, 2–3× more VUS. Not recommended clinically; acceptable for research driver landscapes.</div></div>
+
+<button class="faq-q">Q4. <span data-zh="為什麼 Mutect2 的 contamination 模型重要？" data-en="Why is Mutect2's contamination model important?">contamination 模型為什麼重要？</span></button>
+<div class="faq-a"><div data-lang="zh">如果 tumor 有 20% normal 細胞混入（cellularity 80%），真 somatic VAF 50% 的變異會被看到 ~40% — 仍可叫。但真正受影響的是 germline het (VAF 50%) 看起來像 somatic low VAF (~10%)。contamination model 估計這比例後校正 likelihood，避免 germline 被誤判 somatic。</div>
+<div data-lang="en">If tumor has 20% normal-cell contamination (cellularity 80%), a true somatic VAF 50% looks like ~40% — still callable. The real danger: germline het (VAF 50%) can look like somatic low-VAF (~10%). The contamination model estimates the fraction and corrects likelihoods to avoid germline-as-somatic errors.</div></div>
+
+<button class="faq-q">Q5. <span data-zh="GVCF block 是什麼？怎麼讀？" data-en="What is a GVCF block? How to read?">GVCF block 是什麼？</span></button>
+<div class="faq-a"><div data-lang="zh">GVCF 把連續 ref-only 位置壓成 ref block（如 chr1:100-500），共享相同 GQ band（如 GQ ≥ 30）。讀 GVCF 看 <code>END</code> INFO 欄位知 block 範圍；<code>&lt;NON_REF&gt;</code> alt 表示「若該位有未觀察的變異，其 likelihood 是這樣」。</div>
+<div data-lang="en">GVCFs compress consecutive ref-only positions into ref blocks (e.g., chr1:100-500) sharing a GQ band (e.g., GQ ≥ 30). The <code>END</code> INFO gives block range; <code>&lt;NON_REF&gt;</code> alt encodes "if a hypothetical variant existed here, its likelihood would be...".</div></div>
+
+<button class="faq-q">Q6. <span data-zh="FFPE 樣本 somatic calling 為什麼那麼難？" data-en="Why is FFPE somatic calling so hard?">FFPE somatic 為什麼難？</span></button>
+<div class="faq-a"><div data-lang="zh">FFPE 固定造成 cytosine deamination → C→T (G→A on opposite strand) artifact，常 VAF 5–15%、單 strand 出現 → 直接看像 low-VAF somatic。Mutect2 的 <code>--f1r2-tar-gz</code> + <code>LearnReadOrientationModel</code> 校正：「真 somatic」應該 F1R2 和 F2R1 兩方向都出現；artifact 只一邊。</div>
+<div data-lang="en">FFPE fixation causes cytosine deamination → C→T (G→A on opposite strand) artifacts at VAF 5–15%, single-stranded — looks like low-VAF somatic. Mutect2's <code>--f1r2-tar-gz</code> + <code>LearnReadOrientationModel</code> fixes this: true somatic appears on both F1R2 and F2R1; artifacts only on one.</div></div>
+
+<button class="faq-q">Q7. <span data-zh="DeepVariant 沒有 PoN 怎麼做 somatic？" data-en="No DeepVariant somatic with PoN — how to do somatic?">DeepVariant 做 somatic？</span></button>
+<div class="faq-a"><div data-lang="zh">2024 Google 發布 <strong>DeepSomatic</strong>，paired tumor-normal CNN-based caller，benchmark 與 Mutect2 持平且 indel 略勝。但 PoN 概念被 model training 內化，使用者不需自建 PoN。</div>
+<div data-lang="en">In 2024 Google released <strong>DeepSomatic</strong>, a paired tumor-normal CNN caller — benchmarks match Mutect2 with slightly better indels. PoN logic is internalized in the model; users don't build PoN.</div></div>
+</div>
+</section>
+
+<section class="quiz-section">
+<h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
+<div class="quiz-q" data-answer="1">
+<p data-lang="zh">1. 一個 germline 樣本在某位 8/30 reads 是 alt allele。最可能的 genotype？</p>
+<p data-lang="en">1. A germline sample shows 8/30 alt reads at a site. Most likely genotype?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 0/0 (ref/ref)</span><span data-lang="en">A. 0/0 (ref/ref)</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 0/1 (het) — VAF 27% 偏低但仍像 het</span><span data-lang="en">B. 0/1 (het) — VAF 27% is low but plausible het</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 1/1 (hom alt)</span><span data-lang="en">C. 1/1 (hom alt)</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. somatic</span><span data-lang="en">D. somatic</span></div>
+</div><div class="quiz-feedback" id="fb1"></div></div>
+
+<div class="quiz-q" data-answer="0">
+<p data-lang="zh">2. 一份 tumor 樣本 VAF 5% 想偵測 somatic SNV。最低建議 depth？</p>
+<p data-lang="en">2. A tumor sample, target somatic SNV at VAF 5%. Minimum recommended depth?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. ≥ 80×</span><span data-lang="en">A. ≥ 80×</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 30×</span><span data-lang="en">B. 30×</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 15×</span><span data-lang="en">C. 15×</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 5×</span><span data-lang="en">D. 5×</span></div>
+</div><div class="quiz-feedback" id="fb2"></div></div>
+
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">3. 為什麼 GVCF 比 single-sample VCF 對 cohort 更有價值？</p>
+<p data-lang="en">3. Why is GVCF more valuable than single-sample VCF for cohorts?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 檔案較小</span><span data-lang="en">A. Smaller files</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 跑得比較快</span><span data-lang="en">B. Faster</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 可區分「真陰位」與「未觀察」，並聯合 genotyping</span><span data-lang="en">C. Distinguishes "true negative" from "unobserved" and enables joint genotyping</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 不需要 BQSR</span><span data-lang="en">D. No BQSR needed</span></div>
+</div><div class="quiz-feedback" id="fb3"></div></div>
+
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">4. Mutect2 為什麼需要 Panel of Normals？</p>
+<p data-lang="en">4. Why does Mutect2 need a Panel of Normals?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 加快計算</span><span data-lang="en">A. To speed up compute</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 代替 BQSR</span><span data-lang="en">B. To replace BQSR</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 標記「同 protocol 反覆出現的技術 artifact」</span><span data-lang="en">C. To flag recurring technical artifacts from the same protocol</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 增加 sensitivity</span><span data-lang="en">D. To boost sensitivity</span></div>
+</div><div class="quiz-feedback" id="fb4"></div></div>
+
+<div class="quiz-q" data-answer="1">
+<p data-lang="zh">5. DeepVariant 把 read pileup 轉成什麼？</p>
+<p data-lang="en">5. DeepVariant converts read pileups into what?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 1D vector</span><span data-lang="en">A. 1D vectors</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 多通道 RGB 圖像 (CNN 分類)</span><span data-lang="en">B. Multi-channel RGB images (CNN classification)</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. HMM state graph</span><span data-lang="en">C. HMM state graphs</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. k-mer histogram</span><span data-lang="en">D. k-mer histograms</span></div>
+</div><div class="quiz-feedback" id="fb5"></div></div>
 </section>
 
 <nav class="page-nav"><a href="preprocessing.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 1：預處理" data-en="Step 1: Preprocessing">Step 1：預處理</span></a><a href="filtering.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 3：Filtering" data-en="Step 3: Filtering">Step 3：Filtering</span></a></nav>
@@ -126,18 +476,75 @@ gatk FilterMutectCalls \
 <script>
 window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
 function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
-function up(){
+
+document.querySelectorAll('.faq-q').forEach(b=>b.addEventListener('click',()=>{b.classList.toggle('open');b.nextElementSibling.classList.toggle('open');}));
+document.querySelectorAll('.level-tabs').forEach(tabs=>{tabs.querySelectorAll('.level-tab').forEach(t=>t.addEventListener('click',()=>{const tgt=t.dataset.tab;tabs.querySelectorAll('.level-tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===tgt));tabs.parentElement.querySelectorAll('.level-pane').forEach(p=>p.classList.toggle('active',p.dataset.pane===tgt));}));});
+
+function binomCdfGe(k,n,p){
+  // P(X >= k) with X ~ Binomial(n,p), via complement of sum
+  let cdf=0,logC=0;
+  for(let i=0;i<k;i++){
+    if(i>0) logC+=Math.log((n-i+1)/i);
+    cdf+=Math.exp(logC + i*Math.log(p) + (n-i)*Math.log(1-p));
+  }
+  return Math.max(0,Math.min(1,1-cdf));
+}
+
+function upVAF(){
   const v=+document.getElementById('sliderVAF').value/100;const d=+document.getElementById('sliderDP').value;
   document.getElementById('valVAF').textContent=Math.round(v*100*10)/10;
-  document.getElementById('valDP').textContent=d;document.getElementById('valDPEn').textContent=d;
+  document.getElementById('valDP').textContent=d;
   const alt=v*d;
   document.getElementById('altReads').textContent=alt.toFixed(1);
+  const pCall=binomCdfGe(4,d,v);
+  document.getElementById('binomP').textContent=(pCall*100).toFixed(1)+'%';
   const L=I18n.get();let c;
-  if(alt>=8)c=L==='zh'?'是（高信心）':'Yes (high)';
-  else if(alt>=4)c=L==='zh'?'勉強':'Borderline';
-  else if(alt>=2)c=L==='zh'?'困難':'Hard';
-  else c=L==='zh'?'不可':'No';
+  if(pCall>=0.95)c=L==='zh'?'✓ 高信心':'✓ High';
+  else if(pCall>=0.8)c=L==='zh'?'△ 邊緣':'△ Borderline';
+  else if(pCall>=0.5)c=L==='zh'?'⚠ 困難':'⚠ Hard';
+  else c=L==='zh'?'✗ 不可':'✗ No';
   document.getElementById('callable').textContent=c;
 }
-['sliderVAF','sliderDP'].forEach(id=>document.getElementById(id).addEventListener('input',up));document.addEventListener('langchange',up);up();
+['sliderVAF','sliderDP'].forEach(id=>document.getElementById(id).addEventListener('input',upVAF));document.addEventListener('langchange',upVAF);upVAF();
+
+// VAF histogram chart
+const bins=Array.from({length:25},(_,i)=>i*2);
+const vafCtx=document.getElementById('vafChart');
+const vafChart=new Chart(vafCtx,{type:'bar',data:{labels:bins.map(b=>b+'%'),datasets:[
+  {label:'Germline (het + hom)',data:[],backgroundColor:'rgba(59,130,246,0.6)'},
+  {label:'Somatic (clonal + subclonal)',data:[],backgroundColor:'rgba(239,68,68,0.6)'}
+]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{title:{display:true,text:'VAF (%)'}},y:{title:{display:true,text:'count (sim)'}}},plugins:{legend:{position:'top'}}}});
+function upVafChart(){
+  const purity=+document.getElementById('sliderPurity').value/100;
+  const subFrac=+document.getElementById('sliderSub').value/100;
+  document.getElementById('valPurity').textContent=Math.round(purity*100);
+  document.getElementById('valSub').textContent=Math.round(subFrac*100);
+  // Germline: 50% peak (het), 100% peak (hom)
+  const germline=bins.map(b=>{const v=b/100;
+    return 200*Math.exp(-Math.pow((v-0.5),2)/0.005) + 100*Math.exp(-Math.pow((v-1.0),2)/0.005);});
+  // Somatic: clonal peak at purity*0.5, subclonal at half that
+  const clonalVaf=purity*0.5;
+  const subVaf=clonalVaf*(1-subFrac);
+  const somatic=bins.map(b=>{const v=b/100;
+    return 250*Math.exp(-Math.pow((v-clonalVaf),2)/0.003) + 180*subFrac*Math.exp(-Math.pow((v-subVaf),2)/0.003);});
+  vafChart.data.datasets[0].data=germline;
+  vafChart.data.datasets[1].data=somatic;
+  vafChart.update('none');
+}
+['sliderPurity','sliderSub'].forEach(id=>document.getElementById(id).addEventListener('input',upVafChart));upVafChart();
+
+// Quiz
+const QF={
+  zh:{q1_y:'8/30 (VAF 27%) 偏低但對 het 仍合理；het 期望 50%，深度低時 VAF 偏移大。',q1_n:'正確答案已標示。',
+  q2_y:'VAF 5% 需 ≥ 60–100× 才有合理偵測力；最低建議 80×。',q2_n:'正確答案已標示。',
+  q3_y:'GVCF 用 ref block 記錄所有位置，可區分真陰位 vs 未觀察，並支援聯合 genotyping。',q3_n:'正確答案已標示。',
+  q4_y:'PoN 用 30+ 個 normal 找「同 protocol 反覆出現的技術 artifact」，是 somatic FP 過濾關鍵。',q4_n:'正確答案已標示。',
+  q5_y:'DeepVariant 把 pileup 轉成多通道 RGB 圖像，用 Inception CNN 分類 genotype。',q5_n:'正確答案已標示。'},
+  en:{q1_y:'8/30 (VAF 27%) is low but still plausible het; het expects 50% but low depth gives wide variance.',q1_n:'Correct answer highlighted.',
+  q2_y:'VAF 5% needs ≥ 60–100×; minimum recommended 80×.',q2_n:'Correct answer highlighted.',
+  q3_y:'GVCF records every position via ref blocks, distinguishing true negatives from unobserved sites and enabling joint genotyping.',q3_n:'Correct answer highlighted.',
+  q4_y:'PoN uses 30+ normals to flag recurring technical artifacts — key to somatic FP reduction.',q4_n:'Correct answer highlighted.',
+  q5_y:'DeepVariant turns the pileup into a multi-channel RGB image and classifies genotypes with an Inception CNN.',q5_n:'Correct answer highlighted.'}
+};
+document.querySelectorAll('.quiz-q').forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll('.quiz-opt').forEach(o=>{o.addEventListener('click',()=>{if(q.classList.contains('answered'))return;q.classList.add('answered');const fb=document.getElementById('fb'+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?'correct':'wrong');if(!ok)q.querySelectorAll('.quiz-opt')[ans].classList.add('correct');const L=I18n.get();fb.className='quiz-feedback show '+(ok?'correct-fb':'wrong-fb');fb.textContent=(ok?'✅ ':'❌ ')+(QF[L]['q'+(qi+1)+'_'+(ok?'y':'n')]||'');});});});
 </script></body></html>

@@ -1,91 +1,396 @@
 <!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Preprocessing — Variant Calling</title>
-<link rel="stylesheet" href="../styles.css"></head><body class="theme-variant">
+<title>Step 1: Preprocessing — Variant Calling</title>
+<link rel="stylesheet" href="../styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+</head><body class="theme-variant">
 <nav class="top-nav"><div class="top-nav-inner">
   <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
   <ul class="top-nav-links">
-    <li><a href="index.html">Variant</a></li><li><a href="preprocessing.html" class="active">Preproc</a></li><li><a href="calling.html">Calling</a></li><li><a href="filtering.html">Filter</a></li><li><a href="annotation.html">Annot</a></li>
+    <li><a href="index.html">Variant</a></li><li><a href="preprocessing.html" class="active">Preproc</a></li><li><a href="calling.html">Calling</a></li><li><a href="filtering.html">Filter</a></li><li><a href="annotation.html">Annot</a></li><li><a href="sv-cnv.html">SV/CNV</a></li>
   </ul>
 </div></nav>
 <div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
-<header class="page-hero"><div class="step-badge">STEP 1 / 5</div><h1 data-zh="Read 預處理" data-en="Read Preprocessing">Read 預處理</h1><p class="subtitle" data-lang="zh">BWA-MEM 比對、MarkDuplicates、BQSR——把原始 reads 變成「分析就緒」的 BAM。</p><p class="subtitle" data-lang="en">BWA-MEM, MarkDuplicates, BQSR — turn raw reads into an "analysis-ready" BAM.</p></header><main class="content-wrap">
+
+<header class="page-hero"><div class="step-badge">STEP 1 / 5</div>
+<h1 data-zh="Read 預處理" data-en="Read Preprocessing">Read 預處理</h1>
+<p class="subtitle" data-lang="zh">BWA-MEM 比對、MarkDuplicates、BQSR——把原始 reads 變成「分析就緒」的 BAM。</p>
+<p class="subtitle" data-lang="en">BWA-MEM, MarkDuplicates, BQSR — turn raw reads into an "analysis-ready" BAM.</p>
+<div style="margin-top:14px">
+<span class="diff-chip beg">🟢 BWA 基礎</span>
+<span class="diff-chip int">🟡 MarkDup 原理</span>
+<span class="diff-chip adv">🔴 BQSR 統計</span>
+<span class="diff-chip expert">🔵 臨床 ReadGroup</span>
+</div>
+</header>
+
+<main class="content-wrap">
+
+<section class="section"><div class="section-label" data-zh="為什麼重要" data-en="WHY THIS MATTERS">為什麼重要</div>
+<h2 data-zh="預處理是「全流程準確度的天花板」" data-en="Preprocessing sets the ceiling of accuracy">預處理是準確度的天花板</h2>
+<div data-lang="zh">
+<p>Variant calling 的 false positive 有 70% 以上來自<strong>預處理瑕疵</strong>——錯誤的 mapping、未標記的 PCR duplicates、過度自信的 base quality。如果這個階段做不好，後面再強的 caller (DeepVariant、Mutect2) 也救不回來：「Garbage in, garbage out」在 NGS 領域成立得最嚴格。</p>
+<p>本章將帶你看清三個關鍵步驟——<span class="term">BWA-MEM<span class="tip">Burrows-Wheeler Aligner with MEM (maximal exact match) seeding；2009 年由 Heng Li 發表，至今仍是短讀比對的事實標準。</span></span>、<span class="term">MarkDuplicates<span class="tip">PCR 與 optical duplicates 的標記算法；不真正刪除 reads，而是設定 BAM flag 1024 (0x400)。</span></span>、<span class="term">BQSR<span class="tip">Base Quality Score Recalibration；用機器學習糾正鹼基品質的系統性偏差。</span></span>——背後的原理、陷阱與最佳實踐。</p>
+</div>
+<div data-lang="en">
+<p>Over 70% of variant-calling false positives come from <strong>preprocessing flaws</strong> — incorrect mapping, unmarked PCR duplicates, overconfident base qualities. Get this stage wrong and no caller (DeepVariant, Mutect2) can save you: "Garbage in, garbage out" applies most strictly in NGS.</p>
+<p>This chapter walks through three crucial steps — <span class="term">BWA-MEM<span class="tip">Burrows-Wheeler Aligner with MEM (maximal exact match) seeding; published in 2009 by Heng Li, still the de-facto standard for short-read alignment.</span></span>, <span class="term">MarkDuplicates<span class="tip">Algorithm to mark PCR and optical duplicates; does not delete reads but sets BAM flag 1024 (0x400).</span></span>, <span class="term">BQSR<span class="tip">Base Quality Score Recalibration; ML-based correction of systematic base-quality bias.</span></span> — and the principles, pitfalls, and best practices behind each.</p>
+</div>
+</section>
 
 <section class="section"><div class="section-label" data-zh="三大步驟" data-en="THREE STEPS">三大步驟</div>
 <h2 data-zh="預處理三步曲" data-en="The Three Preprocessing Steps">預處理三步曲</h2>
-<div class="card-grid cols-3">
-<div class="card"><div class="card-icon">🎯</div><h4 data-zh="1. 比對 (BWA-MEM)" data-en="1. Align (BWA-MEM)">1. 比對</h4><p data-lang="zh">BWA-MEM 是 70 bp+ short read 對人類基因組的事實標準。輸出 BAM 含座標。</p><p data-lang="en">BWA-MEM is the de facto standard for 70 bp+ short reads on human genome. Outputs coordinate-sorted BAM.</p></div>
-<div class="card"><div class="card-icon">🔁</div><h4 data-zh="2. 標記重複" data-en="2. Mark duplicates">2. 標記重複</h4><p data-lang="zh">PCR / optical 重複是 false positive 的主要來源。用 <code>picard MarkDuplicates</code> 或 GATK4 <code>MarkDuplicatesSpark</code>。</p><p data-lang="en">PCR / optical duplicates are a major false-positive source. Use <code>picard MarkDuplicates</code> or GATK4 <code>MarkDuplicatesSpark</code>.</p></div>
-<div class="card"><div class="card-icon">📏</div><h4 data-zh="3. BQSR" data-en="3. BQSR">3. BQSR</h4><p data-lang="zh">BaseRecalibrator + ApplyBQSR：用已知 SNP 資料庫，學習機器與化學造成的鹼基品質偏差並重新校正。</p><p data-lang="en">BaseRecalibrator + ApplyBQSR: learn machine + chemistry bias from known SNPs, then recalibrate base qualities.</p></div>
+<div class="steps-vertical">
+<div class="step-item" data-num="1"><h4 data-zh="比對 (BWA-MEM)" data-en="Align (BWA-MEM)">比對 (BWA-MEM)</h4>
+<div data-lang="zh"><p>BWA-MEM 用 <span class="term">Burrows-Wheeler transform (BWT)<span class="tip">一種無損文字壓縮 + 索引技術，讓 read 在 4 GB 基因組中的 exact match 查找變為 O(read_length)。</span></span> + <span class="term">suffix array<span class="tip">字串所有 suffix 的排序索引，用來找 alignment seed。</span></span>建索引，用 maximal exact match (MEM) 作為 seed，再用 Smith-Waterman 算分。</p></div>
+<div data-lang="en"><p>BWA-MEM uses <span class="term">Burrows-Wheeler transform (BWT)<span class="tip">A lossless text compression + indexing technique enabling O(read_length) exact-match lookups in a 4 GB genome.</span></span> + <span class="term">suffix array<span class="tip">A sorted index of all string suffixes, used as alignment seeds.</span></span> for indexing; finds maximal exact matches as seeds, then Smith-Waterman scoring.</p></div>
+</div>
+<div class="step-item" data-num="2"><h4 data-zh="標記重複 (MarkDuplicates)" data-en="Mark Duplicates">標記重複</h4>
+<div data-lang="zh"><p>PCR/optical 重複是 false positive 的主要來源。MarkDuplicates 用「同 5' 端座標 + 同方向」判定為重複，保留 base-quality 加總最高者。</p></div>
+<div data-lang="en"><p>PCR/optical duplicates are major FP sources. MarkDuplicates identifies duplicates by "same 5' coordinate + same orientation," keeping the one with highest summed base quality.</p></div>
+</div>
+<div class="step-item" data-num="3"><h4 data-zh="鹼基品質校正 (BQSR)" data-en="Base Quality Recalibration">BQSR</h4>
+<div data-lang="zh"><p>Phred 30 應該對應 1/1000 錯誤率，但實際機器偏差讓「Q30」可能是 Q25 或 Q35。BQSR 用 dbSNP 已知變異當「不會錯」訓練集，校正每種 (cycle, context, quality) 組合的偏差。</p></div>
+<div data-lang="en"><p>A reported Phred 30 should mean 1/1000 error rate, but instrument bias makes "Q30" actually Q25 or Q35. BQSR uses dbSNP variants as a "ground truth" training set to recalibrate per (cycle, context, quality) bin.</p></div>
+</div>
 </div>
 </section>
 
 <section class="section"><div class="section-label" data-zh="比對策略" data-en="ALIGNMENT">比對策略</div>
-<h2 data-zh="BWA-MEM 用法要點" data-en="BWA-MEM Usage">BWA-MEM 用法要點</h2>
-<div class="code-tabs"><div class="code-tab-btns"><button class="code-tab-btn active" onclick="switchTab(this,'bwa')">BWA-MEM</button></div>
-<div class="code-tab-content active" id="bwa"><pre><span class="comment"># 1. 建索引（一次性，約 30 GB 記憶體）</span>
+<h2 data-zh="BWA-MEM vs Bowtie2 vs minimap2" data-en="BWA-MEM vs Bowtie2 vs minimap2">短／長讀比對工具對比</h2>
+<table class="comp-table"><thead><tr><th>Tool</th><th data-zh="主場" data-en="Best for">主場</th><th data-zh="演算法核心" data-en="Algorithm">演算法</th><th data-zh="速度" data-en="Speed">速度</th><th data-zh="特色" data-en="Note">特色</th></tr></thead><tbody>
+<tr><td><strong>BWA-MEM</strong></td><td data-zh="短讀 70–500 bp (Illumina)" data-en="Short reads 70–500 bp (Illumina)">短讀 Illumina</td><td>BWT + SA + SW</td><td>★★★★</td><td data-zh="人類基因組 SNV/Indel 黃金標準" data-en="Gold standard for human SNV/Indel">SNV 黃金標準</td></tr>
+<tr><td><strong>BWA-MEM2</strong></td><td data-zh="同上 + AVX-512" data-en="Same + AVX-512">同上</td><td data-zh="BWT 改良 + SIMD" data-en="Improved BWT + SIMD">同上 + SIMD</td><td>★★★★★</td><td data-zh="速度比 BWA-MEM 快 2–3×" data-en="2–3× faster than BWA-MEM">最快 short-read</td></tr>
+<tr><td><strong>Bowtie2</strong></td><td data-zh="短讀、RNA-seq" data-en="Short reads, RNA-seq">短讀 RNA-seq</td><td>FM-index + SIMD</td><td>★★★★</td><td data-zh="本地 vs 全局比對選項；介於 BWA 與 STAR 之間" data-en="Local vs global modes; bridges BWA & STAR">RNA 友善</td></tr>
+<tr><td><strong>minimap2</strong></td><td data-zh="長讀 PacBio/ONT、splice、組裝" data-en="Long reads PacBio/ONT, splice, assembly">長讀 + splice</td><td data-zh="minimizer + chaining" data-en="Minimizer + chaining">minimizer chaining</td><td>★★★★★</td><td data-zh="長讀事實標準；> 1 kb reads 唯一選擇" data-en="De facto for long reads; the only choice for &gt; 1 kb reads">長讀標配</td></tr>
+<tr><td><strong>DRAGEN</strong></td><td data-zh="商業 FPGA 平台" data-en="Commercial FPGA">商業 FPGA</td><td data-zh="硬體加速 BWT" data-en="Hardware-accelerated BWT">硬體 BWT</td><td>★★★★★</td><td data-zh="Illumina 子公司；30× WGS 30 分鐘完成" data-en="Illumina subsidiary; 30× WGS in 30 min">最快</td></tr>
+</tbody></table>
+
+<div class="protip"><div data-lang="zh"><strong>選擇原則：</strong>Illumina short-read → BWA-MEM/MEM2；PacBio HiFi → minimap2 <code>-x map-hifi</code>；ONT → minimap2 <code>-x map-ont</code>；RNA-seq → STAR (見 RNA-seq 軌)。</div>
+<div data-lang="en"><strong>Rule of thumb:</strong> Illumina short → BWA-MEM/MEM2; PacBio HiFi → minimap2 <code>-x map-hifi</code>; ONT → minimap2 <code>-x map-ont</code>; RNA-seq → STAR (see RNA-seq track).</div></div>
+
+<h2 data-zh="BWA-MEM 實作" data-en="BWA-MEM in Practice" style="margin-top:30px">BWA-MEM 實作</h2>
+<div class="code-tabs"><div class="code-tab-btns">
+<button class="code-tab-btn active" onclick="switchTab(this,'bwa')">BWA-MEM (Shell)</button>
+<button class="code-tab-btn" onclick="switchTab(this,'mm2')">minimap2 (long-read)</button>
+<button class="code-tab-btn" onclick="switchTab(this,'snakemake')">Snakemake</button>
+</div>
+<div class="code-tab-content active" id="bwa"><pre><span class="comment"># 1. 建索引（一次性，約 5 GB 記憶體，10–15 分鐘）</span>
 bwa index -p GRCh38 -a bwtsw GRCh38.fa
 
-<span class="comment"># 2. 加 ReadGroup 並比對（最重要：RG！）</span>
+<span class="comment"># 2. 加 ReadGroup 並比對；-M 標記次要比對 (供 Picard 相容)</span>
 bwa mem -t <span class="num">16</span> -M \
-  -R <span class="str">"@RG\tID:lib1\tSM:patient_01\tLB:lib1\tPL:ILLUMINA"</span> \
-  GRCh38 R1.fq.gz R2.fq.gz \
-  | samtools sort -@ <span class="num">8</span> -o aligned.bam -
+  -R <span class="str">"@RG\tID:HG002_L001\tSM:HG002\tLB:lib_HG002_1\tPL:ILLUMINA\tPU:HVT5LBBXX.1.HG002"</span> \
+  GRCh38 HG002_R1.fq.gz HG002_R2.fq.gz \
+  | samtools sort -@ <span class="num">8</span> -O bam -o HG002.aligned.bam -
 
-samtools index aligned.bam</pre></div>
+samtools index HG002.aligned.bam
+samtools flagstat HG002.aligned.bam   <span class="comment"># 檢查 mapping rate</span></pre></div>
+<div class="code-tab-content" id="mm2"><pre><span class="comment"># PacBio HiFi (CCS) variant calling preset</span>
+minimap2 -ax map-hifi -t <span class="num">16</span> \
+  -R <span class="str">"@RG\tID:HG002_HiFi\tSM:HG002\tPL:PACBIO\tLB:hifi"</span> \
+  GRCh38.mmi HG002.hifi.fq.gz \
+  | samtools sort -@ <span class="num">8</span> -o HG002.hifi.bam -
+
+<span class="comment"># Oxford Nanopore Q20+ reads</span>
+minimap2 -ax map-ont -t <span class="num">16</span> GRCh38.mmi ont.fq.gz | samtools sort -o ont.bam -</pre></div>
+<div class="code-tab-content" id="snakemake"><pre><span class="kw">rule</span> bwa_align:
+    <span class="kw">input</span>:
+        r1=<span class="str">"reads/{sample}_R1.fq.gz"</span>,
+        r2=<span class="str">"reads/{sample}_R2.fq.gz"</span>,
+        idx=<span class="str">"ref/GRCh38"</span>
+    <span class="kw">output</span>:
+        bam=<span class="str">"aligned/{sample}.bam"</span>
+    <span class="kw">params</span>:
+        rg=<span class="str">r"@RG\tID:{sample}_L1\tSM:{sample}\tLB:lib_{sample}\tPL:ILLUMINA"</span>
+    <span class="kw">threads</span>: <span class="num">16</span>
+    <span class="kw">shell</span>:
+        <span class="str">"bwa mem -t {threads} -M -R '{params.rg}' {input.idx} "</span>
+        <span class="str">"{input.r1} {input.r2} | samtools sort -@ 8 -o {output.bam} -"</span></pre></div>
 </div>
-<div class="callout warn"><span class="callout-icon">⚠️</span><div data-lang="zh"><strong>ReadGroup (RG) 是必填：</strong>下游 GATK 工具讀 RG 識別樣本身份。漏掉 RG 會在 HaplotypeCaller 出錯。最少需 <code>ID, SM, LB, PL</code>。</div><div data-lang="en"><strong>ReadGroup (RG) is mandatory:</strong> GATK tools read RG to identify samples. Missing RG breaks HaplotypeCaller. Minimum: <code>ID, SM, LB, PL</code>.</div></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="ReadGroup 解剖" data-en="READGROUP ANATOMY">ReadGroup 解剖</div>
+<h2 data-zh="@RG 五大欄位的臨床意涵" data-en="Anatomy of an @RG line">@RG 解剖學</h2>
+<div data-lang="zh"><p>許多 GATK 工具<strong>沒看到 RG 就直接報錯</strong>。這不是刁難——RG 把 read 跟「樣本身份、文庫、平台、批次」綁定，是下游 sample-level QC、batch correction、cross-sample contamination 偵測的命脈。</p></div>
+<div data-lang="en"><p>Many GATK tools <strong>refuse to run without RG</strong>. This isn't pedantry — RG ties reads to sample identity, library, platform, and batch, which is the foundation of sample-level QC, batch correction, and cross-sample contamination detection.</p></div>
+
+<table class="comp-table"><thead><tr><th data-zh="欄位" data-en="Field">欄位</th><th data-zh="意義" data-en="Meaning">意義</th><th data-zh="範例" data-en="Example">範例</th><th data-zh="為什麼重要" data-en="Why important">為什麼重要</th></tr></thead><tbody>
+<tr><td><strong>ID</strong></td><td data-zh="ReadGroup 唯一識別碼" data-en="Unique RG identifier">唯一識別碼</td><td><code>HG002_L001</code></td><td data-zh="同樣本可有多 lane / library → 多 ID" data-en="One sample may have multiple lanes/libraries → multiple IDs">必填，唯一</td></tr>
+<tr><td><strong>SM</strong></td><td data-zh="Sample，VCF 欄位名" data-en="Sample, VCF column name">樣本名</td><td><code>HG002</code></td><td data-zh="GATK 用 SM 區分樣本；同樣本不同 lane 用同 SM" data-en="GATK uses SM to group; same sample, different lanes share SM">分樣本依據</td></tr>
+<tr><td><strong>LB</strong></td><td data-zh="Library（PCR 文庫）" data-en="Library (PCR library)">PCR 文庫</td><td><code>lib_HG002_1</code></td><td data-zh="MarkDuplicates 只在「同 LB」內找重複！" data-en="MarkDuplicates only de-dups WITHIN the same LB">影響 dedup</td></tr>
+<tr><td><strong>PL</strong></td><td data-zh="定序平台" data-en="Sequencing platform">平台</td><td><code>ILLUMINA</code> / <code>PACBIO</code> / <code>ONT</code></td><td data-zh="BQSR 用 PL 套用不同 error 模型" data-en="BQSR applies platform-specific error models">影響 BQSR</td></tr>
+<tr><td><strong>PU</strong></td><td data-zh="Platform Unit (flowcell.lane.barcode)" data-en="Platform Unit (flowcell.lane.barcode)">機器單元</td><td><code>HVT5LBBXX.1.HG002</code></td><td data-zh="BQSR 用 PU 比 ID 更精細地分組" data-en="BQSR groups finer than ID via PU">最細粒度</td></tr>
+</tbody></table>
+
+<div class="pitfall"><div data-lang="zh"><strong>Wrong ReadGroup = downstream 災難：</strong>常見錯誤是 50 個樣本通通寫 <code>SM:sample</code>，joint genotyping 出來只剩一個樣本欄位。或同樣本多 lane 用同一 ID → GATK 報 <code>duplicate readgroup</code>。</div>
+<div data-lang="en"><strong>Wrong ReadGroup = downstream disaster:</strong> common error — 50 samples all share <code>SM:sample</code>, joint genotyping yields just one sample column. Or same sample's lanes share one ID → GATK errors <code>duplicate readgroup</code>.</div></div>
+<div class="protip"><div data-lang="zh"><strong>實用約定：</strong>多 lane 同樣本 → 共 SM、共 LB（若同 library 多 lane），每 lane 一個獨立 ID 與 PU。BQSR 才能對每個 lane 學各自的 error model。</div>
+<div data-lang="en"><strong>Useful convention:</strong> for multi-lane samples → share SM, share LB (if same library), unique ID and PU per lane. This lets BQSR learn per-lane error models.</div></div>
 </section>
 
 <section class="section"><div class="section-label" data-zh="MarkDuplicates" data-en="MARKDUP">MarkDuplicates</div>
 <h2 data-zh="為什麼要標記重複？" data-en="Why mark duplicates?">為什麼要標記重複？</h2>
-<div data-lang="zh"><p>PCR 把同一個 DNA 片段擴增多份，定序到的「多個 read」其實源自同一原始分子。若不標記、計算 allele depth 時會把同一突變算多次 → 過度自信、假陽性。</p></div>
-<div data-lang="en"><p>PCR amplifies the same fragment many-fold; the resulting "reads" come from one original molecule. Without marking, allele depth double-counts the same mutation → over-confidence and false positives.</p></div>
-<div class="code-tabs"><div class="code-tab-btns"><button class="code-tab-btn active" onclick="switchTab(this,'md')">MarkDuplicates</button></div>
-<div class="code-tab-content active" id="md"><pre><span class="comment"># Picard 版（穩定）</span>
-picard MarkDuplicates \
-  I=aligned.bam \
-  O=dedup.bam \
-  M=dedup_metrics.txt \
-  REMOVE_DUPLICATES=<span class="kw">false</span>   <span class="comment"># 只標記不移除（推薦）</span>
+<div class="level-tabs">
+<button class="level-tab active" data-tab="md-beg">🟢 入門</button>
+<button class="level-tab" data-tab="md-int">🟡 進階</button>
+<button class="level-tab" data-tab="md-adv">🔴 數學</button>
+</div>
+<div class="level-pane active" data-pane="md-beg">
+<div data-lang="zh"><p>PCR 把同一個 DNA 片段擴增多份，定序到的「多個 read」其實源自同一原始分子。若不標記，計算 allele depth 時會把同一突變算多次 → 過度自信、假陽性。</p>
+<p><strong>常見 duplicate rate：</strong>WGS 5–15% (PCR-free 可 &lt; 5%)；WES 因 capture step PCR 多達 20–40%；UMI-based panel 可降至 &lt; 1%。</p></div>
+<div data-lang="en"><p>PCR amplifies the same fragment many-fold; the resulting "reads" originate from one molecule. Without marking, allele depth double-counts the same mutation → over-confidence and false positives.</p>
+<p><strong>Typical rates:</strong> WGS 5–15% (PCR-free &lt; 5%); WES 20–40% (capture PCR); UMI-based panel &lt; 1%.</p></div>
+</div>
+<div class="level-pane" data-pane="md-int">
+<div data-lang="zh"><p>MarkDuplicates 區分兩類重複：</p>
+<ul style="margin-left:18px;color:var(--c-ink-light);"><li><strong>PCR duplicates：</strong>同 5' coordinate + 同 orientation + 同 LB → 標記。</li><li><strong>Optical duplicates：</strong>同 flowcell 上座標距離 &lt; 100 pixels (HiSeq/NovaSeq)，源自單一 cluster 被誤判為多個 → 另外標記、不影響 dedup。</li></ul>
+<p>保留策略：在所有 duplicates 中，<strong>留 base-quality 加總最高者</strong>，其他打上 BAM flag 1024 (0x400)。</p></div>
+<div data-lang="en"><p>MarkDuplicates separates two classes:</p>
+<ul style="margin-left:18px;color:var(--c-ink-light);"><li><strong>PCR duplicates:</strong> same 5' coordinate + orientation + LB → marked.</li><li><strong>Optical duplicates:</strong> within 100 px on flowcell (HiSeq/NovaSeq); one cluster mis-recognized as multiple — flagged separately.</li></ul>
+<p>Keeper: in each duplicate set, retain the read with <strong>highest summed base quality</strong>; flag others with BAM bit 1024 (0x400).</p></div>
+</div>
+<div class="level-pane" data-pane="md-adv">
+<div data-lang="zh"><p>數學上，若一個位點被 PCR 擴增 N 次、每次正確讀到變異 read 的機率 p，未 dedup 時 alt-depth 估計：</p>
+<div class="formula-box">E[alt_depth] = N · p<br>Var[alt_depth] = N · p(1−p)<br>但「真實獨立分子數」k = 1（PCR 同源）<span class="formula-label">Without dedup → effective sample size = N, but true independent = 1</span></div>
+<p>結果：variance 被低估 N 倍，statistical confidence (Phred Q) 被高估，FP 暴增。Dedup 後 N → 1，恢復正確 binomial。</p></div>
+<div data-lang="en"><p>Mathematically, if a site is PCR-amplified N times with per-amp variant-read probability p, the un-dedup'd alt-depth estimator:</p>
+<div class="formula-box">E[alt_depth] = N · p<br>Var[alt_depth] = N · p(1−p)<br>but true independent k = 1 (same PCR origin)<span class="formula-label">Effective n = N pre-dedup; true independent = 1</span></div>
+<p>Variance is under-estimated N-fold, statistical confidence (Phred Q) inflated, FPs explode. After dedup N → 1, correct binomial is restored.</p></div>
+</div>
 
-samtools index dedup.bam</pre></div>
+<div class="code-tabs" style="margin-top:24px"><div class="code-tab-btns">
+<button class="code-tab-btn active" onclick="switchTab(this,'md1')">Picard</button>
+<button class="code-tab-btn" onclick="switchTab(this,'md2')">GATK4 Spark</button>
+<button class="code-tab-btn" onclick="switchTab(this,'md3')">UMI-aware (fgbio)</button>
+</div>
+<div class="code-tab-content active" id="md1"><pre><span class="comment"># Picard 版（穩定，產生詳細 metrics）</span>
+picard MarkDuplicates \
+  I=HG002.aligned.bam \
+  O=HG002.dedup.bam \
+  M=HG002.dedup_metrics.txt \
+  REMOVE_DUPLICATES=<span class="kw">false</span>   <span class="comment"># 只標記不刪除（推薦保留檔案完整性）</span>
+
+samtools index HG002.dedup.bam
+
+<span class="comment"># 解讀 metrics（看 PERCENT_DUPLICATION）</span>
+grep -A 2 LIBRARY HG002.dedup_metrics.txt</pre></div>
+<div class="code-tab-content" id="md2"><pre><span class="comment"># GATK4 MarkDuplicatesSpark：multi-thread，~3× 快</span>
+gatk MarkDuplicatesSpark \
+  -I HG002.aligned.bam \
+  -O HG002.dedup.bam \
+  -M HG002.dedup_metrics.txt \
+  --conf <span class="str">'spark.executor.cores=16'</span></pre></div>
+<div class="code-tab-content" id="md3"><pre><span class="comment"># 含 UMI (unique molecular identifier) 的 panel，dedup 更精準</span>
+fgbio CallMolecularConsensusReads \
+  --input=HG002.umi.bam \
+  --output=HG002.consensus.bam \
+  --min-reads=<span class="num">2</span>
+<span class="comment"># 等同：「同 UMI + 同位置」才算重複；單分子定量靈敏度大幅提升</span></pre></div>
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="BQSR" data-en="BQSR">BQSR</div>
-<h2 data-zh="鹼基品質再校正" data-en="Base Quality Score Recalibration">鹼基品質再校正</h2>
-<div data-lang="zh"><p>定序機回報的 Phred 分數與「真實錯誤率」之間有系統性偏差（受循環次數、context、機器型號影響）。BQSR 利用已知 SNP（如 dbSNP）作為「不會錯」的訓練集，學習偏差並校正其他位置的分數。</p></div>
-<div data-lang="en"><p>Reported Phred quality vs true error rate has systematic bias (cycle, context, instrument). BQSR uses known SNPs (dbSNP) as a "ground truth" training set, learns the bias, and recalibrates everywhere else.</p></div>
-<div class="code-tabs"><div class="code-tab-btns"><button class="code-tab-btn active" onclick="switchTab(this,'bqsr')">BQSR</button></div>
-<div class="code-tab-content active" id="bqsr"><pre><span class="comment"># Step 1: 建立 recalibration table</span>
+<section class="section"><div class="section-label" data-zh="BQSR 深入" data-en="BQSR DEEP DIVE">BQSR 深入</div>
+<h2 data-zh="鹼基品質校正的統計直覺" data-en="The Statistical Intuition of BQSR">BQSR 統計直覺</h2>
+<div data-lang="zh"><p>定序機回報的 <span class="term">Phred 分數<span class="tip">Q = −10 log10(P_error)。Q30 ≈ 1/1000 錯、Q40 ≈ 1/10000 錯。</span></span>與「真實錯誤率」之間有<strong>系統性偏差</strong>：cycle 後期錯誤率上升、特定 context (CpG, G&gt;T) 有 sequencing-specific bias、機器型號不同也影響。</p>
+<p>BQSR 的核心假設：<strong>「已知 SNP (dbSNP) 上的『錯誤』，幾乎都不是真的錯誤」</strong>。因此可在 non-known-site 上把所有 mismatch 視為錯誤，學習 (cycle × context × reported_Q) 三維 bin 的<em>實際錯誤率</em>，再校正每個 base 的 Phred score。</p></div>
+<div data-lang="en"><p>The reported <span class="term">Phred score<span class="tip">Q = −10 log10(P_error). Q30 ≈ 1/1000 error, Q40 ≈ 1/10000.</span></span> vs true error rate has <strong>systematic bias</strong>: late-cycle errors rise, certain contexts (CpG, G&gt;T) have machine-specific bias, instrument model matters.</p>
+<p>BQSR's core assumption: <strong>"errors" landing on known SNPs (dbSNP) are mostly not real errors</strong>. So at non-known sites, all mismatches are treated as errors. The algorithm learns actual error rate per (cycle × context × reported_Q) bin and recalibrates each base's Phred.</p></div>
+
+<div class="formula-box">
+Q<sub>new</sub> = −10 log<sub>10</sub>( #errors<sub>(cycle, ctx, Q)</sub> / #total<sub>(cycle, ctx, Q)</sub> )
+<span class="formula-label">BQSR per-bin empirical recalibration</span>
+</div>
+
+<div class="analogy"><div data-lang="zh"><strong>把 BQSR 想成體重計校正：</strong>你買了新體重計，要先放幾個已知重量的物體（5 kg 啞鈴、10 kg 啞鈴）來「校零」。BQSR 中的 dbSNP 就是這些已知物體；每個（位置、特徵）組合都會學到一個系統性偏移量。</div>
+<div data-lang="en"><strong>BQSR is like calibrating a new scale:</strong> you place known-weight items (5 kg dumbbell, 10 kg dumbbell) to "zero" the scale. dbSNP is BQSR's known weights; each (cycle, context) combination learns a systematic offset.</div></div>
+
+<div class="pitfall"><div data-lang="zh"><strong>BQSR without known sites：</strong>非模式生物（沒有 dbSNP）跑 BQSR 會把所有 mismatch 視為錯誤、嚴重<strong>過度校正</strong>，base quality 集體被壓低。解法：<em>bootstrap BQSR</em>（先呼叫一輪變異 → 高信心變異當 known sites → 重跑 BQSR），或<strong>直接跳過 BQSR</strong>。</div>
+<div data-lang="en"><strong>BQSR without known sites:</strong> non-model species (no dbSNP) treat all mismatches as errors, causing severe <strong>over-correction</strong>; base qualities are uniformly suppressed. Fix: <em>bootstrap BQSR</em> (call variants → use high-confidence calls as known → re-run BQSR), or <strong>skip BQSR</strong>.</div></div>
+<div class="pitfall"><div data-lang="zh"><strong>BQSR 完後 quality 看起來變差：</strong>很多人第一次跑 BQSR 看到 mean Q 從 35 降到 32 會懷疑做錯。其實這是<strong>正確的</strong>——機器一開始就高估了。校正後雖然平均較低，但更準。</div>
+<div data-lang="en"><strong>"BQSR made my quality worse":</strong> many first-time users see mean Q drop from 35 → 32 and worry. This is <strong>correct</strong>: the instrument over-reported. Post-BQSR is lower on average but more accurate.</div></div>
+
+<h2 data-zh="BQSR 程式碼" data-en="BQSR Code" style="margin-top:30px">BQSR 實作</h2>
+<div class="code-tabs"><div class="code-tab-btns">
+<button class="code-tab-btn active" onclick="switchTab(this,'bq1')">標準兩步驟</button>
+<button class="code-tab-btn" onclick="switchTab(this,'bq2')">非人類 bootstrap</button>
+<button class="code-tab-btn" onclick="switchTab(this,'bq3')">QC 視覺化</button>
+</div>
+<div class="code-tab-content active" id="bq1"><pre><span class="comment"># Step 1: 建立 recalibration table</span>
 gatk BaseRecalibrator \
-  -I dedup.bam -R GRCh38.fa \
-  --known-sites dbsnp.vcf.gz \
-  --known-sites Mills_indels.vcf.gz \
-  -O recal_table.txt
+  -I HG002.dedup.bam -R GRCh38.fa \
+  --known-sites Homo_sapiens_assembly38.dbsnp138.vcf \
+  --known-sites Mills_and_1000G_gold_standard.indels.hg38.vcf.gz \
+  --known-sites Homo_sapiens_assembly38.known_indels.vcf.gz \
+  -O HG002.recal_table.txt
 
 <span class="comment"># Step 2: 套用校正</span>
 gatk ApplyBQSR \
-  -I dedup.bam -R GRCh38.fa \
-  --bqsr-recal-file recal_table.txt \
-  -O analysis_ready.bam</pre></div>
+  -I HG002.dedup.bam -R GRCh38.fa \
+  --bqsr-recal-file HG002.recal_table.txt \
+  -O HG002.analysis_ready.bam</pre></div>
+<div class="code-tab-content" id="bq2"><pre><span class="comment"># 非模式物種 bootstrap BQSR（無 dbSNP）</span>
+<span class="comment"># Round 1：先用最寬鬆條件 call 一輪</span>
+gatk HaplotypeCaller -I dedup.bam -R ref.fa -O round1.vcf.gz
+
+<span class="comment"># Round 2：篩高品質變異當「pseudo-known sites」</span>
+gatk VariantFiltration -V round1.vcf.gz \
+  --filter-expression <span class="str">"QD &lt; 10 || FS &gt; 60 || MQ &lt; 50"</span> \
+  --filter-name <span class="str">"lowQ"</span> -O round1.flt.vcf.gz
+bcftools view -f PASS round1.flt.vcf.gz -Oz -o pseudo_known.vcf.gz
+tabix pseudo_known.vcf.gz
+
+<span class="comment"># Round 3：用 pseudo_known 跑 BQSR</span>
+gatk BaseRecalibrator -I dedup.bam --known-sites pseudo_known.vcf.gz -O recal.tbl
+gatk ApplyBQSR -I dedup.bam --bqsr-recal-file recal.tbl -O analysis_ready.bam</pre></div>
+<div class="code-tab-content" id="bq3"><pre><span class="comment"># 看校正前後對比（before vs after table）</span>
+gatk BaseRecalibrator -I analysis_ready.bam -R GRCh38.fa \
+  --known-sites dbsnp.vcf.gz -O after_recal.txt
+
+gatk AnalyzeCovariates \
+  -before HG002.recal_table.txt \
+  -after  after_recal.txt \
+  -plots  HG002.bqsr.pdf
+<span class="comment"># PDF 含「reported Q vs empirical Q」散佈圖，校正後應落在 y=x 線上</span></pre></div>
 </div>
 </section>
 
 <section class="section"><div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
-<h2 data-zh="Duplicate Rate 與 SNV 偵測力" data-en="Duplicate Rate vs SNV Power">Duplicate Rate 與 SNV 偵測力</h2>
-<div data-lang="zh"><p>調整 duplicate rate 與定序深度，看實際 unique coverage 與 SNV 偵測力的關係：</p></div>
-<div data-lang="en"><p>Adjust duplicate rate and sequencing depth — see unique coverage and SNV detection power:</p></div>
+<h2 data-zh="Duplicate Rate 與偵測力" data-en="Duplicate Rate vs Power">Duplicate Rate 與偵測力</h2>
+<div data-lang="zh"><p>調整原始深度與 duplicate rate，看實際 unique coverage 與 SNV 偵測力的關係：</p></div>
+<div data-lang="en"><p>Adjust raw depth and duplicate rate — see unique coverage and SNV detection power:</p></div>
 <div class="interactive-panel">
-<div class="slider-group"><label data-lang="zh">原始定序深度 (X)<span id="valD">30</span></label><label data-lang="en">Raw depth (X)<span id="valDEn">30</span></label><input type="range" id="sliderD" min="5" max="80" value="30" step="1"></div>
-<div class="slider-group"><label data-lang="zh">Duplicate rate (%)<span id="valDup">15</span></label><label data-lang="en">Duplicate rate (%)<span id="valDupEn">15</span></label><input type="range" id="sliderDup" min="0" max="60" value="15" step="1"></div>
+<div class="slider-group"><label><span data-zh="原始定序深度 (X)" data-en="Raw depth (X)">原始深度</span> <span id="valD">30</span></label><input type="range" id="sliderD" min="5" max="120" value="30" step="1"></div>
+<div class="slider-group"><label><span data-zh="Duplicate rate (%)" data-en="Duplicate rate (%)">Duplicate rate</span> <span id="valDup">15</span>%</label><input type="range" id="sliderDup" min="0" max="60" value="15" step="1"></div>
 <div class="stat-row">
 <div class="stat-box"><div class="sb-num" id="uniqD">--</div><div class="sb-lbl" data-zh="Unique 深度" data-en="Unique depth">Unique 深度</div></div>
 <div class="stat-box"><div class="sb-num" id="snvP">--</div><div class="sb-lbl" data-zh="SNV 偵測力" data-en="SNV power">SNV 偵測力</div></div>
 <div class="stat-box"><div class="sb-num" id="recommend">--</div><div class="sb-lbl" data-zh="建議" data-en="Advice">建議</div></div>
 </div>
 </div>
-<div class="callout tip"><span class="callout-icon">📏</span><div data-lang="zh"><strong>業界基準：</strong>Germline WGS 通常需 30× unique；WES 需 100× on-target；somatic（腫瘤） 70-100× unique 才能可靠偵測 VAF &lt; 10% 變異。</div><div data-lang="en"><strong>Benchmarks:</strong> Germline WGS typically 30× unique; WES 100× on-target; somatic (tumor) 70-100× unique to reliably detect VAF &lt; 10%.</div></div>
+
+<h2 data-zh="BQSR before/after 模擬" data-en="BQSR before/after Simulator" style="margin-top:32px">BQSR before/after 模擬</h2>
+<div data-lang="zh"><p>機器報告的 Phred 與實際錯誤率的關係。藍色線：BQSR 前；綠色線：BQSR 後（接近 y=x）。</p></div>
+<div data-lang="en"><p>Reported Phred vs true error rate. Blue: pre-BQSR; green: post-BQSR (closer to y=x).</p></div>
+<div class="interactive-panel">
+<div class="slider-group"><label><span data-zh="機器偏差程度" data-en="Instrument bias">機器偏差</span> <span id="valBias">3</span></label><input type="range" id="sliderBias" min="0" max="8" value="3" step="0.5"></div>
+<div class="chart-container" style="height:300px"><canvas id="bqsrChart"></canvas></div>
+</div>
+<div class="callout tip"><span class="callout-icon">📏</span><div data-lang="zh"><strong>業界基準：</strong>Germline WGS 通常需 30× unique；WES 需 100× on-target；somatic（腫瘤） 70–100× unique 才能可靠偵測 VAF &lt; 10% 變異。</div><div data-lang="en"><strong>Benchmarks:</strong> Germline WGS typically 30× unique; WES 100× on-target; somatic (tumor) 70–100× unique to reliably detect VAF &lt; 10%.</div></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="案例" data-en="CASE STUDY">案例</div>
+<h2 data-zh="GIAB HG002：黃金 benchmark 的誕生" data-en="GIAB HG002: birth of the gold benchmark">GIAB HG002 案例</h2>
+<div class="case-study">
+<div class="case-meta">NIST · Genome in a Bottle Consortium · 2014–present · HG002 / NA24385</div>
+<h4 data-zh="📂 案例：HG002 Ashkenazi Jewish son 的 truth set 是如何建構的？" data-en="📂 Case: How was the HG002 truth set built?">案例：HG002 truth set 是如何建構的？</h4>
+<div data-lang="zh">
+<p>HG002 是來自 Personal Genome Project 的 Ashkenazi Jewish 父子三人組 (HG002 son, HG003 father, HG004 mother)。NIST 用<strong>同一檢體在 5 個定序平台 (Illumina, PacBio, ONT, 10X Linked-Reads, BioNano)、6 種 caller、3 個 reference</strong>去比對，取共識作為 high-confidence truth set。</p>
+<p>關鍵教訓：<strong>(1)</strong> 沒有任何單一 caller 或單一平台能達到 100% 召回——交集才是黃金；<strong>(2)</strong> high-confidence region 只覆蓋約 88% 基因組——其餘 12% 含 segmental duplications、centromeres、telomeres，是 "dark matter"；<strong>(3)</strong> 評估自己的 pipeline 時，要 <code>hap.py</code> + GIAB BED <strong>子集</strong> 比較，否則被「reference 無法評估區」拖累 precision。</p>
+<p>HG002 啟發了 PrecisionFDA Truth Challenge——DeepVariant、DRAGEN、Strelka2 等工具的精準度競賽。2022 年最佳 SNV F1 已 &gt; 99.95%。</p>
+</div>
+<div data-lang="en">
+<p>HG002 is the son of an Ashkenazi Jewish trio (HG002 son, HG003 father, HG004 mother) from the Personal Genome Project. NIST sequenced the same biospecimen on <strong>5 platforms (Illumina, PacBio, ONT, 10X, BioNano), 6 callers, 3 references</strong>, and used consensus as the high-confidence truth set.</p>
+<p>Key lessons: <strong>(1)</strong> no single caller or platform reaches 100% recall — intersection is gold; <strong>(2)</strong> high-confidence regions cover only ~88% of the genome — the remaining 12% (segdups, centromeres, telomeres) are "dark matter"; <strong>(3)</strong> evaluate your pipeline with <code>hap.py</code> restricted to the GIAB BED, else "un-evaluatable regions" tank your precision.</p>
+<p>HG002 inspired the PrecisionFDA Truth Challenge — a precision contest among DeepVariant, DRAGEN, Strelka2, etc. As of 2022, best SNV F1 &gt; 99.95%.</p>
+</div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="QC 必看指標" data-en="QC METRICS">QC 必看指標</div>
+<h2 data-zh="BAM-level QC：應該檢查什麼？" data-en="BAM-level QC: What to check">BAM-level QC 必看清單</h2>
+<table class="comp-table"><thead><tr><th data-zh="指標" data-en="Metric">指標</th><th data-zh="工具" data-en="Tool">工具</th><th data-zh="健康範圍" data-en="Healthy range">健康範圍</th><th data-zh="紅旗" data-en="Red flag">紅旗</th></tr></thead><tbody>
+<tr><td>Mapping rate</td><td>samtools flagstat</td><td>&gt; 95% (Illumina)</td><td data-zh="&lt; 85% → 物種錯 / contamination" data-en="&lt; 85% → wrong species / contamination">&lt; 85%</td></tr>
+<tr><td>Properly paired</td><td>samtools flagstat</td><td>&gt; 90%</td><td data-zh="&lt; 80% → library 問題" data-en="&lt; 80% → library issue">&lt; 80%</td></tr>
+<tr><td>Mean coverage</td><td>mosdepth / picard CollectWgsMetrics</td><td data-zh="WGS 30× / WES 100× on-target" data-en="WGS 30× / WES 100× on-target">WGS 30×</td><td data-zh="&lt; 20× WGS" data-en="&lt; 20× WGS">&lt; 20×</td></tr>
+<tr><td>Coverage uniformity (CV)</td><td>picard</td><td>CV &lt; 0.3</td><td data-zh="CV &gt; 0.5 → capture 不均" data-en="CV &gt; 0.5 → uneven capture">CV &gt; 0.5</td></tr>
+<tr><td>Duplicate rate</td><td>MarkDuplicates metrics</td><td>WGS 5–15% / WES 20–40%</td><td data-zh="&gt; 50% → library complexity 不足" data-en="&gt; 50% → low library complexity">&gt; 50%</td></tr>
+<tr><td>Insert size</td><td>picard CollectInsertSizeMetrics</td><td data-zh="350–500 bp (Illumina TruSeq)" data-en="350–500 bp (Illumina TruSeq)">350–500 bp</td><td data-zh="bimodal → adapter contamination" data-en="bimodal → adapter contamination">bimodal</td></tr>
+<tr><td>Cross-sample contamination</td><td>VerifyBamID / GATK CalculateContamination</td><td>&lt; 1%</td><td data-zh="&gt; 3% → sample swap / labelling error" data-en="&gt; 3% → swap / labelling error">&gt; 3%</td></tr>
+</tbody></table>
+<div class="protip"><div data-lang="zh"><strong>一行指令看全圖：</strong>用 <code>multiqc .</code> 把 FastQC、samtools stats、Picard、mosdepth 的輸出聚合成一份 HTML 報告，跨樣本對比 outliers 一目了然。</div>
+<div data-lang="en"><strong>One-liner overview:</strong> run <code>multiqc .</code> to aggregate FastQC, samtools stats, Picard, mosdepth into a single HTML — cross-sample outliers pop out instantly.</div></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="FAQ" data-en="FAQ">常見問題</div>
+<h2 data-zh="預處理常見問題" data-en="Preprocessing FAQ">常見問題</h2>
+<div class="faq-list">
+<button class="faq-q" data-zh="Q1. 我可以跳過 BQSR 嗎？" data-en="Q1. Can I skip BQSR?">Q1. 我可以跳過 BQSR 嗎？</button>
+<div class="faq-a"><div data-lang="zh">人類 + Illumina：<strong>不建議跳過</strong>，會多 5–10% FP。但 DeepVariant 內建 CNN 不太依賴 base quality，可省略 BQSR (作者實測 F1 影響 &lt; 0.1%)。非人類無 dbSNP：建議跳過或 bootstrap。</div>
+<div data-lang="en">Human + Illumina: <strong>do not skip</strong>; 5–10% extra FPs. But DeepVariant's CNN doesn't rely on base quality much (author benchmarks: ΔF1 &lt; 0.1%). Non-human, no dbSNP: skip or bootstrap.</div></div>
+
+<button class="faq-q" data-zh="Q2. MarkDuplicates 該移除還是只標記？" data-en="Q2. MarkDuplicates: remove or just flag?">Q2. MarkDuplicates 該移除還是只標記？</button>
+<div class="faq-a"><div data-lang="zh">只標記 (REMOVE_DUPLICATES=false)，保留檔案完整性。所有下游 caller 預設會自動忽略 flag 1024 的 reads。例外：超大檔案儲存空間吃緊時可移除以省 10–20%。</div>
+<div data-lang="en">Just flag (REMOVE_DUPLICATES=false) to keep file integrity. All callers ignore flag 1024 by default. Exception: tight storage on huge cohorts — removing saves 10–20%.</div></div>
+
+<button class="faq-q" data-zh="Q3. 同一個樣本跑兩次 BWA 結果為什麼不一樣？" data-en="Q3. Two BWA runs of the same sample give different BAMs?">Q3. 同一個樣本跑兩次 BWA 結果為什麼不一樣？</button>
+<div class="faq-a"><div data-lang="zh">BWA-MEM 多執行緒下對「multi-mapper」會隨機選一個（同分隨機）。要 deterministic 可加 <code>-K</code> + 單執行緒，或設 seed。實際對 SNV calling 結果影響 &lt; 0.01% (除非高度重複區)。</div>
+<div data-lang="en">BWA-MEM in multi-thread mode randomly picks one alignment for multi-mappers (tie-breaking). For determinism, use <code>-K</code> + single thread, or fix the seed. SNV-calling impact &lt; 0.01% (except in highly repetitive regions).</div></div>
+
+<button class="faq-q" data-zh="Q4. 為什麼 WES 的 duplicate rate 比 WGS 高很多？" data-en="Q4. Why is WES duplicate rate so much higher than WGS?">Q4. 為什麼 WES 的 duplicate rate 比 WGS 高很多？</button>
+<div class="faq-a"><div data-lang="zh">WES 多了 <em>hybridization capture</em> 步驟，每個 probe 抓固定區域後再 PCR 多放大 → library complexity 偏低。WGS PCR-free protocol 可達 &lt; 5% dup；WES 即使優化也很難低於 15–20%。</div>
+<div data-lang="en">WES has an extra <em>hybridization capture</em> step — each probe targets a fixed region then PCR amplifies, lowering library complexity. WGS PCR-free can reach &lt; 5% dup; WES rarely drops below 15–20% even optimized.</div></div>
+
+<button class="faq-q" data-zh="Q5. ALT contig 是什麼？我要 mask 嗎？" data-en="Q5. What are ALT contigs? Should I mask?">Q5. ALT contig 是什麼？要 mask 嗎？</button>
+<div class="faq-a"><div data-lang="zh">GRCh38 含 261 個 ALT 序列，代表 HLA / MHC 等高多態區的另一條 haplotype。BWA-MEM 預設「ALT-aware」會把 reads 散到主鏈與 ALT 上，下游 caller 預設只看 primary chr → 不會錯。<strong>不要</strong>移除 ALT，但要用 <code>.alt</code> 索引啟用 ALT-aware mapping。</div>
+<div data-lang="en">GRCh38 has 261 ALT contigs — alternative haplotypes for HLA/MHC etc. ALT-aware BWA-MEM distributes reads to primary + ALT; downstream callers see primary only. <strong>Don't</strong> remove ALTs — use the <code>.alt</code> index to enable ALT-aware mapping.</div></div>
+
+<button class="faq-q" data-zh="Q6. samtools sort 排不下 RAM 怎麼辦？" data-en="Q6. samtools sort runs out of RAM?">Q6. samtools sort 排不下 RAM 怎麼辦？</button>
+<div class="faq-a"><div data-lang="zh">用 <code>-m 4G -@ 8 -T tmp/</code>：設每執行緒記憶體上限 4 GB + 中介檔案目錄。samtools 會自動分塊排序、最後 merge。WGS 30× BAM 通常需 ~80 GB temp space。</div>
+<div data-lang="en">Use <code>-m 4G -@ 8 -T tmp/</code> — cap per-thread RAM at 4 GB + give a tmp dir. samtools chunks and merges automatically. WGS 30× BAM typically needs ~80 GB temp.</div></div>
+</div>
+</section>
+
+<section class="quiz-section">
+<h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">1. 一個 30× WGS BAM 的 duplicate rate 為 25%。實際 unique 深度與下游建議？</p>
+<p data-lang="en">1. A 30× WGS BAM has 25% duplicate rate. Effective unique depth and recommendation?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. unique 30×，可直接 call</span><span data-lang="en">A. Unique 30×, proceed to call</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. unique 25×，深度足夠</span><span data-lang="en">B. Unique 25×, sufficient depth</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. unique 22.5×，germline 可用但建議 top-up</span><span data-lang="en">C. Unique 22.5×, germline OK but top-up advised</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. unique 7.5×，必須重做</span><span data-lang="en">D. Unique 7.5×, must redo</span></div>
+</div><div class="quiz-feedback" id="fb1"></div></div>
+
+<div class="quiz-q" data-answer="1">
+<p data-lang="zh">2. 跑非人類植物 (沒有 dbSNP) 的 WGS。最合理的 BQSR 處理？</p>
+<p data-lang="en">2. Running WGS on a non-human plant with no dbSNP. Best BQSR approach?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 直接用人類 dbSNP 跑 BQSR</span><span data-lang="en">A. Use human dbSNP for BQSR anyway</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 跳過 BQSR 或用 bootstrap BQSR</span><span data-lang="en">B. Skip BQSR or use bootstrap BQSR</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 用所有 mismatch 為 known sites</span><span data-lang="en">C. Use all mismatches as known sites</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 不能做變異偵測</span><span data-lang="en">D. Variant calling is impossible</span></div>
+</div><div class="quiz-feedback" id="fb2"></div></div>
+
+<div class="quiz-q" data-answer="1">
+<p data-lang="zh">3. 一份 BAM 缺 @RG line，下游會發生什麼？</p>
+<p data-lang="en">3. A BAM missing the @RG line — what happens downstream?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 沒影響</span><span data-lang="en">A. No effect</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. GATK HaplotypeCaller / BQSR 會報錯</span><span data-lang="en">B. GATK HaplotypeCaller / BQSR errors out</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 樣本名變成 NULL 但仍可繼續</span><span data-lang="en">C. Sample name becomes NULL but proceeds</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 只有 VCF header 受影響</span><span data-lang="en">D. Only VCF header affected</span></div>
+</div><div class="quiz-feedback" id="fb3"></div></div>
+
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">4. 為什麼 BQSR 後 mean base quality 反而下降？</p>
+<p data-lang="en">4. Why does mean base quality drop after BQSR?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. BQSR 算錯了</span><span data-lang="en">A. BQSR is buggy</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 機器一開始低估 quality</span><span data-lang="en">B. Instrument initially underestimated quality</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 機器一開始高估 quality，BQSR 是正確校正</span><span data-lang="en">C. Instrument over-reported quality; BQSR is correct</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 因為 reads 變少了</span><span data-lang="en">D. Because reads got fewer</span></div>
+</div><div class="quiz-feedback" id="fb4"></div></div>
+
+<div class="quiz-q" data-answer="0">
+<p data-lang="zh">5. 哪一個欄位「最直接」決定 MarkDuplicates 在誰之間找重複？</p>
+<p data-lang="en">5. Which RG field most directly determines who MarkDuplicates compares against whom?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. LB (library)</span><span data-lang="en">A. LB (library)</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. SM (sample)</span><span data-lang="en">B. SM (sample)</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. PL (platform)</span><span data-lang="en">C. PL (platform)</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. PU (platform unit)</span><span data-lang="en">D. PU (platform unit)</span></div>
+</div><div class="quiz-feedback" id="fb5"></div></div>
 </section>
 
 <nav class="page-nav"><a href="index.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Variant 總覽" data-en="Variant Overview">Variant 總覽</span></a><a href="calling.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 2：Calling" data-en="Step 2: Calling">Step 2：Calling</span></a></nav>
@@ -95,20 +400,61 @@ gatk ApplyBQSR \
 <script>
 window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
 function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
-function up(){
+
+document.querySelectorAll('.faq-q').forEach(b=>b.addEventListener('click',()=>{b.classList.toggle('open');b.nextElementSibling.classList.toggle('open');}));
+document.querySelectorAll('.level-tabs').forEach(tabs=>{tabs.querySelectorAll('.level-tab').forEach(t=>t.addEventListener('click',()=>{const tgt=t.dataset.tab;tabs.querySelectorAll('.level-tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===tgt));tabs.parentElement.querySelectorAll('.level-pane').forEach(p=>p.classList.toggle('active',p.dataset.pane===tgt));}));});
+
+function upDup(){
   const d=+document.getElementById('sliderD').value;const dup=+document.getElementById('sliderDup').value;
-  document.getElementById('valD').textContent=d;document.getElementById('valDEn').textContent=d;
-  document.getElementById('valDup').textContent=dup;document.getElementById('valDupEn').textContent=dup;
+  document.getElementById('valD').textContent=d;document.getElementById('valDup').textContent=dup;
   const uniq=d*(1-dup/100);
   document.getElementById('uniqD').textContent=uniq.toFixed(1)+'×';
   const L=I18n.get();
   let p,advice;
-  if(uniq>=30){p=L==='zh'?'優':'High';advice=L==='zh'?'Germline WGS 足夠；可放心執行下游分析':'Sufficient for germline WGS; proceed';}
-  else if(uniq>=20){p=L==='zh'?'可':'OK';advice=L==='zh'?'germline 可用，somatic 略嫌不足':'OK for germline; thin for somatic';}
-  else if(uniq>=10){p=L==='zh'?'弱':'Low';advice=L==='zh'?'考慮 top-up 加深定序':'Consider top-up sequencing';}
-  else{p=L==='zh'?'差':'Reject';advice=L==='zh'?'⚠ 深度過低，不建議分析':'⚠ Too shallow; do not analyze';}
+  if(uniq>=30){p=L==='zh'?'優':'High';advice=L==='zh'?'Germline WGS 足夠':'Sufficient for germline WGS';}
+  else if(uniq>=20){p=L==='zh'?'可':'OK';advice=L==='zh'?'germline 可用':'OK for germline';}
+  else if(uniq>=10){p=L==='zh'?'弱':'Low';advice=L==='zh'?'考慮 top-up':'Consider top-up';}
+  else{p=L==='zh'?'差':'Reject';advice=L==='zh'?'⚠ 過淺':'⚠ Too shallow';}
   document.getElementById('snvP').textContent=p;
   document.getElementById('recommend').textContent=advice;
 }
-['sliderD','sliderDup'].forEach(id=>document.getElementById(id).addEventListener('input',up));document.addEventListener('langchange',up);up();
+['sliderD','sliderDup'].forEach(id=>document.getElementById(id).addEventListener('input',upDup));document.addEventListener('langchange',upDup);upDup();
+
+// BQSR chart
+const xs=Array.from({length:11},(_,i)=>10+i*4);
+const bqsrCtx=document.getElementById('bqsrChart');
+const bqsrChart=new Chart(bqsrCtx,{type:'line',data:{labels:xs,datasets:[
+  {label:'Reported (pre-BQSR)',data:xs,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.1)',tension:0.2,fill:false},
+  {label:'Empirical (true)',data:xs,borderColor:'#94a3b8',borderDash:[5,5],tension:0.2,fill:false},
+  {label:'After BQSR',data:xs,borderColor:'#10b981',tension:0.2,fill:false}
+]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{title:{display:true,text:'Reported Q'}},y:{title:{display:true,text:'Empirical Q'},min:5,max:55}},plugins:{legend:{position:'top'}}}});
+
+function upBqsr(){
+  const bias=+document.getElementById('sliderBias').value;
+  document.getElementById('valBias').textContent=bias;
+  // pre-BQSR reports Q but real empirical is below by `bias` at high Q
+  const pre=xs.map(q=>q);
+  const emp=xs.map(q=>Math.max(5,q-bias*(q-15)/30));
+  const post=xs.map(q=>Math.max(5,q-bias*0.1*(q-15)/30));
+  bqsrChart.data.datasets[0].data=pre;
+  bqsrChart.data.datasets[1].data=emp;
+  bqsrChart.data.datasets[2].data=post;
+  bqsrChart.update('none');
+}
+document.getElementById('sliderBias').addEventListener('input',upBqsr);upBqsr();
+
+// Quiz
+const QF={
+  zh:{q1_y:'30×(1-0.25)=22.5× unique。Germline 可用但 somatic 略嫌不足，建議 top-up。',q1_n:'正確答案已標示。',
+  q2_y:'非模式生物應跳過或先 call 一輪用高品質 variants bootstrap。',q2_n:'正確答案已標示。',
+  q3_y:'GATK 多數工具強制要求 @RG line，缺了會直接報錯。',q3_n:'正確答案已標示。',
+  q4_y:'機器普遍高估 quality，BQSR 校正後變低是「更準確」而非變差。',q4_n:'正確答案已標示。',
+  q5_y:'MarkDuplicates 在「同一 library (LB)」內找重複；不同 LB 不互相比較。',q5_n:'正確答案已標示。'},
+  en:{q1_y:'30×(1-0.25)=22.5× unique. OK for germline; somatic too thin — consider top-up.',q1_n:'Correct answer highlighted.',
+  q2_y:'For non-model species, skip BQSR or bootstrap with high-confidence variants.',q2_n:'Correct answer highlighted.',
+  q3_y:'Most GATK tools require @RG and error out if missing.',q3_n:'Correct answer highlighted.',
+  q4_y:'Instruments generally over-report quality; BQSR makes it more accurate, not worse.',q4_n:'Correct answer highlighted.',
+  q5_y:'MarkDuplicates compares within the same library (LB); different LBs never compete.',q5_n:'Correct answer highlighted.'}
+};
+document.querySelectorAll('.quiz-q').forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll('.quiz-opt').forEach(o=>{o.addEventListener('click',()=>{if(q.classList.contains('answered'))return;q.classList.add('answered');const fb=document.getElementById('fb'+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?'correct':'wrong');if(!ok)q.querySelectorAll('.quiz-opt')[ans].classList.add('correct');const L=I18n.get();fb.className='quiz-feedback show '+(ok?'correct-fb':'wrong-fb');fb.textContent=(ok?'✅ ':'❌ ')+(QF[L]['q'+(qi+1)+'_'+(ok?'y':'n')]||'');});});});
 </script></body></html>

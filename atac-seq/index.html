@@ -7,48 +7,183 @@
     <li><a href="../index.html">Hub</a></li><li><a href="index.html" class="active">ATAC</a></li><li><a href="principles.html">原理</a></li><li><a href="alignment-peaks.html">Peaks</a></li><li><a href="motif.html">Motif</a></li><li><a href="integration.html">Integ</a></li>
   </ul>
 </div></nav>
-<header class="page-hero"><div class="step-badge">TRACK 3 · ATAC-seq</div><h1 data-zh="ATAC-seq / 表觀基因組" data-en="ATAC-seq / Epigenomics">ATAC-seq / 表觀基因組</h1><p class="subtitle" data-lang="zh">透過 Tn5 轉位酶探查染色質開放區域——找到「哪些基因有資格被表達」的地圖。</p><p class="subtitle" data-lang="en">Probe open chromatin with Tn5 transposase — map of "which genes are eligible to be expressed".</p></header><main class="content-wrap">
+<header class="page-hero"><div class="step-badge">TRACK 3 · ATAC-seq · EPIGENOMICS</div>
+<h1 data-zh="ATAC-seq / 表觀基因組" data-en="ATAC-seq / Epigenomics">ATAC-seq / 表觀基因組</h1>
+<p class="subtitle" data-lang="zh">透過 Tn5 轉位酶探查染色質開放區域——找到「哪些基因有資格被表達」的地圖。從 500 顆細胞、半天實驗到單細胞 Multiome，這條軌道帶你走過 ATAC-seq 的完整旅程。</p>
+<p class="subtitle" data-lang="en">Probe open chromatin with Tn5 transposase — the map of "which genes are <em>eligible</em> to be expressed". From 500 cells in half a day to single-cell Multiome, this track walks you through the full ATAC-seq journey.</p>
+<div style="margin-top:14px;"><span class="diff-chip beg">🟢 Beginner</span><span class="diff-chip int">🟡 Intermediate</span><span class="diff-chip adv">🔴 Advanced</span><span class="diff-chip expert">🟣 Expert</span></div>
+</header><main class="content-wrap">
 
-<section class="section"><div class="section-label" data-zh="總覽" data-en="OVERVIEW">總覽</div>
-<h2 data-zh="ATAC-seq 是什麼？" data-en="What is ATAC-seq?">ATAC-seq 是什麼？</h2>
-<div data-lang="zh"><p>ATAC-seq (Assay for Transposase-Accessible Chromatin with sequencing) 由 Buenrostro 等人 2013 年提出，利用工程化 <strong>Tn5 轉位酶</strong>切入開放染色質（open chromatin / OCR），同時把測序接頭嵌入。經 PCR 與測序，OCR 區域 reads 富集，而緊密包裹（核小體）的區域沒有訊號。</p></div>
-<div data-lang="en"><p>ATAC-seq (Assay for Transposase-Accessible Chromatin with sequencing), introduced by Buenrostro et al. (2013), uses an engineered <strong>Tn5 transposase</strong> that simultaneously cuts open chromatin (OCR) and inserts sequencing adapters. After PCR and sequencing, reads enrich in OCRs while nucleosomal regions are silent.</p></div>
+<section class="section"><div class="section-label" data-zh="為什麼重要" data-en="WHY IT MATTERS">為什麼重要</div>
+<h2 data-zh="表觀基因組學的核心問題" data-en="The Central Question of Epigenomics">表觀基因組學的核心問題</h2>
+<div data-lang="zh">
+<p>人類每個細胞含有同樣的 ~30 億 bp 基因組，但肝細胞、神經元、T 細胞卻表現出截然不同的「身分」。原因不在 DNA 序列<em>本身</em>，而在於 <strong>哪段 DNA 此刻是「打開的」(open chromatin)</strong>——可以被轉錄因子 (TF) 接觸的部位。</p>
+<p>染色質的開放程度決定了基因表達的<strong>潛能</strong>：開放區是 enhancer、promoter、CTCF 邊界等順式調控元件 (cis-regulatory elements, CREs) 的所在地。<span class="term">ATAC-seq<span class="term-tip">Assay for Transposase-Accessible Chromatin with sequencing。Buenrostro et al. 2013 提出。</span></span> 讓我們以 bp 級解析度、單樣本~500 顆細胞、半天就能繪出「全基因組開放圖譜」。</p>
+<p><strong>真實世界影響：</strong></p>
+<ul style="margin-left:20px;line-height:1.9;color:var(--c-ink-light);">
+<li>🧬 <strong>免疫細胞發育</strong>：Lara-Astiaso et al. 2014 用 ATAC 描繪了造血階梯，發現 PU.1、GATA、CEBP 等 master TF 在不同階段「重啟」染色質。</li>
+<li>🎗️ <strong>癌症 enhancer 重塑</strong>：Corces et al. 2018 (Science) 分析 23 種 TCGA 癌症的 410 個 ATAC 樣本，找到腫瘤特異 enhancer——許多原本只在發育時期開啟。</li>
+<li>🧠 <strong>神經退行性疾病</strong>：Fullard et al. 2018 在 PFC 中比較 AD vs 對照，發現 microglia 特異開放區的喪失。</li>
+<li>👶 <strong>早期胚胎</strong>：Wu et al. 2016 用單核 ATAC 揭示 zygote→ICM 階段染色質的 ZGA（zygotic genome activation）動態。</li>
+</ul>
+</div>
+<div data-lang="en">
+<p>Every human cell carries the same ~3 billion bp genome, yet hepatocytes, neurons, and T cells display radically different "identities." The cause is not the DNA sequence <em>itself</em> but <strong>which stretches of DNA are currently "open"</strong> (open chromatin) — accessible to transcription factors (TFs).</p>
+<p>Chromatin openness defines a gene's <strong>regulatory potential</strong>: open regions house enhancers, promoters, CTCF boundaries, and other cis-regulatory elements (CREs). <span class="term">ATAC-seq<span class="term-tip">Assay for Transposase-Accessible Chromatin with sequencing. Introduced by Buenrostro et al. 2013.</span></span> lets us draw genome-wide accessibility maps at bp resolution from ~500 cells in half a day.</p>
+<p><strong>Real-world impact:</strong></p>
+<ul style="margin-left:20px;line-height:1.9;color:var(--c-ink-light);">
+<li>🧬 <strong>Immune development</strong>: Lara-Astiaso et al. 2014 mapped the hematopoietic ladder with ATAC and showed master TFs (PU.1, GATA, CEBP) "rewire" chromatin at every transition.</li>
+<li>🎗️ <strong>Cancer enhancer rewiring</strong>: Corces et al. 2018 (Science) ran 410 ATAC samples across 23 TCGA cancer types and found tumour-specific enhancers — many originally restricted to development.</li>
+<li>🧠 <strong>Neurodegeneration</strong>: Fullard et al. 2018 compared Alzheimer PFC vs controls and revealed loss of microglial open regions.</li>
+<li>👶 <strong>Early embryos</strong>: Wu et al. 2016 used single-nucleus ATAC to capture ZGA dynamics from zygote to ICM.</li>
+</ul>
+</div>
 <div class="flow-chain">
-  <span class="fc-step">細胞核</span><span class="fc-arrow">+</span>
+  <span class="fc-step" data-zh="細胞核 (50k–500)" data-en="Nuclei (50k–500)">細胞核 (50k–500)</span><span class="fc-arrow">+</span>
   <span class="fc-step">Tn5</span><span class="fc-arrow">→</span>
-  <span class="fc-step">片段（含接頭）</span><span class="fc-arrow">→</span>
+  <span class="fc-step" data-zh="片段 (含接頭)" data-en="Tagmented fragments">片段 (含接頭)</span><span class="fc-arrow">→</span>
   <span class="fc-step">PCR + Seq</span><span class="fc-arrow">→</span>
-  <span class="fc-step">OCR 圖譜</span>
+  <span class="fc-step" data-zh="OCR 圖譜" data-en="OCR landscape">OCR 圖譜</span>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="心智模型" data-en="MENTAL MODEL">心智模型</div>
+<h2 data-zh="把 Tn5 當成挑剔的圖書管理員" data-en="Think of Tn5 as a Picky Librarian">把 Tn5 當成挑剔的圖書管理員</h2>
+<div class="analogy"><strong data-zh="比喻 1（圖書館）：" data-en="Analogy 1 (Library):">比喻 1（圖書館）：</strong>
+<span data-lang="zh">基因組像一座龐大的圖書館，每本書（基因）都被一條看不見的繩子（核小體）綁在書架上。<strong>Tn5 轉位酶</strong>是一位只能走進「沒被繩子擋住」走道的管理員——它把「我來過此地」的便條 (Illumina 接頭) 塞進每個可進入的位置。ATAC-seq 結束後，數出哪些走道收到便條，就知道哪些書「能被借出」。</span>
+<span data-lang="en">The genome is a huge library; every book (gene) is tied to its shelf by an invisible cord (nucleosome). <strong>Tn5 transposase</strong> is a librarian who can only walk down aisles <em>not</em> blocked by cords — and at every accessible spot, she leaves a sticky-note (Illumina adapter). After sequencing, the aisles with the most notes are the books that <em>could</em> be checked out.</span>
+</div>
+<div class="analogy"><strong data-zh="比喻 2（鞋印）：" data-en="Analogy 2 (Footprint):">比喻 2（鞋印）：</strong>
+<span data-lang="zh">如果某個轉錄因子 (TF) 蹲在 DNA 上，Tn5 就無法切進去——就像一張剛掃完雪的人行道上，<strong>有人坐著的位置會留下一塊乾的</strong>。我們在 Tn5 切位密度圖上看到的「凹陷」(footprint) 正是 TF 留下的鞋印。</span>
+<span data-lang="en">If a TF squats on the DNA, Tn5 cannot cut underneath — like a person sitting on a freshly snow-swept sidewalk leaves a <strong>dry patch</strong>. The "dip" in Tn5 cut-site density at a motif is the TF's footprint.</span>
+</div>
+<div class="concept-map">
+<div class="cm-root" data-zh="ATAC-seq 能告訴你三件事" data-en="ATAC-seq tells you three things">ATAC-seq 能告訴你三件事</div>
+<div class="cm-branches">
+  <div class="cm-branch" data-zh="哪裡是開放的？" data-en="Where is open?">哪裡是開放的？<small data-zh="peaks (CREs, enhancers, promoters)" data-en="peaks (CREs, enhancers, promoters)">peaks (CREs)</small></div>
+  <div class="cm-branch" data-zh="誰可能蹲在那裡？" data-en="Who is sitting there?">誰可能蹲在那裡？<small data-zh="motif enrichment + footprint → TFs" data-en="motif enrichment + footprint → TFs">motif + footprint → TFs</small></div>
+  <div class="cm-branch" data-zh="這如何改變表達？" data-en="How does it change expression?">這如何改變表達？<small data-zh="peak↔gene linking + RNA 整合" data-en="peak↔gene linking + RNA integration">peak↔gene linking</small></div>
+</div>
 </div>
 </section>
 
 <section class="section"><div class="section-label" data-zh="章節" data-en="CHAPTERS">章節</div>
-<h2 data-zh="四章節學習路徑" data-en="Four-chapter Path">四章節學習路徑</h2>
+<h2 data-zh="四章節學習路徑" data-en="Four-Chapter Learning Path">四章節學習路徑</h2>
+<div data-lang="zh"><p>每章都包含原理、互動模擬、真實案例、程式碼、陷阱與測驗。建議依序閱讀，但你也可以根據需求跳轉。</p></div>
+<div data-lang="en"><p>Each chapter contains concepts, interactive simulators, real case studies, code, pitfalls, and a quiz. Read in order, or jump as needed.</p></div>
 <div class="hub-steps-grid">
-  <a href="principles.html" class="hub-card"><div class="hub-emoji">⚛️</div><span class="step-num">Step 1</span><h3 data-zh="原理與片段分佈" data-en="Principle & Fragment Distribution">原理與片段分佈</h3><p data-lang="zh">Tn5 機制、NFR / mono- / di-nucleosome 片段、與 ChIP-seq / DNase-seq 的比較。</p><p data-lang="en">Tn5 mechanism, NFR / mono- / di-nucleosome fragments, comparison with ChIP-seq / DNase-seq.</p></a>
-  <a href="alignment-peaks.html" class="hub-card"><div class="hub-emoji">📊</div><span class="step-num">Step 2</span><h3 data-zh="Alignment、Peak Calling 與 QC" data-en="Alignment, Peak Calling, and QC">Alignment & Peaks</h3><p data-lang="zh">BWA / Bowtie2 比對；MACS2/3 / Genrich peak calling；TSS enrichment、FRiP 等 QC。</p><p data-lang="en">BWA / Bowtie2 alignment; MACS2/3 / Genrich peak calling; TSS enrichment, FRiP, etc.</p></a>
-  <a href="motif.html" class="hub-card"><div class="hub-emoji">🔤</div><span class="step-num">Step 3</span><h3 data-zh="Motif 與 Footprinting" data-en="Motifs & Footprinting">Motif & Footprint</h3><p data-lang="zh">HOMER、MEME-ChIP、chromVAR；TF binding 留下的 footprint 解讀。</p><p data-lang="en">HOMER, MEME-ChIP, chromVAR; reading TF footprints in open chromatin.</p></a>
-  <a href="integration.html" class="hub-card"><div class="hub-emoji">🔗</div><span class="step-num">Step 4</span><h3 data-zh="多體學整合" data-en="Multi-omics Integration">多體學整合</h3><p data-lang="zh">ATAC × RNA-seq 整合：peak-gene 聯結、區域富集、單細胞 ATAC（10x Multiome、ArchR、Signac）。</p><p data-lang="en">ATAC × RNA-seq: peak-gene linking, region enrichment, single-cell ATAC (10x Multiome, ArchR, Signac).</p></a>
+  <a href="principles.html" class="hub-card"><div class="hub-emoji">⚛️</div><span class="step-num">Step 1 · <span class="diff-chip beg">Beg</span></span><h3 data-zh="原理與片段分佈" data-en="Principle & Fragment Distribution">原理與片段分佈</h3><p data-lang="zh">Tn5 機制、9-bp 切位、+4/-5 shift；NFR / mono- / di-nucleosome 三峰；omni-ATAC、scATAC 變體；與 ChIP-seq / DNase-seq / CUT&amp;RUN 比較。</p><p data-lang="en">Tn5 mechanism, 9-bp cut, +4/-5 shift; NFR / mono- / di-nucleosome peaks; omni-ATAC, scATAC variants; vs ChIP-seq / DNase-seq / CUT&amp;RUN.</p></a>
+  <a href="alignment-peaks.html" class="hub-card"><div class="hub-emoji">📊</div><span class="step-num">Step 2 · <span class="diff-chip int">Int</span></span><h3 data-zh="Alignment、Peak Calling 與 QC" data-en="Alignment, Peak Calling & QC">Alignment & Peaks</h3><p data-lang="zh">Bowtie2 vs BWA-MEM；MACS2 / MACS3 / Genrich / HMMRATAC；ENCODE QC（TSS enrichment、FRiP、PBC1、NRF）；DiffBind / csaw 找 DAR。</p><p data-lang="en">Bowtie2 vs BWA-MEM; MACS2/3, Genrich, HMMRATAC; ENCODE QC (TSS, FRiP, PBC1, NRF); DiffBind / csaw for DARs.</p></a>
+  <a href="motif.html" class="hub-card"><div class="hub-emoji">🔤</div><span class="step-num">Step 3 · <span class="diff-chip adv">Adv</span></span><h3 data-zh="Motif 與 Footprinting" data-en="Motifs & Footprinting">Motif & Footprint</h3><p data-lang="zh">PWM / motif logo 解讀；HOMER vs MEME-ChIP vs AME；JASPAR / CIS-BP；HINT-ATAC HMM、TOBIAS BINDetect；chromVAR for scATAC。</p><p data-lang="en">PWM / motif logo intuition; HOMER vs MEME-ChIP vs AME; JASPAR / CIS-BP; HINT-ATAC HMM, TOBIAS BINDetect; chromVAR for scATAC.</p></a>
+  <a href="integration.html" class="hub-card"><div class="hub-emoji">🔗</div><span class="step-num">Step 4 · <span class="diff-chip expert">Exp</span></span><h3 data-zh="多體學整合" data-en="Multi-omics Integration">多體學整合</h3><p data-lang="zh">10x Multiome（同一細胞 RNA+ATAC）；Signac vs ArchR；peak2gene 三策略（距離 / 相關 / Hi-C）；GRN 推論 (SCENIC+, Pando)；Argelaguet 2023 benchmark。</p><p data-lang="en">10x Multiome (RNA+ATAC same cell); Signac vs ArchR; peak2gene strategies (distance / correlation / Hi-C); GRN inference (SCENIC+, Pando); Argelaguet 2023 benchmark.</p></a>
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="重要差別" data-en="DIFFERENCES">重要差別</div>
-<h2 data-zh="ATAC-seq vs ChIP-seq vs DNase-seq" data-en="ATAC-seq vs ChIP-seq vs DNase-seq">ATAC-seq vs ChIP-seq vs DNase-seq</h2>
-<table class="comp-table"><thead><tr><th></th><th>ATAC-seq</th><th>ChIP-seq</th><th>DNase-seq</th></tr></thead><tbody>
-<tr><td data-zh="目標" data-en="Target">目標</td><td data-zh="開放染色質" data-en="Open chromatin">開放染色質</td><td data-zh="特定蛋白結合位 (TF / 組蛋白修飾)" data-en="Specific TF / histone mark binding sites">蛋白結合位</td><td data-zh="開放染色質 (DNase I 切位)" data-en="Open chromatin (DNase I cut sites)">開放染色質</td></tr>
-<tr><td data-zh="所需細胞" data-en="Cells needed">所需細胞</td><td>500 - 50,000</td><td>~10⁶</td><td>~10⁶</td></tr>
-<tr><td data-zh="耗時" data-en="Hands-on time">耗時</td><td data-zh="~半天" data-en="~Half day">~半天</td><td data-zh="2-3 天 + 抗體" data-en="2-3 days + antibody">2-3 天</td><td data-zh="1 天" data-en="1 day">1 天</td></tr>
-<tr><td data-zh="解析度" data-en="Resolution">解析度</td><td>~bp（Tn5 切位）</td><td>~100 bp</td><td>~bp</td></tr>
-<tr><td data-zh="優勢" data-en="Advantage">優勢</td><td data-zh="少細胞、快、全基因組開放圖譜 + 可推 TF footprint" data-en="Few cells; fast; whole-genome openness + TF footprints">少細胞 + 快 + footprint</td><td data-zh="精確標定特定蛋白" data-en="Pinpoint specific proteins">精確標定蛋白</td><td data-zh="ENCODE 大量歷史資料" data-en="Extensive ENCODE archive">ENCODE 歷史</td></tr>
+<section class="section"><div class="section-label" data-zh="方法比較" data-en="METHOD COMPARISON">方法比較</div>
+<h2 data-zh="ATAC-seq vs ChIP-seq vs DNase-seq vs CUT&amp;RUN" data-en="ATAC vs ChIP vs DNase vs CUT&amp;RUN">ATAC-seq vs ChIP-seq vs DNase-seq vs CUT&amp;RUN</h2>
+<div data-lang="zh"><p>四種「找調控元件」的主流測序方法各有強項。下表是 2024 年實驗室選擇的速查：</p></div>
+<div data-lang="en"><p>Four mainstream "regulatory element" assays. Below is a cheat-sheet for 2024 lab choices:</p></div>
+<table class="comp-table"><thead><tr><th data-zh="維度" data-en="Dimension">維度</th><th>ATAC-seq</th><th>ChIP-seq</th><th>DNase-seq</th><th>CUT&amp;RUN / CUT&amp;Tag</th></tr></thead><tbody>
+<tr><td data-zh="目標訊號" data-en="Target signal">目標訊號</td><td data-zh="所有開放染色質" data-en="All open chromatin">所有 OCR</td><td data-zh="特定 TF / 組蛋白修飾" data-en="Specific TF / histone mark">特定 TF / 修飾</td><td data-zh="開放染色質 (DNase I)" data-en="Open chromatin (DNase I)">所有 OCR</td><td data-zh="特定 TF / 修飾 (MNase)" data-en="Specific TF / mark (MNase)">特定 TF</td></tr>
+<tr><td data-zh="所需細胞" data-en="Cells">所需細胞</td><td><strong>500 – 50,000</strong></td><td>~10⁶</td><td>~10⁶</td><td>1,000 – 100,000</td></tr>
+<tr><td data-zh="時間" data-en="Hands-on time">時間</td><td data-zh="~半天" data-en="~Half day">~½ 天</td><td data-zh="2–3 天" data-en="2–3 days">2–3 天</td><td data-zh="1 天" data-en="1 day">1 天</td><td data-zh="1 天" data-en="1 day">1 天</td></tr>
+<tr><td data-zh="抗體？" data-en="Antibody?">抗體？</td><td><strong data-zh="不需要" data-en="No">不需要</strong></td><td>✔️</td><td>—</td><td>✔️</td></tr>
+<tr><td data-zh="解析度" data-en="Resolution">解析度</td><td>~bp</td><td>~100 bp</td><td>~bp</td><td>~bp</td></tr>
+<tr><td data-zh="背景訊號" data-en="Background noise">背景訊號</td><td data-zh="中（chrM 高）" data-en="Med (chrM high)">中</td><td data-zh="高（IgG）" data-en="High (IgG)">高</td><td data-zh="中" data-en="Med">中</td><td data-zh="極低" data-en="Very low">極低</td></tr>
+<tr><td data-zh="可推 footprint？" data-en="Footprintable?">可推 footprint</td><td>✔️</td><td>—</td><td>✔️</td><td data-zh="部分（Tag）" data-en="Partial (Tag)">部分</td></tr>
+<tr><td data-zh="單細胞版本" data-en="Single-cell version">單細胞版本</td><td><strong>scATAC, 10x Multiome</strong></td><td data-zh="scChIP（極難）" data-en="scChIP (very hard)">scChIP（難）</td><td data-zh="scDNase（稀）" data-en="scDNase (rare)">scDNase（稀）</td><td>scCUT&amp;Tag</td></tr>
+<tr><td data-zh="最適用情境" data-en="Best for">最適用</td><td data-zh="快速繪 OCR、少細胞、發現新 enhancer" data-en="Rapid OCR mapping, low-input, enhancer discovery">快速 OCR + footprint</td><td data-zh="已知 TF / 修飾的精確定位" data-en="Precise mapping of known TFs / marks">已知 TF 定位</td><td data-zh="ENCODE 歷史資料配對" data-en="Match ENCODE archives">歷史資料</td><td data-zh="低細胞、低背景的 TF profiling" data-en="Low-cell, low-background TF profiling">低細胞 TF</td></tr>
 </tbody></table>
+<div class="protip">
+<span data-lang="zh"><strong>什麼時候選 ATAC 而非 ChIP？</strong> 當你不知道「應該關注哪個 TF」、樣本量少、或想一次拿到全染色質景觀時。ChIP 給「點」，ATAC 給「景觀」+「景觀內的 footprint」。</span>
+<span data-lang="en"><strong>When to pick ATAC over ChIP?</strong> When you don't know which TF to chase, sample is precious, or you want the whole landscape in one go. ChIP gives a "point"; ATAC gives the "landscape" + "footprints within it."</span>
+</div>
 </section>
 
 <section class="section"><div class="section-label" data-zh="檔案格式" data-en="FILE FORMATS">檔案格式</div>
-<h2 data-zh="ATAC-seq 流程中的檔案" data-en="Files in the ATAC-seq Pipeline">ATAC-seq 流程中的檔案</h2>
+<h2 data-zh="ATAC-seq 流程的關鍵檔案" data-en="Key Files in the ATAC-seq Pipeline">ATAC-seq 流程的關鍵檔案</h2>
 <div class="card-grid cols-3">
-<div class="card"><h4>BAM</h4><p data-lang="zh">Bowtie2 / BWA 比對後的 read 檔。ATAC 需要 <strong>shift +4/-5</strong> 校正 Tn5 切位。</p><p data-lang="en">Aligned reads from Bowtie2 / BWA. ATAC needs a <strong>+4/-5 shift</strong> to correct Tn5 cut sites.</p></div>
-<div class="card"><h4>BED / narrowPeak</h4><p data-lang="zh">MACS2/3 輸出的 peak 區間。<code>narrowPeak</code> 還含 -log10(p)、fold enrichment。</p><p data-lang="en">Peaks from MACS2/3. <code>narrowPeak</code> includes -log10(p) and fold enrichment.</p></div>
-<div class="card"><h4>bigWig</h4><p data-lang="zh">逐 bp 的 coverage 軌道。IGV / UCSC / deepTools 視覺化用。</p><p data-lang="en">Per-bp coverage track. For IGV / UCSC / deepTools viewing.</p></div>
+<div class="card"><div class="card-icon">🧬</div><h4>FASTQ.gz</h4><p data-lang="zh">原始 raw reads（paired-end R1/R2）。ATAC-seq 必須是 paired-end，因為 fragment-size 分佈需要兩端資訊。</p><p data-lang="en">Raw paired-end reads (R1/R2). ATAC-seq <strong>must</strong> be paired-end because fragment-size distribution requires both ends.</p></div>
+<div class="card"><div class="card-icon">🗺️</div><h4>BAM</h4><p data-lang="zh">Bowtie2 / BWA 對齊後的 read 檔。ATAC 需要 <span class="kw-inline">+4/-5 shift</span> 校正 Tn5 切位、移除 chrM、blacklist 與 duplicates。</p><p data-lang="en">Aligned reads from Bowtie2 / BWA. ATAC requires <span class="kw-inline">+4/-5 shift</span>, removal of chrM, blacklist, and duplicates.</p></div>
+<div class="card"><div class="card-icon">📍</div><h4>BED / narrowPeak</h4><p data-lang="zh">MACS2/3 輸出的 peak 區間。<code>narrowPeak</code> 9 欄含 -log10(p)、fold enrichment、summit。</p><p data-lang="en">Peaks from MACS2/3. <code>narrowPeak</code> has 9 columns including -log10(p), fold enrichment, and summit.</p></div>
+<div class="card"><div class="card-icon">📈</div><h4>bigWig (.bw)</h4><p data-lang="zh">逐 bp 的 coverage 軌道。<code>bamCoverage --normalizeUsing CPM --extendReads</code> 生成。IGV / UCSC / deepTools。</p><p data-lang="en">Per-bp coverage track. Generated by <code>bamCoverage --normalizeUsing CPM</code>. For IGV / UCSC / deepTools.</p></div>
+<div class="card"><div class="card-icon">🧩</div><h4>Fragments.tsv.gz</h4><p data-lang="zh">scATAC / 10x Multiome 標準輸出：每行一個 fragment + cell barcode。Signac / ArchR 直接讀取。</p><p data-lang="en">Standard scATAC / 10x Multiome output: one fragment per line + cell barcode. Read directly by Signac / ArchR.</p></div>
+<div class="card"><div class="card-icon">🧮</div><h4>Counts matrix (.h5 / .mtx)</h4><p data-lang="zh">scATAC 的 peak × cell 矩陣。10x 用 HDF5 (.h5)；ArchR 用 Arrow 檔。</p><p data-lang="en">scATAC peak × cell matrix. 10x uses HDF5 (.h5); ArchR uses Arrow files.</p></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="工具景觀" data-en="TOOLS LANDSCAPE">工具景觀</div>
+<h2 data-zh="2024 年 ATAC 分析工具地圖" data-en="2024 ATAC Analysis Tool Map">2024 年 ATAC 分析工具地圖</h2>
+<div class="tool-pills">
+<span class="tool-pill">Bowtie2</span><span class="tool-pill">BWA-MEM</span><span class="tool-pill">chromap</span>
+<span class="tool-pill">MACS2/3</span><span class="tool-pill">Genrich</span><span class="tool-pill">HMMRATAC</span>
+<span class="tool-pill">deepTools</span><span class="tool-pill">ataqv</span><span class="tool-pill">picard</span>
+<span class="tool-pill">DiffBind</span><span class="tool-pill">csaw</span>
+<span class="tool-pill">HOMER</span><span class="tool-pill">MEME-ChIP</span><span class="tool-pill">AME</span>
+<span class="tool-pill">TOBIAS</span><span class="tool-pill">HINT-ATAC</span><span class="tool-pill">Wellington</span>
+<span class="tool-pill">chromVAR</span><span class="tool-pill">Signac</span><span class="tool-pill">ArchR</span>
+<span class="tool-pill">SnapATAC2</span><span class="tool-pill">MUON</span><span class="tool-pill">SCENIC+</span>
+<span class="tool-pill">Pando</span><span class="tool-pill">nf-core/atacseq</span><span class="tool-pill">ENCODE pipeline</span>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="詞彙表" data-en="GLOSSARY">詞彙表</div>
+<h2 data-zh="ATAC-seq 必懂術語" data-en="Must-Know ATAC Terms">ATAC-seq 必懂術語</h2>
+<div data-lang="zh"><p>把游標移到藍色虛底線詞彙上會出現解釋（行動裝置請點擊）：</p></div>
+<div data-lang="en"><p>Hover over the blue dashed terms for a definition (tap on mobile):</p></div>
+<p style="line-height:2.2">
+<span class="term">Tn5<span class="term-tip">細菌轉位酶，工程化後攜帶 Illumina 接頭，是 ATAC 的核心酵素。</span></span> ·
+<span class="term">OCR<span class="term-tip">Open Chromatin Region — 染色質鬆開、TF 可結合的 DNA 區域。</span></span> ·
+<span class="term">NFR<span class="term-tip">Nucleosome-Free Region — 完全無核小體的 DNA 區段，多在 active TSS / enhancer。</span></span> ·
+<span class="term">CRE<span class="term-tip">Cis-Regulatory Element — 包含 promoter、enhancer、silencer、insulator 的調控元件。</span></span> ·
+<span class="term">TSS<span class="term-tip">Transcription Start Site — 基因轉錄起點，多為 active OCR。</span></span> ·
+<span class="term">enhancer<span class="term-tip">遠端調控元件，可放大基因表達，與 promoter 透過 chromatin loop 接觸。</span></span> ·
+<span class="term">peak<span class="term-tip">局部 ATAC 訊號顯著高於背景的區域 — 視為一個 OCR。</span></span> ·
+<span class="term">FRiP<span class="term-tip">Fraction of Reads in Peaks — 落入 peaks 的 read 比例。ENCODE 建議 ATAC &gt; 0.3。</span></span> ·
+<span class="term">TSS enrichment<span class="term-tip">TSS ±2 kb 內訊號 / 背景訊號比，ATAC 最重要的 QC 指標。&gt;7 為高品質。</span></span> ·
+<span class="term">footprint<span class="term-tip">TF 結合處因蛋白擋住 Tn5 留下的 cut-site 凹陷。</span></span> ·
+<span class="term">motif<span class="term-tip">TF 結合的 DNA 短序列模式，常以 PWM 表示，視覺化為 motif logo。</span></span> ·
+<span class="term">PWM<span class="term-tip">Position Weight Matrix — 描述 motif 每個位置 A/C/G/T 偏好的矩陣。</span></span> ·
+<span class="term">PBC1<span class="term-tip">PCR Bottleneck Coefficient — unique positions / mapped positions。&gt;0.7 良好。</span></span> ·
+<span class="term">NRF<span class="term-tip">Non-Redundant Fraction — non-duplicate reads 比例。ENCODE 建議 &gt;0.8。</span></span> ·
+<span class="term">scATAC<span class="term-tip">Single-cell ATAC-seq；10x、sci-ATAC 等平台可一次測千萬細胞。</span></span> ·
+<span class="term">Multiome<span class="term-tip">10x Multiome：同一細胞同時測 RNA + ATAC。</span></span>
+</p>
+</section>
+
+<section class="section"><div class="section-label" data-zh="如何開始" data-en="HOW TO START">如何開始</div>
+<h2 data-zh="新手第一份 ATAC 資料怎麼分析？" data-en="Your First ATAC Dataset — Step by Step">新手第一份 ATAC 資料怎麼分析？</h2>
+<div class="steps-vertical">
+  <div class="step-item" data-num="1"><h4 data-zh="下載樣本資料" data-en="Get sample data">下載樣本資料</h4><p data-lang="zh">推薦：ENCODE ENCSR000EMT (GM12878)、或 SRA: SRR891268（Buenrostro 2013 原始 50k cells）。fastq-dump 或 prefetch 下載。</p><p data-lang="en">Try ENCODE ENCSR000EMT (GM12878) or SRA SRR891268 (Buenrostro 2013 50k cells). Use fastq-dump / prefetch.</p></div>
+  <div class="step-item" data-num="2"><h4 data-zh="跑 ENCODE 或 nf-core 流程" data-en="Run ENCODE or nf-core pipeline">跑 ENCODE 或 nf-core 流程</h4><p data-lang="zh">不要自己手刻：<code>nf-core/atacseq</code> 一行命令完成 trim→align→shift→peak→QC。</p><p data-lang="en">Don't hand-roll: <code>nf-core/atacseq</code> runs trim→align→shift→peak→QC in one command.</p></div>
+  <div class="step-item" data-num="3"><h4 data-zh="檢查 QC 報表" data-en="Read the QC report">檢查 QC 報表</h4><p data-lang="zh">優先看：TSS enrichment、FRiP、PBC1、fragment-size distribution、chrM%、peak 數。</p><p data-lang="en">Check first: TSS enrichment, FRiP, PBC1, fragment-size distribution, chrM%, peak count.</p></div>
+  <div class="step-item" data-num="4"><h4 data-zh="用 IGV 看真實 peaks" data-en="View peaks in IGV">用 IGV 看真實 peaks</h4><p data-lang="zh">在 IGV 載入 .bw 與 .narrowPeak，跳到 GAPDH / ACTB / 你關心的基因，眼睛先看再相信數字。</p><p data-lang="en">Load .bw + .narrowPeak in IGV; jump to GAPDH / ACTB / your gene of interest. Eyes before numbers.</p></div>
+  <div class="step-item" data-num="5"><h4 data-zh="下游：motif → footprint → DAR" data-en="Downstream: motif → footprint → DAR">下游：motif → footprint → DAR</h4><p data-lang="zh">HOMER 掃 motif；TOBIAS 算 footprint 差異；DiffBind 找差異開放區（DAR）。</p><p data-lang="en">HOMER for motifs; TOBIAS for differential footprints; DiffBind for DARs.</p></div>
+</div>
+</section>
+
+
+<section class="section"><div class="section-label" data-zh="里程碑論文" data-en="LANDMARK PAPERS">里程碑論文</div>
+<h2 data-zh="改寫 ATAC-seq 領域的 6 篇關鍵論文" data-en="6 Landmark Papers That Shaped the Field">改寫 ATAC-seq 領域的 6 篇關鍵論文</h2>
+<div class="card-grid cols-2">
+<div class="real-data"><h4><span class="rd-tag">2013</span>Buenrostro et al., <em>Nature Methods</em></h4><p data-lang="zh">首次提出 ATAC-seq。500 顆 GM12878 細胞、半天實驗，即可繪出全基因組開放性。為「染色質景觀」進入低細胞時代。</p><p data-lang="en">First ATAC-seq. 500 GM12878 cells, half-day protocol, genome-wide accessibility. Brought chromatin profiling into the low-input era.</p></div>
+<div class="real-data"><h4><span class="rd-tag">2015</span>Buenrostro et al., <em>Nature</em></h4><p data-lang="zh">首個 scATAC-seq（基於 microfluidic C1）：證明單細胞層級可解出造血階梯各亞群。</p><p data-lang="en">First scATAC-seq (microfluidic C1). Demonstrated single-cell resolution of hematopoietic hierarchy.</p></div>
+<div class="real-data"><h4><span class="rd-tag">2017</span>Corces et al., <em>Nature Methods</em></h4><p data-lang="zh">Omni-ATAC：優化裂解緩衝液與線粒體耗盡，把 chrM% 從 30-80% 降到 &lt;10%，是現代 ATAC 黃金標準。</p><p data-lang="en">Omni-ATAC: improved lysis + mitochondrial depletion drops chrM% from 30-80% to &lt;10%. Today's gold standard.</p></div>
+<div class="real-data"><h4><span class="rd-tag">2018</span>Corces et al., <em>Science</em></h4><p data-lang="zh">410 個 TCGA ATAC 樣本、23 種癌症，發現腫瘤特異 enhancer，啟發癌症 GWAS noncoding variant 解讀。</p><p data-lang="en">410 TCGA ATAC samples across 23 cancers — tumour-specific enhancers and noncoding GWAS variant interpretation.</p></div>
+<div class="real-data"><h4><span class="rd-tag">2019</span>Granja et al., <em>Nature Biotech</em> (ArchR)</h4><p data-lang="zh">為百萬細胞 scATAC 設計的 R 工具包：Arrow 檔、peak2gene、TF-motif、軌跡分析一站式。</p><p data-lang="en">R toolkit for million-cell scATAC: Arrow files, peak2gene, TF-motif, trajectory — all-in-one.</p></div>
+<div class="real-data"><h4><span class="rd-tag">2023</span>Argelaguet et al., <em>Nature Methods</em></h4><p data-lang="zh">系統比較 12 種 multi-omics 整合方法 (含 Multiome RNA+ATAC)，提出 MOFA+ / GLUE / Seurat WNN 的選擇指南。</p><p data-lang="en">Benchmarked 12 multi-omics integration methods (incl. Multiome RNA+ATAC); proposed selection guide for MOFA+ / GLUE / Seurat WNN.</p></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="常見問題" data-en="FAQ">常見問題</div>
+<h2 data-zh="新手最常問的 6 個問題" data-en="Top 6 Beginner Questions">新手最常問的 6 個問題</h2>
+<div class="faq-list">
+<div class="faq-item"><button class="faq-q" data-zh="ATAC-seq 可以取代 ChIP-seq 嗎？" data-en="Can ATAC-seq replace ChIP-seq?">ATAC-seq 可以取代 ChIP-seq 嗎？</button><div class="faq-a"><span data-lang="zh">不能完全。ATAC 告訴你「哪裡是開放的」，但不會告訴你「是哪個蛋白蹲在那裡」。Footprinting 可以推測 TF 身份但精度仍不如 ChIP。最佳策略：ATAC 做探索（全景），對特定 TF 用 ChIP 或 CUT&amp;RUN 做精細驗證。</span><span data-lang="en">Not entirely. ATAC tells you "where is open" but not "which protein is bound." Footprinting can infer TFs but is less precise than ChIP. Best strategy: ATAC for discovery (landscape), then ChIP / CUT&amp;RUN for specific TFs.</span></div></div>
+<div class="faq-item"><button class="faq-q" data-zh="需要多少細胞？" data-en="How many cells do I need?">需要多少細胞？</button><div class="faq-a"><span data-lang="zh">標準 ATAC：5,000–50,000 細胞為甜蜜點。Omni-ATAC 在 500 細胞仍可工作。少於 500 建議用 scATAC（每細胞 ~5k 唯一片段）。</span><span data-lang="en">Standard ATAC: 5k–50k cells is the sweet spot. Omni-ATAC works down to 500. Below 500, use scATAC (~5k unique fragments per cell).</span></div></div>
+<div class="faq-item"><button class="faq-q" data-zh="為什麼我的 chrM% 高達 60%？" data-en="Why is my chrM% as high as 60%?">為什麼我的 chrM% 高達 60%？</button><div class="faq-a"><span data-lang="zh">粒線體 DNA 沒有核小體保護→完全開放→Tn5 大量切。新鮮細胞（裂解徹底）+ omni-ATAC（含 digitonin 與 DNase 前處理）能把 chrM% 壓到 &lt;10%。</span><span data-lang="en">Mitochondrial DNA has no nucleosome protection → fully open → Tn5 cuts everywhere. Fresh cells + omni-ATAC (digitonin + DNase pretreatment) drops chrM% below 10%.</span></div></div>
+<div class="faq-item"><button class="faq-q" data-zh="為什麼 ATAC 必須 paired-end？" data-en="Why must ATAC be paired-end?">為什麼 ATAC 必須 paired-end？</button><div class="faq-a"><span data-lang="zh">因為 fragment-size distribution（NFR 50bp、mono ~180bp、di ~360bp）需要兩端來界定每個片段的真實長度。Single-end 只能猜測，無法做 nucleosome positioning 分析。</span><span data-lang="en">Fragment-size distribution (NFR 50bp, mono ~180bp, di ~360bp) requires both ends to define each fragment's true length. Single-end loses nucleosome positioning information.</span></div></div>
+<div class="faq-item"><button class="faq-q" data-zh="peak 數量太少（&lt;20,000）怎麼辦？" data-en="What if I get fewer than 20,000 peaks?">peak 數量太少（&lt;20,000）怎麼辦？</button><div class="faq-a"><span data-lang="zh">可能原因：(a) under-tagmented（Tn5 太少）；(b) PCR 過頭使大量重複；(c) chrM% 過高把有效 reads 稀釋；(d) q-value 太嚴。先看 fragment-size 圖確認，再調 MACS3 <code>-q 0.1</code> 試試。</span><span data-lang="en">Possible causes: (a) under-tagmentation, (b) PCR over-amplification, (c) chrM% diluting useful reads, (d) too-strict q-value. Check fragment-size distribution first, then try MACS3 <code>-q 0.1</code>.</span></div></div>
+<div class="faq-item"><button class="faq-q" data-zh="bulk 或 scATAC 該怎麼選？" data-en="Bulk or scATAC — how to choose?">bulk 或 scATAC 該怎麼選？</button><div class="faq-a"><span data-lang="zh">bulk：細胞量充足、組成已知、需深度（每樣本 50M reads）。scATAC：組織異質、想找新亞群、稀疏（每細胞 5k–20k reads）但可解析率。預算夠就跑 10x Multiome（同細胞 RNA+ATAC）。</span><span data-lang="en">Bulk: plenty of cells, known composition, need depth (50M reads/sample). scATAC: heterogeneous tissue, find new subtypes, sparse (5k–20k reads/cell) but resolved. With budget → 10x Multiome (RNA+ATAC same cell).</span></div></div>
 </div>
 </section>
 
@@ -56,4 +191,8 @@
 </main>
 <footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
 <script src="../i18n.js"></script>
+
+<script>
+document.querySelectorAll(".faq-q").forEach(b=>b.addEventListener("click",()=>{b.classList.toggle("open");b.nextElementSibling.classList.toggle("open");}));
+</script>
 </body></html>

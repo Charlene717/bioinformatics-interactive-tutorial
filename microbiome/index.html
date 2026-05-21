@@ -7,42 +7,247 @@
     <li><a href="../index.html">Hub</a></li><li><a href="index.html" class="active">Microbiome</a></li><li><a href="amplicon.html">Amplicon</a></li><li><a href="metagenomics.html">Metagenomics</a></li><li><a href="function.html">Function</a></li>
   </ul>
 </div></nav>
-<header class="page-hero"><div class="step-badge">TRACK 5 · MICROBIOME</div><h1 data-zh="微生物群體學" data-en="Microbiome / Metagenomics">微生物群體學</h1><p class="subtitle" data-lang="zh">從 16S 條碼到 shotgun 全基因組組裝——揭開微生物群落的組成與功能。</p><p class="subtitle" data-lang="en">From 16S barcoding to shotgun whole-genome assembly — uncovering microbial composition and function.</p></header><main class="content-wrap">
+<header class="page-hero"><div class="step-badge">TRACK 5 · MICROBIOME</div>
+<h1 data-zh="微生物群體學" data-en="Microbiome / Metagenomics">微生物群體學</h1>
+<p class="subtitle" data-lang="zh">從 16S 條碼到 shotgun 全基因組組裝、從「誰在裡面」到「他們在做什麼」——揭開人體與環境微生物群落的組成、功能與生態。</p>
+<p class="subtitle" data-lang="en">From 16S barcoding to shotgun whole-genome assembly, from "who is there" to "what they do" — uncovering composition, function, and ecology of microbial communities in human and environmental contexts.</p>
+<div style="margin-top:18px"><span class="diff-chip beg">🟢 Beginner</span><span class="diff-chip int">🟡 Intermediate</span><span class="diff-chip adv">🔴 Advanced</span><span class="diff-chip expert">🟣 Biostatistician</span></div>
+</header>
 
-<section class="section"><div class="section-label" data-zh="總覽" data-en="OVERVIEW">總覽</div>
-<h2 data-zh="兩大路線" data-en="Two Approaches">兩大路線</h2>
+<main class="content-wrap">
+
+<!-- ===== Why this matters ===== -->
+<section class="section">
+<div class="section-label" data-zh="為什麼重要" data-en="WHY THIS MATTERS">為什麼重要</div>
+<h2 data-zh="為什麼微生物群體學正在改寫醫學？" data-en="Why microbiome science is rewriting medicine">為什麼微生物群體學正在改寫醫學？</h2>
+<div data-lang="zh">
+<p>你身上的細胞中，<strong>只有約一半是「你」的人類細胞</strong>。另一半屬於 38 兆個細菌、古菌、真菌與病毒——它們的基因總和 (<span class="term">metagenome<span class="tip">「meta-」(超越) + genome：一個樣本中所有微生物 DNA 的總和，可以幾百萬個基因，遠超人類基因組 2 萬個。</span></span>) 比人類基因組多 100 倍以上。這些微生物製造神經傳導物質、分解纖維、訓練免疫系統、甚至影響你對藥物的反應。</p>
+<p>近十年的關鍵發現包括：</p>
+<ul style="margin-left:24px;color:var(--c-ink-light)">
+<li><strong>糞菌移植 (FMT)</strong> 治療 <em>Clostridioides difficile</em> 復發性感染達 90% 治癒率，2022 年首個 FMT 製劑 (Rebyota) 獲 FDA 核准。</li>
+<li><strong>癌症免疫治療反應</strong>：黑色素瘤接受 anti-PD1 治療的患者中，腸道有 <em>Akkermansia muciniphila</em>、<em>Faecalibacterium</em> 者反應率高 3 倍 (Routy 2018, Gopalakrishnan 2018)。</li>
+<li><strong>發炎性腸道疾病 (IBD)</strong>：HMP2 (Lloyd-Price 2019, <em>Nature</em>) 顯示克隆氏症患者腸道 <em>Faecalibacterium prausnitzii</em> 銳減、產生丁酸的細菌減少、Proteobacteria 過度增生。</li>
+<li><strong>腸—腦軸</strong>：迷走神經 + 微生物代謝物 (SCFA、色胺酸代謝物、GABA、5-HT) 影響憂鬱、自閉症、帕金森氏症。</li>
+<li><strong>抗生素抗藥性 (AMR)</strong>：腸道是水平基因轉移的「軍火庫」，shotgun 可即時偵測 ESBL、CRE、CARD 資料庫中的抗性基因。</li>
+</ul>
+</div>
+<div data-lang="en">
+<p>About <strong>half of the cells in your body are not human</strong>. The other half are 38 trillion bacteria, archaea, fungi, and viruses — whose collective genes (the <span class="term">metagenome<span class="tip">"meta-" (beyond) + genome: the total DNA of all microbes in a sample — millions of genes, 100× more than the human genome (~20,000).</span></span>) outnumber human genes 100-fold. These microbes synthesize neurotransmitters, ferment fiber, train the immune system, and even shape drug response.</p>
+<p>Landmark findings of the last decade:</p>
+<ul style="margin-left:24px;color:var(--c-ink-light)">
+<li><strong>Fecal microbiota transplantation (FMT)</strong> cures ~90% of recurrent <em>Clostridioides difficile</em> infections; in 2022 the first FMT product (Rebyota) was FDA-approved.</li>
+<li><strong>Cancer immunotherapy response</strong>: in melanoma patients on anti-PD1, those with gut <em>Akkermansia muciniphila</em> or <em>Faecalibacterium</em> respond 3× more often (Routy 2018, Gopalakrishnan 2018).</li>
+<li><strong>Inflammatory bowel disease (IBD)</strong>: HMP2 (Lloyd-Price 2019, <em>Nature</em>) showed Crohn's patients lose <em>Faecalibacterium prausnitzii</em>, lose butyrate producers, and gain Proteobacteria blooms.</li>
+<li><strong>Gut–brain axis</strong>: vagal nerve + microbial metabolites (SCFAs, tryptophan derivatives, GABA, 5-HT) influence depression, autism spectrum, Parkinson's.</li>
+<li><strong>Antimicrobial resistance (AMR)</strong>: the gut is a horizontal-gene-transfer arsenal; shotgun sequencing can flag ESBL, CRE, and CARD-listed resistance genes in real time.</li>
+</ul>
+</div>
+<div class="analogy"><strong data-zh="比喻：城市裡的微生物社區" data-en="Analogy: a microbial city">比喻：</strong>
+<span data-lang="zh">如果把人體想成一座城市，每個器官就是一個社區。腸道是「人口最多的市中心」(10^11 cells/g)，皮膚是「沿海港口」(乾、油、濕三種氣候帶)，口腔是「24 小時夜市」(快速代謝、菌斑生態)。微生物群體學就是這座城市的「人口普查 + 經濟產業調查」。</span>
+<span data-lang="en">Picture the body as a city; each organ is a district. The gut is "downtown" (10^11 cells/g), skin is "the harbor" (dry, oily, moist zones), the mouth is "the 24-hour night market" (fast metabolism, plaque ecology). Microbiome science is the census and the industrial survey of that city.</span></div>
+</section>
+
+<!-- ===== Two main approaches ===== -->
+<section class="section">
+<div class="section-label" data-zh="兩大策略" data-en="TWO APPROACHES">兩大策略</div>
+<h2 data-zh="兩大實驗策略：Amplicon vs Shotgun" data-en="Two experimental strategies: Amplicon vs Shotgun">兩大實驗策略</h2>
 <div class="card-grid cols-2">
-<div class="card"><div class="card-icon">🔬</div><h4>16S / ITS Amplicon</h4><p data-lang="zh">PCR 擴增 16S rRNA (細菌) 或 ITS (真菌) 的可變區，定序後分類。<strong>優：</strong>便宜、樣本量大。<strong>限：</strong>只到 genus / species 級、無功能資訊。</p><p data-lang="en">PCR-amplify 16S rRNA (bacteria) or ITS (fungi) variable regions, sequence, classify. <strong>Pro:</strong> cheap, scalable. <strong>Con:</strong> genus/species resolution at best; no function info.</p></div>
-<div class="card"><div class="card-icon">🧬</div><h4>Shotgun Metagenomics</h4><p data-lang="zh">隨機定序所有 DNA，含全基因組覆蓋。<strong>優：</strong>strain-level、含功能基因、可組裝 MAG。<strong>限：</strong>每樣本成本高、計算量大。</p><p data-lang="en">Random sequencing of all DNA. <strong>Pro:</strong> strain-level, functional genes, MAG assembly. <strong>Con:</strong> high per-sample cost, compute-heavy.</p></div>
+<div class="card"><div class="card-icon">🔬</div><h4>16S / ITS Amplicon</h4>
+<p data-lang="zh">用一段「保守—可變」交替的 <span class="term">ribosomal RNA<span class="tip">核醣體 RNA 基因。16S (細菌與古菌)、18S (真核)、ITS (Internal Transcribed Spacer，真菌常用)。</span></span> 基因當條碼。PCR 擴增 → 定序 → 分類。</p>
+<p data-lang="zh"><strong>優：</strong>$15–40/樣本，可平行做幾百個樣本；對低生物量樣本 (皮膚、腦組織) 仍可分析。</p>
+<p data-lang="zh"><strong>限：</strong>多到 genus 解析；無法看功能；PCR 偏差影響定量；不能偵測病毒、質體、噬菌體。</p>
+<p data-lang="en">Use a "conserved–variable" interleaved <span class="term">ribosomal RNA<span class="tip">Ribosomal RNA gene: 16S (bacteria/archaea), 18S (eukaryotes), ITS (Internal Transcribed Spacer, common for fungi).</span></span> gene as a barcode. PCR-amplify → sequence → classify.</p>
+<p data-lang="en"><strong>Pro:</strong> $15–40/sample, hundreds of samples in parallel; works on low-biomass samples (skin, brain).</p>
+<p data-lang="en"><strong>Con:</strong> genus-level resolution at best; no function; PCR bias affects quantification; cannot detect viruses, plasmids, phages.</p>
+</div>
+<div class="card"><div class="card-icon">🧬</div><h4>Shotgun Metagenomics</h4>
+<p data-lang="zh">無偏隨機定序所有 DNA：細菌、古菌、真菌、病毒、質體、宿主皆混在一起。</p>
+<p data-lang="zh"><strong>優：</strong>strain 級解析；功能基因 (KEGG、CAZymes、AMR)；可組裝 <span class="term">MAG<span class="tip">Metagenome-Assembled Genome：從 metagenomic reads 組裝、再分箱 (binning) 拼回的「準完整基因組」，可達 90%+ 完整度。</span></span>；偵測病毒體 (virome) 與抗藥基因。</p>
+<p data-lang="zh"><strong>限：</strong>$100–250/樣本；計算量 100–1000× 大；宿主 DNA 干擾 (糞便 ~5%、口腔 ~50%、組織 &gt; 90%)。</p>
+<p data-lang="en">Unbiased random sequencing of all DNA: bacteria, archaea, fungi, viruses, plasmids, host — all mixed.</p>
+<p data-lang="en"><strong>Pro:</strong> strain-level resolution; functional genes (KEGG, CAZymes, AMR); can assemble <span class="term">MAGs<span class="tip">Metagenome-Assembled Genomes: near-complete genomes reconstructed by assembling and binning metagenomic reads — 90%+ completeness possible.</span></span>; detects viromes and resistomes.</p>
+<p data-lang="en"><strong>Con:</strong> $100–250/sample; 100–1000× more compute; host DNA contamination (stool ~5%, oral ~50%, tissue &gt;90%).</p>
+</div>
+</div>
+
+<!-- Quick decision: which to pick -->
+<div class="vs-grid" style="margin-top:24px">
+<div class="vs-side"><h5>🔬 Pick 16S/ITS when…</h5>
+<ul style="margin-left:18px"><li data-lang="zh">預算 &lt; $50/樣本、樣本量大 (cohort &gt; 200)</li>
+<li data-lang="zh">只需要描述群落結構 (alpha/beta diversity)</li>
+<li data-lang="zh">低生物量樣本 (皮膚、組織活檢、植物根際)</li>
+<li data-lang="zh">需與既有 16S 公開資料比較</li>
+<li data-lang="en">Budget &lt; $50/sample, large cohort (&gt;200)</li>
+<li data-lang="en">Only describing community structure (alpha/beta)</li>
+<li data-lang="en">Low-biomass samples (skin, biopsy, plant rhizosphere)</li>
+<li data-lang="en">Comparing with existing 16S public data</li></ul></div>
+<div class="vs-mid">VS</div>
+<div class="vs-side"><h5>🧬 Pick Shotgun when…</h5>
+<ul style="margin-left:18px"><li data-lang="zh">需要 species 或 strain 級分辨</li>
+<li data-lang="zh">研究功能 (代謝、AMR、毒力因子)</li>
+<li data-lang="zh">要重建 MAG、找新菌</li>
+<li data-lang="zh">研究病毒體 (virome) 或真菌體 (mycobiome)</li>
+<li data-lang="en">Need species / strain resolution</li>
+<li data-lang="en">Studying function (metabolism, AMR, virulence)</li>
+<li data-lang="en">Reconstructing MAGs, discovering novel taxa</li>
+<li data-lang="en">Studying virome or mycobiome</li></ul></div>
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="章節" data-en="CHAPTERS">章節</div>
-<h2 data-zh="三章節學習路徑" data-en="Three-chapter Path">三章節學習路徑</h2>
+<!-- ===== Spectrum of methods ===== -->
+<section class="section">
+<div class="section-label" data-zh="方法光譜" data-en="METHOD SPECTRUM">方法光譜</div>
+<h2 data-zh="從 DNA 到代謝物：微生物多組學光譜" data-en="From DNA to metabolite: the microbial multi-omics spectrum">微生物多組學光譜</h2>
+<div data-lang="zh"><p>實驗室不再只跑 16S。完整的研究會「縱向」整合多層次資料：</p></div>
+<div data-lang="en"><p>Labs no longer stop at 16S. A complete study integrates layers "vertically":</p></div>
+<table class="comp-table">
+<thead><tr><th data-zh="層級" data-en="Layer">層級</th><th data-zh="技術" data-en="Tech">技術</th><th data-zh="回答什麼" data-en="Answers">回答</th><th>$/sample</th></tr></thead>
+<tbody>
+<tr><td><strong>16S / ITS amplicon</strong></td><td>Illumina MiSeq / PacBio HiFi</td><td data-zh="誰在裡面 (genus)" data-en="Who is there (genus)">Who is there</td><td>$15–40</td></tr>
+<tr><td><strong>Shotgun metagenomics</strong></td><td>Illumina NovaSeq / NextSeq</td><td data-zh="誰、什麼基因 (strain)" data-en="Who + what genes (strain)">Who + what genes</td><td>$100–250</td></tr>
+<tr><td><strong>Long-read shotgun</strong></td><td>Nanopore / PacBio HiFi</td><td data-zh="完整基因組、噬菌體整合" data-en="Closed genomes, phage integration">Closed genomes</td><td>$200–500</td></tr>
+<tr><td><strong>Metatranscriptomics</strong></td><td>RNA-seq (rRNA depletion)</td><td data-zh="哪些基因在表現" data-en="Which genes are expressed">Expressed genes</td><td>$200–400</td></tr>
+<tr><td><strong>Metaproteomics</strong></td><td>LC-MS/MS</td><td data-zh="哪些蛋白真的在製造" data-en="Which proteins are actually made">Actual proteins</td><td>$300–600</td></tr>
+<tr><td><strong>Metabolomics</strong></td><td>NMR / GC-MS / LC-MS</td><td data-zh="代謝產物 (SCFA, BA, AAA)" data-en="Metabolites (SCFAs, bile acids, AAA)">Metabolites</td><td>$200–500</td></tr>
+<tr><td><strong>Culturomics</strong></td><td data-zh="高通量培養 + MALDI-TOF" data-en="High-throughput culture + MALDI-TOF">高通量培養</td><td data-zh="可培養菌株、可實驗驗證" data-en="Cultivable, experimentally testable">Cultivable strains</td><td data-zh="人力高" data-en="Labor-intensive">Labor-intensive</td></tr>
+</tbody></table>
+<div class="protip"><strong data-zh="專家提示：" data-en="Pro tip:">專家提示：</strong>
+<span data-lang="zh">「黃金組合」是 <strong>shotgun 宏基因組 + 配對的代謝體</strong>。HMP2 (Lloyd-Price 2019) 就是此設計：偵測到 IBD 病人 dysbiosis、看到代謝物 (sphingolipids、bile acid、SCFA) 同步變化、最後用 MaAsLin2 找出二者連動。</span>
+<span data-lang="en">The "gold combo" is <strong>shotgun metagenomics + paired metabolomics</strong>. HMP2 (Lloyd-Price 2019) used exactly this design: detected IBD dysbiosis, watched co-varying metabolites (sphingolipids, bile acids, SCFAs), then used MaAsLin2 to link them.</span></div>
+</section>
+
+<!-- ===== Three chapter path ===== -->
+<section class="section">
+<div class="section-label" data-zh="學習路徑" data-en="LEARNING PATH">學習路徑</div>
+<h2 data-zh="三章節學習路徑" data-en="Three-chapter learning path">三章節學習路徑</h2>
 <div class="hub-steps-grid">
-  <a href="amplicon.html" class="hub-card"><div class="hub-emoji">📏</div><span class="step-num">Step 1</span><h3 data-zh="16S / ITS Amplicon" data-en="16S / ITS Amplicon">16S / ITS Amplicon</h3><p data-lang="zh">DADA2 vs QIIME2、ASV vs OTU、分類器與 alpha/beta diversity。</p><p data-lang="en">DADA2 vs QIIME2, ASV vs OTU, classifiers, and alpha/beta diversity.</p></a>
-  <a href="metagenomics.html" class="hub-card"><div class="hub-emoji">🧬</div><span class="step-num">Step 2</span><h3 data-zh="Shotgun Metagenomics" data-en="Shotgun Metagenomics">Shotgun Metagenomics</h3><p data-lang="zh">Kraken2 + Bracken classification、metaSPAdes 組裝、binning (MetaBAT2)、MAG 評估 (CheckM2)。</p><p data-lang="en">Kraken2 + Bracken classification, metaSPAdes assembly, binning (MetaBAT2), MAG QC (CheckM2).</p></a>
-  <a href="function.html" class="hub-card"><div class="hub-emoji">⚙️</div><span class="step-num">Step 3</span><h3 data-zh="功能性分析" data-en="Functional Profiling">功能性分析</h3><p data-lang="zh">HUMAnN3 pathway 分析、PICRUSt2 從 16S 推 KO、宏代謝重建。</p><p data-lang="en">HUMAnN3 pathway analysis, PICRUSt2 KO inference from 16S, metabolic reconstruction.</p></a>
+  <a href="amplicon.html" class="hub-card"><div class="hub-emoji">📏</div><span class="step-num">Step 1</span><h3 data-zh="16S / ITS Amplicon" data-en="16S / ITS Amplicon">16S / ITS Amplicon</h3>
+    <p data-lang="zh">rRNA 生物學、V 區選擇、DADA2 去噪、ASV vs OTU、alpha/beta diversity、compositional data analysis (ALDEx2/ANCOM-BC/MaAsLin2)。</p>
+    <p data-lang="en">rRNA biology, V-region choice, DADA2 denoising, ASV vs OTU, alpha/beta diversity, compositional data analysis (ALDEx2/ANCOM-BC/MaAsLin2).</p>
+    <div style="margin-top:10px"><span class="diff-chip beg">Beginner</span><span class="diff-chip int">Intermediate</span></div>
+  </a>
+  <a href="metagenomics.html" class="hub-card"><div class="hub-emoji">🧬</div><span class="step-num">Step 2</span><h3 data-zh="Shotgun Metagenomics" data-en="Shotgun Metagenomics">Shotgun Metagenomics</h3>
+    <p data-lang="zh">宿主 DNA 去除、Kraken2 k-mer LCA、Bracken Bayes、MetaPhlAn4 markers、metaSPAdes/MEGAHIT 組裝、MetaBAT2/CONCOCT 分箱、CheckM2 + GTDB-Tk、strain-level (inStrain)、AMR。</p>
+    <p data-lang="en">Host removal, Kraken2 k-mer LCA, Bracken Bayes, MetaPhlAn4 markers, metaSPAdes/MEGAHIT assembly, MetaBAT2/CONCOCT binning, CheckM2 + GTDB-Tk, strain-level (inStrain), AMR.</p>
+    <div style="margin-top:10px"><span class="diff-chip int">Intermediate</span><span class="diff-chip adv">Advanced</span></div>
+  </a>
+  <a href="function.html" class="hub-card"><div class="hub-emoji">⚙️</div><span class="step-num">Step 3</span><h3 data-zh="功能性分析" data-en="Functional Profiling">功能性分析</h3>
+    <p data-lang="zh">HUMAnN3 stratification、KEGG/MetaCyc 路徑、PICRUSt2 NSTI、差異路徑分析、CarveMe/MICOM 代謝建模、IBD 色胺酸代謝案例。</p>
+    <p data-lang="en">HUMAnN3 stratification, KEGG/MetaCyc pathways, PICRUSt2 NSTI, differential pathway analysis, CarveMe/MICOM metabolic modeling, IBD tryptophan case.</p>
+    <div style="margin-top:10px"><span class="diff-chip adv">Advanced</span><span class="diff-chip expert">Biostatistician</span></div>
+  </a>
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="關鍵概念" data-en="KEY CONCEPTS">關鍵概念</div>
-<h2 data-zh="必懂三個概念" data-en="Three Must-knows">必懂三個概念</h2>
-<div class="card-grid cols-3">
-<div class="card"><h4>Alpha diversity</h4><p data-lang="zh">單一樣本內物種豐富度與均勻度。常用：Shannon、Simpson、Faith's PD。</p><p data-lang="en">Within-sample richness + evenness. Common: Shannon, Simpson, Faith's PD.</p></div>
-<div class="card"><h4>Beta diversity</h4><p data-lang="zh">樣本間群落結構差異。常用：Bray-Curtis、UniFrac (weighted/unweighted)。</p><p data-lang="en">Between-sample compositional differences. Common: Bray-Curtis, UniFrac (weighted/unweighted).</p></div>
-<div class="card"><h4>Compositionality</h4><p data-lang="zh">微生物相對豐度為「比例資料」，總和為 1。傳統統計（t-test、Pearson r）會誤導；應用 CLR 轉換 + ALDEx2 / ANCOM。</p><p data-lang="en">Microbial relative abundances are compositional (sum to 1). Traditional stats (t-test, Pearson) mislead; use CLR + ALDEx2 / ANCOM.</p></div>
+<!-- ===== Key concepts concept map ===== -->
+<section class="section">
+<div class="section-label" data-zh="核心觀念" data-en="KEY CONCEPTS">核心觀念</div>
+<h2 data-zh="必懂的五個核心概念" data-en="Five must-know core concepts">五個核心概念</h2>
+<div class="concept-map">
+<div class="cm-root" data-zh="微生物群體分析的五支柱" data-en="Five pillars of microbiome analysis">微生物群體分析的五支柱</div>
+<div class="cm-branches">
+<div class="cm-branch"><h5>① Alpha diversity</h5><p data-lang="zh">單一樣本內豐富度 (richness) + 均勻度 (evenness)。Shannon、Simpson、Chao1、Faith's PD。</p><p data-lang="en">Within-sample richness + evenness. Shannon, Simpson, Chao1, Faith's PD.</p></div>
+<div class="cm-branch"><h5>② Beta diversity</h5><p data-lang="zh">樣本間差異。Bray-Curtis、Jaccard、UniFrac (weighted/unweighted)。需配 PERMANOVA。</p><p data-lang="en">Between-sample dissimilarity. Bray-Curtis, Jaccard, UniFrac (weighted/unweighted). Pair with PERMANOVA.</p></div>
+<div class="cm-branch"><h5>③ Compositionality</h5><p data-lang="zh">資料是「比例」(總和=1)，傳統 t-test 失效。CLR + ALDEx2 / ANCOM-BC 才對。</p><p data-lang="en">Data are proportions (sum = 1). T-test misleads. Use CLR + ALDEx2 / ANCOM-BC.</p></div>
+<div class="cm-branch"><h5>④ Sparsity</h5><p data-lang="zh">90%+ 的 ASV/OTU 計數是 0。需要零值處理、過濾、或專用模型 (zero-inflated)。</p><p data-lang="en">90%+ of ASV/OTU counts are 0. Needs zero handling, filtering, or zero-inflated models.</p></div>
+<div class="cm-branch"><h5>⑤ Function ≠ Taxonomy</h5><p data-lang="zh">同物種不同 strain 帶不同基因；不同物種卻可能有同基因 (HGT)。功能必須直接量。</p><p data-lang="en">Same species, different strains carry different genes; unrelated species share genes (HGT). Function must be measured directly.</p></div>
+</div></div>
+</section>
+
+<!-- ===== Public datasets ===== -->
+<section class="section">
+<div class="section-label" data-zh="公開資料" data-en="PUBLIC RESOURCES">公開資料</div>
+<h2 data-zh="重要公開資料庫與資源" data-en="Key public databases & resources">重要資料庫</h2>
+<div class="card-grid cols-2">
+<div class="card"><h4>🇺🇸 Human Microbiome Project (HMP / HMP2)</h4>
+<p data-lang="zh">HMP1 (2012)：300 健康成人、18 個身體部位、16S + WGS。HMP2 (2014–2018)：IBD、T2D、孕期，多組學整合。是「人體微生物地圖」的基石。</p>
+<p data-lang="en">HMP1 (2012): 300 healthy adults, 18 body sites, 16S + WGS. HMP2 (2014–18): IBD, T2D, pregnancy with multi-omics. The foundational atlas of the human microbiome.</p>
+<p class="real-data"><a href="https://www.hmpdacc.org" target="_blank">hmpdacc.org →</a></p></div>
+<div class="card"><h4>🌍 EBI MGnify</h4>
+<p data-lang="zh">歐洲分子生物實驗室的微生物群體資源，30 萬+ 樣本、自動化 16S + shotgun pipeline、SQL/REST 介面、含全球海洋、土壤、人體資料。</p>
+<p data-lang="en">EBI's microbiome resource: 300k+ samples, automated 16S + shotgun pipelines, SQL/REST API, includes global marine, soil, human data.</p>
+<p class="real-data"><a href="https://www.ebi.ac.uk/metagenomics/" target="_blank">ebi.ac.uk/metagenomics →</a></p></div>
+<div class="card"><h4>🥬 American Gut Project (AGP) / Microsetta</h4>
+<p data-lang="zh">公民科學計畫，25,000+ 樣本，每位參與者填飲食、用藥、生活型態問卷；最大的「lifestyle × microbiome」開放資料。</p>
+<p data-lang="en">Citizen-science project, 25,000+ samples; each participant fills diet, medication, lifestyle survey. Largest open "lifestyle × microbiome" dataset.</p>
+<p class="real-data"><a href="https://microsetta.ucsd.edu" target="_blank">microsetta.ucsd.edu →</a></p></div>
+<div class="card"><h4>🧪 Qiita</h4>
+<p data-lang="zh">QIIME2 社群開放平台，可直接 reanalyze 公開 16S 研究；含 Earth Microbiome Project (EMP) 全球資料。</p>
+<p data-lang="en">QIIME2 community platform; reanalyze public 16S studies; hosts Earth Microbiome Project (EMP) global data.</p>
+<p class="real-data"><a href="https://qiita.ucsd.edu" target="_blank">qiita.ucsd.edu →</a></p></div>
+<div class="card"><h4>🦠 SRA / ENA</h4>
+<p data-lang="zh">NCBI Sequence Read Archive 與歐洲 ENA：原始 fastq 公開倉庫。<code>fasterq-dump</code> / <code>ena-fast-download</code> 取資料。</p>
+<p data-lang="en">NCBI Sequence Read Archive and European ENA: raw fastq archives. Pull with <code>fasterq-dump</code> / <code>ena-fast-download</code>.</p>
+<p class="real-data"><a href="https://www.ncbi.nlm.nih.gov/sra" target="_blank">SRA →</a> · <a href="https://www.ebi.ac.uk/ena/" target="_blank">ENA →</a></p></div>
+<div class="card"><h4>🧬 GTDB / SILVA / UNITE</h4>
+<p data-lang="zh"><strong>GTDB</strong> (Genome Taxonomy Database)：基於基因組系統發育的最新分類學。<strong>SILVA</strong> (16S/18S 參考)。<strong>UNITE</strong> (真菌 ITS)。</p>
+<p data-lang="en"><strong>GTDB</strong> (Genome Taxonomy Database): genome-based phylogenetic taxonomy, the modern standard. <strong>SILVA</strong> (16S/18S reference). <strong>UNITE</strong> (fungal ITS).</p>
+<p class="real-data"><a href="https://gtdb.ecogenomic.org" target="_blank">GTDB →</a> · <a href="https://www.arb-silva.de" target="_blank">SILVA →</a></p></div>
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="範例資料" data-en="DATASETS">範例資料</div>
-<h2 data-zh="公開資料集" data-en="Public Datasets">公開資料集</h2>
-<div data-lang="zh"><ul style="margin-left:24px;color:var(--c-ink-light);"><li><strong>Human Microbiome Project (HMP)</strong>：18 個身體部位的健康人 16S + WGS 基準資料。</li><li><strong>American Gut Project</strong>：超過 25,000 個樣本，含 lifestyle metadata。</li><li><strong>EBI MGnify</strong>：歐洲微生物群體公開資料庫。</li><li><strong>QIITA</strong>：QIIME2 社群的開放微生物群體平台。</li><li><strong>NCBI SRA + ENA</strong>：原始 reads 公開資料庫。</li></ul></div>
-<div data-lang="en"><ul style="margin-left:24px;color:var(--c-ink-light);"><li><strong>Human Microbiome Project (HMP)</strong>: 16S + WGS from healthy humans, 18 body sites.</li><li><strong>American Gut Project</strong>: 25,000+ samples with lifestyle metadata.</li><li><strong>EBI MGnify</strong>: European microbiome reference resource.</li><li><strong>QIITA</strong>: QIIME2 community microbiome platform.</li><li><strong>NCBI SRA + ENA</strong>: raw reads archives.</li></ul></div>
+<!-- ===== Career & application ===== -->
+<section class="section">
+<div class="section-label" data-zh="生涯與應用" data-en="CAREERS & APPLICATIONS">生涯與應用</div>
+<h2 data-zh="微生物群體學的職涯地圖" data-en="Career map of microbiome science">職涯地圖</h2>
+<div class="level-tabs">
+<button class="level-tab active" data-tab="careerA" data-zh="臨床轉譯" data-en="Clinical translation">臨床轉譯</button>
+<button class="level-tab" data-tab="careerB" data-zh="工業 / 製藥" data-en="Industry / Pharma">工業</button>
+<button class="level-tab" data-tab="careerC" data-zh="環境與農業" data-en="Environment & Agriculture">環境</button>
+<button class="level-tab" data-tab="careerD" data-zh="演算法 / 資料科學" data-en="Algorithm / Data science">資料科學</button>
+</div>
+<div class="level-pane active" data-pane="careerA">
+<div data-lang="zh"><p><strong>臨床微生物研究員 / 醫學中心生物資訊師</strong>：負責 IBD、CDI、新生兒、ICU 感染、癌症 ICI 反應的微生物研究。需熟 16S+shotgun pipeline、ALDEx2/MaAsLin2、IRB、臨床 metadata 整合。代表機構：Broad Institute、Mayo Clinic、Vedanta Biosciences、Seres Therapeutics。</p></div>
+<div data-lang="en"><p><strong>Clinical microbiome scientist / hospital bioinformatician</strong>: drives IBD, CDI, NICU, ICU-infection, cancer-ICI-response microbiome work. Needs 16S+shotgun pipelines, ALDEx2/MaAsLin2, IRB literacy, clinical metadata integration. Hubs: Broad Institute, Mayo Clinic, Vedanta Biosciences, Seres Therapeutics.</p></div>
+</div>
+<div class="level-pane" data-pane="careerB">
+<div data-lang="zh"><p><strong>製藥/食品工業生物資訊師</strong>：益生菌產品研發、FMT 製劑品管、發酵 bioreactor 監控、ADC/biologics 廠的生物負荷分析。雇主：Nestlé Health Science、Danone、Yakult、Pendulum、Vedanta、4D Pharma。</p></div>
+<div data-lang="en"><p><strong>Pharma/food industry bioinformatician</strong>: probiotic product R&amp;D, FMT QC, fermentation bioreactor monitoring, bioburden analysis at ADC/biologics plants. Employers: Nestlé Health Science, Danone, Yakult, Pendulum, Vedanta, 4D Pharma.</p></div>
+</div>
+<div class="level-pane" data-pane="careerC">
+<div data-lang="zh"><p><strong>環境/農業微生物學家</strong>：土壤健康、海洋固氮、植物根際促生菌、廢水微生物、生物復育。常與 Earth Microbiome Project、Tara Oceans、JGI IMG 合作。技能：除上述還需 ecology、GIS、time-series 模型。</p></div>
+<div data-lang="en"><p><strong>Environmental / agricultural microbiologist</strong>: soil health, marine N-fixation, plant rhizosphere growth promoters, wastewater microbes, bioremediation. Often partners with Earth Microbiome Project, Tara Oceans, JGI IMG. Extra skills: ecology, GIS, time-series modeling.</p></div>
+</div>
+<div class="level-pane" data-pane="careerD">
+<div data-lang="zh"><p><strong>方法開發者 / 演算法工程師</strong>：寫下一代分類器 (Kraken3、ganon)、深度學習毒力預測 (DeepARG、HyperVR)、metagenomic LLM (Evo、metaformer)。需要 ML + 系統發育 + GPU 編程。Anthropic、DeepMind、Google Health 也在徵這類人才。</p></div>
+<div data-lang="en"><p><strong>Method developer / algorithm engineer</strong>: builds next-gen classifiers (Kraken3, ganon), deep-learning virulence prediction (DeepARG, HyperVR), metagenomic LLMs (Evo, metaformer). Needs ML + phylogenetics + GPU programming. Hiring includes Anthropic, DeepMind, Google Health.</p></div>
+</div>
+</section>
+
+<!-- ===== Pitfalls ===== -->
+<section class="section">
+<div class="section-label" data-zh="重大陷阱" data-en="MAJOR PITFALLS">重大陷阱</div>
+<h2 data-zh="開始前必知的 5 個陷阱" data-en="5 pitfalls to know before starting">開始前必知的 5 個陷阱</h2>
+<div class="pitfall"><strong data-zh="① Kitome（試劑套組污染）" data-en="① Kitome (kit-reagent contamination)">① Kitome：</strong>
+<span data-lang="zh">DNA 抽取套組、PCR 試劑本身就帶微量微生物 DNA。低生物量樣本 (皮膚、血液、胎盤) 可能 90% 訊號來自試劑。對策：永遠跑 <strong>negative controls</strong> (空 buffer)，用 <code>decontam</code> R 套件對照刪除。</span>
+<span data-lang="en">DNA extraction kits and PCR reagents harbor trace microbial DNA. In low-biomass samples (skin, blood, placenta) 90% of signal can be reagent-derived. Always run <strong>negative controls</strong> (blank buffer) and remove with the <code>decontam</code> R package.</span></div>
+<div class="pitfall"><strong data-zh="② Batch effect（批次效應）" data-en="② Batch effect">② Batch：</strong>
+<span data-lang="zh">同一個樣本由不同操作員、不同抽取套組、不同定序 lane 跑，beta diversity 差異 &gt; 真實生物差異。對策：在實驗設計就讓 case/control 隨機分散到每個 batch；分析時用 <code>ConQuR</code>、<code>combat-seq</code>。</span>
+<span data-lang="en">Same sample processed by different operator / kit / lane can have larger beta-diversity than true biology. Block by randomizing case/control across batches in design; correct with <code>ConQuR</code>, <code>combat-seq</code>.</span></div>
+<div class="pitfall"><strong data-zh="③ 用 raw proportions 跑 t-test" data-en="③ T-test on raw proportions">③ 統計失敗：</strong>
+<span data-lang="zh">微生物資料是 compositional (總和為 1)：A 升高必然讓其他「看起來」下降。直接 t-test / wilcoxon 會產生假陽性。對策：CLR 變換 + ALDEx2 / ANCOM-BC。</span>
+<span data-lang="en">Microbiome data are compositional (sum = 1): when A increases, others must "appear" to decrease. Naive t-test/Wilcoxon yields false positives. Use CLR transform + ALDEx2 / ANCOM-BC.</span></div>
+<div class="pitfall"><strong data-zh="④ V 區選擇與 primer 偏差" data-en="④ Wrong V region / primer bias">④ Primer 偏差：</strong>
+<span data-lang="zh">V1-V2 對皮膚 <em>Cutibacterium</em> 失明；V4 漏 <em>Bifidobacterium</em>；ITS1 vs ITS2 對真菌結果不同。對策：先看你目標 taxa 在所選 primer 下的 in-silico 覆蓋。</span>
+<span data-lang="en">V1-V2 misses skin <em>Cutibacterium</em>; V4 misses <em>Bifidobacterium</em>; ITS1 vs ITS2 give different fungal results. Check in-silico coverage of your target taxa under your primer.</span></div>
+<div class="pitfall"><strong data-zh="⑤ 把相關當因果" data-en="⑤ Correlation ≠ causation">⑤ 因果陷阱：</strong>
+<span data-lang="zh">「IBD 患者 <em>Faecalibacterium</em> 少」≠「<em>Faecalibacterium</em> 缺失導致 IBD」。可能是發炎環境抑制了它。對策：gnotobiotic mouse 移植驗證、Mendelian randomization、縱向 cohort、機制實驗。</span>
+<span data-lang="en">"IBD patients have less <em>Faecalibacterium</em>" ≠ "loss of <em>Faecalibacterium</em> causes IBD". Inflammation may suppress it. Validate with gnotobiotic mice, Mendelian randomization, longitudinal cohorts, mechanistic experiments.</span></div>
+</section>
+
+<!-- ===== Final note ===== -->
+<section class="section">
+<div class="callout tip"><span class="callout-icon">🚀</span><div>
+<div data-lang="zh"><strong>建議學習順序：</strong>① 先讀 Step 1 (Amplicon)，理解 ASV/diversity/composition 三大基本功。② 再讀 Step 2 (Shotgun)，從 reads 走到 MAG。③ 最後 Step 3 (Function)，把物種連到代謝與表型。整套讀完你能設計自己的微生物研究、執行端到端 pipeline、並用對統計工具。</div>
+<div data-lang="en"><strong>Suggested order:</strong> ① Read Step 1 (Amplicon) to ground yourself in ASV / diversity / compositionality. ② Then Step 2 (Shotgun): reads-to-MAGs. ③ Finally Step 3 (Function) linking taxa to metabolism and phenotype. By the end you can design your own microbiome study, run an end-to-end pipeline, and pick the right statistics.</div>
+</div></div>
 </section>
 
 <nav class="page-nav"><a href="../index.html"><span class="nav-dir" data-zh="← 返回" data-en="← Back">← 返回</span><span class="nav-title" data-zh="主頁" data-en="Hub">主頁</span></a><a href="amplicon.html"><span class="nav-dir" data-zh="開始 →" data-en="Start →">開始 →</span><span class="nav-title" data-zh="Step 1：Amplicon" data-en="Step 1: Amplicon">Step 1：Amplicon</span></a></nav>
 </main>
 <footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
 <script src="../i18n.js"></script>
+<script>
+document.querySelectorAll('.level-tabs').forEach(tabs=>{tabs.querySelectorAll('.level-tab').forEach(t=>t.addEventListener('click',()=>{const tgt=t.dataset.tab;tabs.querySelectorAll('.level-tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===tgt));tabs.parentElement.querySelectorAll('.level-pane').forEach(p=>p.classList.toggle('active',p.dataset.pane===tgt));}));});
+</script>
 </body></html>

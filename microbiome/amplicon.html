@@ -1,6 +1,8 @@
 <!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>16S Amplicon — Microbiome</title>
-<link rel="stylesheet" href="../styles.css"></head><body class="theme-microbiome">
+<link rel="stylesheet" href="../styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+</head><body class="theme-microbiome">
 <nav class="top-nav"><div class="top-nav-inner">
   <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
   <ul class="top-nav-links">
@@ -8,104 +10,577 @@
   </ul>
 </div></nav>
 <div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
-<header class="page-hero"><div class="step-badge">STEP 1 / 3</div><h1 data-zh="16S / ITS Amplicon 分析" data-en="16S / ITS Amplicon Analysis">16S / ITS Amplicon</h1><p class="subtitle" data-lang="zh">最普及的微生物群體調查方式——用一段保守基因當條碼識別細菌或真菌。</p><p class="subtitle" data-lang="en">The most popular microbiome survey — use a conserved gene as a barcode for bacteria or fungi.</p></header><main class="content-wrap">
+<header class="page-hero"><div class="step-badge">STEP 1 / 3</div>
+<h1 data-zh="16S / ITS Amplicon 分析" data-en="16S / ITS Amplicon Analysis">16S / ITS Amplicon</h1>
+<p class="subtitle" data-lang="zh">最普及的微生物群體調查——用一段保守 + 可變交替的 ribosomal RNA 基因當「條碼」識別細菌或真菌。</p>
+<p class="subtitle" data-lang="en">The most popular microbiome survey — use a conserved+variable ribosomal RNA gene as a "barcode" to identify bacteria or fungi.</p>
+<div style="margin-top:18px"><span class="diff-chip beg">🟢 Beginner</span><span class="diff-chip int">🟡 Intermediate</span><span class="diff-chip expert">🟣 Biostatistician</span></div>
+</header>
+<main class="content-wrap">
 
-<section class="section"><div class="section-label" data-zh="基本概念" data-en="BASICS">基本概念</div>
-<h2 data-zh="16S rRNA 結構" data-en="16S rRNA Structure">16S rRNA 結構</h2>
-<div data-lang="zh"><p>16S rRNA 是所有細菌都有、約 1500 bp 的核醣體 RNA 基因。它有 9 個可變區 (V1-V9) 與保守區交替。常見策略是只 PCR 一兩個可變區：</p></div>
-<div data-lang="en"><p>16S rRNA is a ~1500 bp ribosomal RNA gene present in all bacteria, with 9 variable regions (V1-V9) interleaved with conserved regions. Common strategy: PCR-amplify 1-2 variable regions:</p></div>
-<table class="comp-table"><thead><tr><th data-zh="目標區段" data-en="Region">目標區段</th><th>primer</th><th data-zh="解析度" data-en="Resolution">解析度</th><th data-zh="特色" data-en="Notes">特色</th></tr></thead><tbody>
-<tr><td>V3-V4</td><td>341F / 806R</td><td data-zh="genus 較佳" data-en="Decent at genus">中等</td><td data-zh="Illumina MiSeq 最常見" data-en="Most popular on Illumina MiSeq">最普及</td></tr>
-<tr><td>V4</td><td>515F / 806R</td><td data-zh="phylum / genus" data-en="Phylum / genus">中</td><td data-zh="Earth Microbiome Project 標準" data-en="Earth Microbiome Project standard">EMP 標準</td></tr>
-<tr><td>V1-V9 (全長)</td><td data-zh="長讀 PCR" data-en="Long-read PCR">全長</td><td>species</td><td data-zh="PacBio HiFi；解析度最高" data-en="PacBio HiFi; best resolution">PacBio</td></tr>
-<tr><td>ITS1 / ITS2</td><td>ITS1F / ITS2R</td><td data-zh="真菌 species" data-en="Fungal species">真菌</td><td data-zh="真菌專用，比 18S 解析度高" data-en="Fungal-specific; higher resolution than 18S">真菌</td></tr>
+<!-- ===== Why this matters ===== -->
+<section class="section">
+<div class="section-label" data-zh="為什麼重要" data-en="WHY THIS MATTERS">為什麼重要</div>
+<h2 data-zh="從一管糞便到一個診斷：16S 改變了什麼？" data-en="From one stool tube to a diagnosis: what 16S changed">從一管糞便到一個診斷</h2>
+<div data-lang="zh">
+<p>1980 年代以前，要知道一個糞便樣本裡有什麼細菌，唯一方法是培養 (culture)——但 70-90% 的腸道菌不能在實驗室培養。微生物學家當時稱這種困境為「<strong>great plate count anomaly</strong>」(培養盤計數悖論)：顯微鏡下看到 1000 個細菌，培養盤只長出 10 個。</p>
+<p>1985 年 Carl Woese 用 16S rRNA 序列重畫了生命之樹；1990s Norman Pace 推廣「不培養也能分類」的環境 PCR；2010 年 Caporaso 等人發表 EMP 16S 標準流程，從此一管糞便 → 一個 fastq → 一個物種清單只需幾天。</p>
+<p>實際應用例子：</p>
+<ul style="margin-left:24px;color:var(--c-ink-light)">
+<li><strong>新生兒 NICU</strong>：早產兒糞便 16S 可預測壞死性小腸結腸炎 (NEC) 風險，<em>Klebsiella</em> 與 <em>Clostridium</em> 過度繁殖是警訊。</li>
+<li><strong>口腔 16S 屏障</strong>：牙周炎患者 <em>Porphyromonas gingivalis</em> 、<em>Tannerella</em>、<em>Treponema</em> 三聯體 (red complex) 比例上升。</li>
+<li><strong>陰道菌相</strong>：<em>Lactobacillus</em> dominance vs 細菌性陰道炎 (BV) 的 community state types I–V，被臨床用來追蹤健康狀態。</li>
+<li><strong>農業</strong>：作物根際 16S 預測抗病性，已被當作種植決策依據。</li>
+</ul>
+</div>
+<div data-lang="en">
+<p>Before the 1980s, the only way to know what bacteria were in a stool sample was culture — but 70–90% of gut microbes cannot be grown in the lab. Microbiologists called this the "<strong>great plate count anomaly</strong>": 1000 bacteria under the microscope, only 10 colonies on the plate.</p>
+<p>In 1985 Carl Woese used 16S rRNA sequences to redraw the tree of life; in the 1990s Norman Pace popularized "culture-independent" environmental PCR; in 2010 Caporaso et al. published the EMP 16S protocol. Today one stool tube → one fastq → one species list takes days.</p>
+<p>Real-world examples:</p>
+<ul style="margin-left:24px;color:var(--c-ink-light)">
+<li><strong>Neonatal ICU</strong>: stool 16S predicts necrotizing enterocolitis (NEC) risk; <em>Klebsiella</em> and <em>Clostridium</em> blooms are red flags.</li>
+<li><strong>Oral health</strong>: periodontitis patients show elevated "red complex" <em>P. gingivalis</em>/<em>Tannerella</em>/<em>Treponema</em>.</li>
+<li><strong>Vaginal microbiota</strong>: <em>Lactobacillus</em> dominance vs bacterial vaginosis are summarized into Community State Types I–V — used clinically to monitor reproductive health.</li>
+<li><strong>Agriculture</strong>: rhizosphere 16S predicts disease resistance and now informs planting decisions.</li>
+</ul>
+</div>
+<div class="analogy"><strong data-zh="比喻：圖書館分類條碼" data-en="Analogy: library catalog barcode">比喻：</strong>
+<span data-lang="zh">16S rRNA 像每本書的<strong>ISBN 條碼</strong>——大家都有、長度標準、含有出版商與分類資訊。9 個可變區 (V1-V9) 像條碼裡的 9 個欄位；保守區是欄位之間的固定間隔，讓 PCR primer 能準確「抓住」。整段 1500 bp 像條碼上的所有數字，但 Illumina 短讀通常只能讀 V3-V4 (~460 bp) 兩個欄位——夠到 genus，但無法到 species。</span>
+<span data-lang="en">16S rRNA is like the <strong>ISBN barcode</strong> on every book — universal, fixed-length, encoding publisher and category. The 9 variable regions (V1-V9) are like the 9 numeric fields; conserved regions are the spacers that let PCR primers "grip". The full 1500 bp is the whole barcode, but Illumina short reads usually capture only V3-V4 (~460 bp) — enough for genus, rarely species.</span></div>
+</section>
+
+<!-- ===== rRNA biology deep dive ===== -->
+<section class="section">
+<div class="section-label" data-zh="生物學基礎" data-en="BIOLOGY">生物學基礎</div>
+<h2 data-zh="rRNA 基因生物學：為什麼是 16S？" data-en="rRNA gene biology: why 16S?">為什麼是 16S？</h2>
+<div data-lang="zh">
+<p><strong>核醣體 RNA (<span class="term">ribosomal RNA<span class="tip">構成核醣體 (蛋白質合成工廠) 的 RNA。原核 70S 核醣體含 23S+5S (大次單位) 與 16S (小次單位)。真核 80S 含 28S+5.8S+5S 與 18S。</span></span>) 基因</strong>有三個讓它成為「分類條碼」的理由：</p>
+<ol style="margin-left:24px;color:var(--c-ink-light)">
+<li><strong>普遍存在</strong>：每個細胞都有 (拷貝數 1–15)；古菌也用 16S。</li>
+<li><strong>速率分區</strong>：核糖體催化中心 (保守區) 演化極慢；外圍 stem-loop (可變區) 演化中速——剛好夠把 phylum 分開又能看到 genus 差異。</li>
+<li><strong>大量參考資料</strong>：SILVA、GreenGenes、RDP 收錄百萬條已分類序列。</li>
+</ol>
+<p><strong>區段對應：</strong></p>
+</div>
+<div data-lang="en">
+<p>The <strong>ribosomal RNA (<span class="term">ribosomal RNA<span class="tip">RNA that builds the ribosome (the protein synthesis factory). Prokaryotic 70S ribosome contains 23S+5S (large) and 16S (small). Eukaryotic 80S contains 28S+5.8S+5S and 18S.</span></span>) gene</strong> wins as a taxonomic barcode for three reasons:</p>
+<ol style="margin-left:24px;color:var(--c-ink-light)">
+<li><strong>Universal</strong>: every cell has it (copy number 1–15); archaea also use 16S.</li>
+<li><strong>Rate compartmentalization</strong>: the catalytic core (conserved regions) evolves very slowly; peripheral stem-loops (variable regions) evolve at moderate rates — perfect to split phyla while still seeing genus differences.</li>
+<li><strong>Massive reference databases</strong>: SILVA, GreenGenes, RDP host millions of classified sequences.</li>
+</ol>
+<p><strong>Variable-region map:</strong></p>
+</div>
+
+<table class="comp-table"><thead><tr><th data-zh="目標區段" data-en="Region">目標區段</th><th>Primer</th><th data-zh="長度 (bp)" data-en="Length (bp)">長度</th><th data-zh="解析度" data-en="Resolution">解析度</th><th data-zh="特色 / 用途" data-en="Notes / use">特色</th></tr></thead><tbody>
+<tr><td><strong>V3-V4</strong></td><td>341F / 805R</td><td>~460</td><td data-zh="genus 較佳" data-en="Decent at genus">中</td><td data-zh="Illumina MiSeq 2×300 標配；最普及" data-en="Illumina MiSeq 2×300 default; most popular">最普及</td></tr>
+<tr><td><strong>V4</strong></td><td>515F / 806R</td><td>~250</td><td data-zh="phylum / genus" data-en="Phylum / genus">中</td><td data-zh="Earth Microbiome Project / EMP 標準；可 2×150 雙端" data-en="EMP standard; works on 2×150 paired">EMP 標準</td></tr>
+<tr><td><strong>V1-V2</strong></td><td>27F / 338R</td><td>~310</td><td data-zh="腸道強，皮膚弱" data-en="Good for gut, weak for skin">皮膚常漏</td><td data-zh="<em>Bifidobacterium</em> 較佳；對 <em>Cutibacterium</em> 失明" data-en="Captures <em>Bifidobacterium</em>; misses skin <em>Cutibacterium</em>">注意盲點</td></tr>
+<tr><td><strong>V1-V9 全長</strong></td><td data-zh="長讀 27F / 1492R" data-en="Long-read 27F / 1492R">27F / 1492R</td><td>~1500</td><td>species / strain</td><td data-zh="PacBio HiFi、Nanopore；解析度最高" data-en="PacBio HiFi, Nanopore; highest resolution">長讀</td></tr>
+<tr><td><strong>ITS1 / ITS2</strong></td><td>ITS1F / ITS2 / ITS4</td><td>200-500</td><td data-zh="真菌 species" data-en="Fungal species">真菌</td><td data-zh="真菌專用；18S 對真菌解析不夠" data-en="Fungal-specific; 18S too conserved for fungi">真菌</td></tr>
+<tr><td><strong>18S V4 / V9</strong></td><td>EukBr / 1391F</td><td>~200</td><td data-zh="原生生物 / 浮游" data-en="Protists / plankton">原生生物</td><td data-zh="海洋 / 環境真核生物 (Tara Oceans)" data-en="Marine / environmental eukaryotes (Tara Oceans)">環境真核</td></tr>
+</tbody></table>
+
+<div class="protip"><strong data-zh="如何選 V 區：" data-en="How to choose a V region:">如何選 V 區：</strong>
+<span data-lang="zh">先決定（1）你要研究的環境(腸 / 皮膚 / 海洋)、（2）感興趣的目標菌、（3）平台讀長。<strong>口訣：</strong>腸道 → V3-V4；皮膚 → V1-V3；海洋 → V4 (EMP)；真菌 → ITS2；想要 species → PacBio 全長 16S。</span>
+<span data-lang="en">Decide (1) habitat (gut / skin / ocean), (2) target taxa, (3) platform read length. <strong>Rule of thumb:</strong> gut → V3-V4; skin → V1-V3; ocean → V4 (EMP); fungi → ITS2; species-level → PacBio full-length 16S.</span></div>
+</section>
+
+<!-- ===== OTU vs ASV deep dive ===== -->
+<section class="section">
+<div class="section-label" data-zh="ASV vs OTU" data-en="ASV vs OTU">ASV vs OTU</div>
+<h2 data-zh="ASV vs OTU：精確序列 vs 聚類" data-en="ASV vs OTU: exact sequences vs clustering">ASV vs OTU</h2>
+<div data-lang="zh">
+<p>2010 年代主流是把所有相似度 ≥ 97% 的序列「聚類」成一個 <span class="term">OTU<span class="tip">Operational Taxonomic Unit：操作分類單位。傳統做法是把 PCR/定序錯誤「容忍」進去——任何相差 ≤ 3% 的序列視為同一 OTU。</span></span>。這是個務實妥協：當時定序錯誤率高，聚類能掩蓋錯誤。但 OTU 邊界不穩定 (不同樣本聚出不同的代表序列)、跨研究無法直接比較。</p>
+<p>2016 年 Callahan 等人 (DADA2) 與 Amir 等人 (Deblur) 推出去噪模型：用機率推論把序列「校正回真實」。每個唯一序列 = 一個 <span class="term">ASV<span class="tip">Amplicon Sequence Variant：擴增子序列變異。每個 ASV 是一條「真實存在」的序列；理論上單鹼基差異也分為兩個 ASV。</span></span>。ASV 的好處是<strong>跨研究可直接比對</strong>——相同 ASV 序列就是同一條 DNA。</p>
+</div>
+<div data-lang="en">
+<p>The 2010s standard was to cluster sequences ≥ 97% similarity into one <span class="term">OTU<span class="tip">Operational Taxonomic Unit. Traditional approach that "absorbs" PCR/sequencing errors — any sequences within 3% of each other are treated as one OTU.</span></span>. A pragmatic compromise: error rates were high, clustering hid them. But OTU boundaries are unstable (different samples yield different representative sequences) and cross-study comparison fails.</p>
+<p>In 2016 Callahan et al. (DADA2) and Amir et al. (Deblur) introduced denoising models: probabilistic inference that "corrects errors back to truth." Every unique sequence = one <span class="term">ASV<span class="tip">Amplicon Sequence Variant. Each ASV is a "real" sequence; theoretically even a single-base difference splits two ASVs.</span></span>. Big advantage: <strong>ASVs are directly comparable across studies</strong> — same ASV sequence is literally the same DNA.</p>
+</div>
+
+<div class="vs-grid">
+<div class="vs-side"><h5>🟡 OTU (97% clustering)</h5>
+<ul style="margin-left:18px"><li data-lang="zh">耐錯，但解析度低</li><li data-lang="zh">表 ID 隨機 (OTU_001 在另一研究無意義)</li><li data-lang="zh">記憶體 / 計算成本低</li><li data-lang="zh">舊資料、低品質定序仍用</li><li data-lang="en">Error-tolerant but low resolution</li><li data-lang="en">IDs are arbitrary (OTU_001 means nothing across studies)</li><li data-lang="en">Cheap in memory / compute</li><li data-lang="en">Still useful for legacy or low-quality data</li></ul></div>
+<div class="vs-mid">VS</div>
+<div class="vs-side"><h5>🟢 ASV (denoised exact sequence)</h5>
+<ul style="margin-left:18px"><li data-lang="zh">單鹼基解析</li><li data-lang="zh">ID 是序列本身 → 跨研究可比</li><li data-lang="zh">需要去噪訓練 (DADA2 學 error matrix)</li><li data-lang="zh">當代標準 (2018 起)</li><li data-lang="en">Single-base resolution</li><li data-lang="en">ID is the sequence itself → cross-study comparable</li><li data-lang="en">Needs denoising training (DADA2 learns the error matrix)</li><li data-lang="en">Modern standard (since 2018)</li></ul></div>
+</div>
+
+<div class="callout tip"><span class="callout-icon">💡</span><div>
+<div data-lang="zh"><strong>專家共識 (Callahan et al. 2017, ISME J)：</strong>「新分析一律用 ASV」。OTU 主要用於回溯老資料、超低資源運算、或當你<strong>必須</strong>容忍特定錯誤模式 (如 PacBio CCS-2 老版本)。</div>
+<div data-lang="en"><strong>Field consensus (Callahan et al. 2017, ISME J):</strong> use ASVs for new analyses. OTUs persist only for legacy data, ultra-low resources, or when you specifically need to absorb a known error mode (e.g., older PacBio CCS-2).</div>
+</div></div>
+</section>
+
+<!-- ===== DADA2 denoising explained ===== -->
+<section class="section">
+<div class="section-label" data-zh="DADA2 機制" data-en="DADA2 MECHANISM">DADA2 機制</div>
+<h2 data-zh="DADA2 的「去噪」到底在做什麼？" data-en="What is DADA2's denoising actually doing?">DADA2 的去噪原理</h2>
+<div data-lang="zh">
+<p>DADA2 (Divisive Amplicon Denoising Algorithm 2) 的核心想法：</p>
+<ol style="margin-left:24px;color:var(--c-ink-light)">
+<li><strong>學習 run-specific 錯誤模型</strong>：對每一個 Illumina lane (run)，估計 16 種 base transition 機率 (A→C, A→G, ... 含 quality score 條件)。同一儀器、不同 run 錯誤率不同。</li>
+<li><strong>「真實序列 + 錯誤」假設</strong>：假設 reads 是少數真實序列加上「依照學到的錯誤分佈」變異而來。對每個唯一序列計算「它真的存在」的後驗機率。</li>
+<li><strong>分割演算法</strong>：從最豐富序列開始，把較稀有序列分類為「衍生自真序列的錯誤」或「自己也是真序列」。重複到穩定。</li>
+<li><strong>結果</strong>：每個樣本得到一張「ASV × 樣本」計數表。</li>
+</ol>
+</div>
+<div data-lang="en">
+<p>DADA2 (Divisive Amplicon Denoising Algorithm 2) core idea:</p>
+<ol style="margin-left:24px;color:var(--c-ink-light)">
+<li><strong>Learn a run-specific error model</strong>: per Illumina lane, estimate 16 base-transition probabilities (A→C, A→G, …) conditioned on quality score. Same instrument, different run = different error rates.</li>
+<li><strong>"True sequence + error" model</strong>: assume reads are derived from a few true sequences plus errors drawn from the learned distribution. Compute posterior probability each unique sequence is genuinely present.</li>
+<li><strong>Divisive partitioning</strong>: start from the most abundant sequence; classify rarer sequences as "errors from a true one" or "novel true sequences". Iterate to convergence.</li>
+<li><strong>Output</strong>: ASV × sample count table.</li>
+</ol>
+</div>
+
+<div class="formula-box">
+P(read | true_seq) = ∏<sub>i=1..L</sub> P( base<sub>i</sub><sup>read</sup> | base<sub>i</sub><sup>true</sup>, Q<sub>i</sub> )
+<span class="formula-label" data-zh="DADA2 錯誤模型核心 (每個 base 的條件機率連乘)" data-en="DADA2 error model core (product over per-base conditionals)">DADA2 錯誤模型</span>
+</div>
+
+<div class="analogy"><strong data-zh="比喻：印刷錯字校對" data-en="Analogy: typesetting error correction">比喻：</strong>
+<span data-lang="zh">想像一台印刷機印同一頁書 1000 次，但有 1% 的字會印錯。DADA2 假設「真實版本」只有幾個，先猜哪個字組合最可能；然後看每個觀察到的「不同版本」是「真的不同書」還是「印壞了的同一本」。Quality score 像是「這個字模糊度」，印刷越模糊 (Q score 越低) 越可能是錯字。</span>
+<span data-lang="en">Imagine a press printing one page 1000 times, with 1% per-character error. DADA2 supposes there are only a few "real versions"; it first guesses the most likely true text, then asks whether each variant is "a different book" or "a misprint of the same one". Quality score plays the role of "how blurry that character looks" — lower Q = more likely an error.</span></div>
+</section>
+
+<!-- ===== Pipeline comparison ===== -->
+<section class="section">
+<div class="section-label" data-zh="工具比較" data-en="TOOL COMPARISON">工具比較</div>
+<h2 data-zh="主流流程比較" data-en="Mainstream pipeline comparison">主流流程比較</h2>
+<table class="comp-table"><thead><tr><th>Tool</th><th data-zh="演算法" data-en="Algorithm">演算法</th><th data-zh="輸出" data-en="Output">輸出</th><th data-zh="特色" data-en="Note">特色</th><th data-zh="平台" data-en="Platform">平台</th></tr></thead><tbody>
+<tr><td><strong>DADA2</strong></td><td data-zh="機率錯誤模型" data-en="Probabilistic error model">機率模型</td><td>ASV</td><td data-zh="跨樣本錯誤模型；準確度最高；單一研究最佳" data-en="Cross-sample error model; highest accuracy; best within one study">準確度王</td><td>R / QIIME2</td></tr>
+<tr><td><strong>Deblur</strong></td><td data-zh="upper bound 錯誤刪除" data-en="Upper-bound error removal">確定性</td><td>sub-OTU (sOTU)</td><td data-zh="不需 run-specific 訓練；可跨 batch 並行；EMP 用" data-en="No run-specific training; parallelizable across batches; EMP standard">EMP 標準</td><td>QIIME2</td></tr>
+<tr><td><strong>UNOISE3 (vsearch)</strong></td><td data-zh="abundance / 錯誤距離" data-en="Abundance / error-distance">啟發式</td><td>ZOTU</td><td data-zh="快、輕量；老 USEARCH 後繼者" data-en="Fast, lightweight; USEARCH successor">輕量</td><td>vsearch / USEARCH</td></tr>
+<tr><td><strong>QIIME2</strong></td><td data-zh="框架 (wrap DADA2/Deblur)" data-en="Framework (wraps DADA2/Deblur)">框架</td><td>ASV</td><td data-zh="完整 .qza 物件追蹤、視覺化、可重現" data-en="Full .qza provenance, visualization, reproducibility">最完整</td><td>Python</td></tr>
+<tr><td><strong>mothur</strong></td><td data-zh="OTU 聚類" data-en="OTU clustering">聚類</td><td>OTU</td><td data-zh="Schloss 實驗室；老牌、SOP 詳盡；OTU 派" data-en="Schloss lab; veteran; rich SOP; OTU-centric">老派完整</td><td>C++</td></tr>
+<tr><td><strong>nanoCLUST / Emu</strong></td><td data-zh="長讀對齊 (Nanopore)" data-en="Long-read alignment (Nanopore)">長讀</td><td data-zh="species 級" data-en="species-level">long-read</td><td data-zh="full-length 16S；species 解析；現場應用" data-en="Full-length 16S; species; field-deployable">長讀新秀</td><td>Nanopore</td></tr>
 </tbody></table>
 </section>
 
-<section class="section"><div class="section-label" data-zh="OTU vs ASV" data-en="OTU vs ASV">OTU vs ASV</div>
-<h2 data-zh="OTU vs ASV：從聚類到「精確序列」" data-en="OTU vs ASV: from clustering to exact sequences">OTU vs ASV</h2>
-<div class="card-grid cols-2">
-<div class="card"><div class="card-icon">🟡</div><h4>OTU (Operational Taxonomic Unit)</h4><p data-lang="zh">傳統做法：把相似度 ≥ 97% 的序列聚類成一個 OTU。優：耐受定序錯誤；限：丟失子物種精度，且 OTU 邊界不穩定。</p><p data-lang="en">Traditional: cluster sequences ≥ 97% similarity into one OTU. Pro: tolerates seq errors. Con: loses sub-species detail; OTU boundaries unstable.</p></div>
-<div class="card"><div class="card-icon">🟢</div><h4>ASV (Amplicon Sequence Variant)</h4><p data-lang="zh">2017 後主流：用 denoising 模型 (DADA2、Deblur) 把錯誤從序列「校正回真實」，每個唯一序列即一個 ASV。優：解析到單鹼基；可跨研究比較。</p><p data-lang="en">Post-2017 standard: denoising models (DADA2, Deblur) "correct errors back to truth"; each unique sequence = one ASV. Pro: single-base resolution; cross-study comparable.</p></div>
-</div>
-<div class="callout tip"><span class="callout-icon">💡</span><div data-lang="zh"><strong>當代建議：</strong>新分析一律用 ASV (DADA2)。OTU 主要用於回溯老資料或計算量考量。</div><div data-lang="en"><strong>Modern recommendation:</strong> Use ASV (DADA2) for new analyses. OTU is mainly for legacy data or compute constraints.</div></div>
-</section>
-
-<section class="section"><div class="section-label" data-zh="工具" data-en="TOOLS">工具</div>
-<h2 data-zh="主流流程" data-en="Mainstream Pipelines">主流流程</h2>
-<div class="tool-pills"><span class="tool-pill">DADA2 (R)</span><span class="tool-pill">QIIME2</span><span class="tool-pill">mothur</span><span class="tool-pill">vsearch</span><span class="tool-pill">PICRUSt2</span></div>
+<!-- ===== Code tabs ===== -->
+<section class="section">
+<div class="section-label" data-zh="完整流程程式碼" data-en="FULL PIPELINE CODE">完整流程程式碼</div>
+<h2 data-zh="實作：DADA2 (R) vs QIIME2 vs Shell" data-en="Practice: DADA2 (R) vs QIIME2 vs Shell">實作程式碼</h2>
 <div class="code-tabs"><div class="code-tab-btns">
-<button class="code-tab-btn active" onclick="switchTab(this,'dada')">DADA2</button>
+<button class="code-tab-btn active" onclick="switchTab(this,'dada')">DADA2 (R)</button>
 <button class="code-tab-btn" onclick="switchTab(this,'qiime')">QIIME2</button>
+<button class="code-tab-btn" onclick="switchTab(this,'down')">Downstream (R)</button>
+<button class="code-tab-btn" onclick="switchTab(this,'aldex')">ALDEx2 / MaAsLin2</button>
 </div>
 <div class="code-tab-content active" id="dada"><pre><span class="kw">library</span>(dada2)
 path &lt;- <span class="str">"raw_fastqs/"</span>
-fnF &lt;- <span class="func">sort</span>(<span class="func">list.files</span>(path, pattern = <span class="str">"_R1.fastq.gz"</span>))
-fnR &lt;- <span class="func">sort</span>(<span class="func">list.files</span>(path, pattern = <span class="str">"_R2.fastq.gz"</span>))
-filtF &lt;- <span class="func">file.path</span>(<span class="str">"filt"</span>, <span class="func">basename</span>(fnF))
-filtR &lt;- <span class="func">file.path</span>(<span class="str">"filt"</span>, <span class="func">basename</span>(fnR))
+fnF &lt;- <span class="func">sort</span>(<span class="func">list.files</span>(path, pattern = <span class="str">"_R1.fastq.gz"</span>, full.names=<span class="kw">TRUE</span>))
+fnR &lt;- <span class="func">sort</span>(<span class="func">list.files</span>(path, pattern = <span class="str">"_R2.fastq.gz"</span>, full.names=<span class="kw">TRUE</span>))
+
+<span class="comment"># 0. 視覺化品質 (先看再決定 truncLen!)</span>
+<span class="func">plotQualityProfile</span>(fnF[<span class="num">1</span>:<span class="num">4</span>]); <span class="func">plotQualityProfile</span>(fnR[<span class="num">1</span>:<span class="num">4</span>])
 
 <span class="comment"># 1. 品質過濾</span>
+filtF &lt;- <span class="func">file.path</span>(<span class="str">"filt"</span>, <span class="func">basename</span>(fnF))
+filtR &lt;- <span class="func">file.path</span>(<span class="str">"filt"</span>, <span class="func">basename</span>(fnR))
 <span class="func">filterAndTrim</span>(fnF, filtF, fnR, filtR,
-              truncLen   = <span class="func">c</span>(<span class="num">240</span>, <span class="num">200</span>),
-              maxEE      = <span class="func">c</span>(<span class="num">2</span>, <span class="num">2</span>),
-              truncQ     = <span class="num">2</span>,
+              truncLen   = <span class="func">c</span>(<span class="num">240</span>, <span class="num">200</span>),   <span class="comment"># 看品質圖決定</span>
+              maxEE      = <span class="func">c</span>(<span class="num">2</span>, <span class="num">2</span>),       <span class="comment"># expected errors 上限</span>
+              truncQ     = <span class="num">2</span>,             <span class="comment"># 切到第一個 Q&lt;=2</span>
               rm.phix    = <span class="kw">TRUE</span>, multithread = <span class="kw">TRUE</span>)
 
-<span class="comment"># 2. 估計錯誤率 + 主流程</span>
-errF &lt;- <span class="func">learnErrors</span>(filtF, multithread = <span class="kw">TRUE</span>)
-errR &lt;- <span class="func">learnErrors</span>(filtR, multithread = <span class="kw">TRUE</span>)
-ddF  &lt;- <span class="func">dada</span>(filtF, err = errF, multithread = <span class="kw">TRUE</span>)
-ddR  &lt;- <span class="func">dada</span>(filtR, err = errR, multithread = <span class="kw">TRUE</span>)
-mrg  &lt;- <span class="func">mergePairs</span>(ddF, filtF, ddR, filtR)
+<span class="comment"># 2. 學 run-specific 錯誤模型</span>
+errF &lt;- <span class="func">learnErrors</span>(filtF, multithread = <span class="kw">TRUE</span>, nbases = <span class="num">1e8</span>)
+errR &lt;- <span class="func">learnErrors</span>(filtR, multithread = <span class="kw">TRUE</span>, nbases = <span class="num">1e8</span>)
+<span class="func">plotErrors</span>(errF, nominalQ = <span class="kw">TRUE</span>)  <span class="comment"># 黑點應沿黑線</span>
+
+<span class="comment"># 3. 主流程 (denoising → ASV)</span>
+ddF  &lt;- <span class="func">dada</span>(filtF, err = errF, multithread = <span class="kw">TRUE</span>, pool = <span class="str">"pseudo"</span>)
+ddR  &lt;- <span class="func">dada</span>(filtR, err = errR, multithread = <span class="kw">TRUE</span>, pool = <span class="str">"pseudo"</span>)
+mrg  &lt;- <span class="func">mergePairs</span>(ddF, filtF, ddR, filtR, minOverlap=<span class="num">12</span>)
 seqtab &lt;- <span class="func">makeSequenceTable</span>(mrg)
 
-<span class="comment"># 3. 去 chimera + 分類</span>
-seqtab.nc &lt;- <span class="func">removeBimeraDenovo</span>(seqtab, method = <span class="str">"consensus"</span>)
-tax &lt;- <span class="func">assignTaxonomy</span>(seqtab.nc, <span class="str">"silva_nr99_v138_train_set.fa.gz"</span>)</pre></div>
-<div class="code-tab-content" id="qiime"><pre><span class="comment"># QIIME2 完整流程</span>
-qiime tools import --type <span class="str">'SampleData[PairedEndSequencesWithQuality]'</span> \
+<span class="comment"># 4. 移除 chimera</span>
+seqtab.nc &lt;- <span class="func">removeBimeraDenovo</span>(seqtab, method = <span class="str">"consensus"</span>, multithread=<span class="kw">TRUE</span>)
+<span class="func">sum</span>(seqtab.nc) / <span class="func">sum</span>(seqtab)  <span class="comment"># 保留率應 &gt; 0.8</span>
+
+<span class="comment"># 5. 分類 (SILVA / GTDB)</span>
+tax &lt;- <span class="func">assignTaxonomy</span>(seqtab.nc, <span class="str">"silva_nr99_v138.1.fa.gz"</span>, multithread=<span class="kw">TRUE</span>)
+tax &lt;- <span class="func">addSpecies</span>(tax, <span class="str">"silva_species_v138.1.fa.gz"</span>)
+
+<span class="comment"># 6. 建相 phyloseq 物件</span>
+<span class="kw">library</span>(phyloseq)
+ps &lt;- <span class="func">phyloseq</span>(<span class="func">otu_table</span>(seqtab.nc, taxa_are_rows=<span class="kw">FALSE</span>),
+                <span class="func">sample_data</span>(meta),
+                <span class="func">tax_table</span>(tax))</pre></div>
+
+<div class="code-tab-content" id="qiime"><pre><span class="comment"># QIIME2 完整流程（v2024.5）</span>
+<span class="comment"># --- 1. 匯入 ---</span>
+qiime tools import \
+  --type <span class="str">'SampleData[PairedEndSequencesWithQuality]'</span> \
   --input-path manifest.csv \
   --input-format PairedEndFastqManifestPhred33V2 \
   --output-path demux.qza
 
+qiime demux summarize --i-data demux.qza --o-visualization demux.qzv
+
+<span class="comment"># --- 2. DADA2 去噪 (依 demux.qzv 看品質決定 trunc-len) ---</span>
 qiime dada2 denoise-paired \
   --i-demultiplexed-seqs demux.qza \
   --p-trunc-len-f <span class="num">240</span> --p-trunc-len-r <span class="num">200</span> \
+  --p-max-ee-f <span class="num">2</span> --p-max-ee-r <span class="num">2</span> \
   --p-n-threads <span class="num">8</span> \
-  --o-table table.qza --o-representative-sequences rep-seqs.qza --o-denoising-stats stats.qza
+  --o-table table.qza \
+  --o-representative-sequences rep-seqs.qza \
+  --o-denoising-stats stats.qza
 
+<span class="comment"># --- 3. 系統發育樹 (UniFrac 用) ---</span>
+qiime phylogeny align-to-tree-mafft-fasttree \
+  --i-sequences rep-seqs.qza \
+  --o-alignment aln.qza --o-masked-alignment maln.qza \
+  --o-tree unrooted-tree.qza --o-rooted-tree rooted-tree.qza
+
+<span class="comment"># --- 4. alpha / beta diversity (一鍵全做) ---</span>
+qiime diversity core-metrics-phylogenetic \
+  --i-phylogeny rooted-tree.qza --i-table table.qza \
+  --p-sampling-depth <span class="num">10000</span> \
+  --m-metadata-file metadata.tsv \
+  --output-dir diversity/
+
+<span class="comment"># --- 5. 分類 (預訓 SILVA classifier) ---</span>
 qiime feature-classifier classify-sklearn \
   --i-classifier silva-138-99-nb-classifier.qza \
   --i-reads rep-seqs.qza \
-  --o-classification taxonomy.qza</pre></div>
+  --o-classification taxonomy.qza
+
+<span class="comment"># --- 6. PERMANOVA 比 group 差異 ---</span>
+qiime diversity beta-group-significance \
+  --i-distance-matrix diversity/bray_curtis_distance_matrix.qza \
+  --m-metadata-file metadata.tsv --m-metadata-column disease \
+  --o-visualization bray_disease.qzv \
+  --p-pairwise</pre></div>
+
+<div class="code-tab-content" id="down"><pre><span class="comment"># phyloseq / vegan 下游</span>
+<span class="kw">library</span>(phyloseq); <span class="kw">library</span>(vegan); <span class="kw">library</span>(microbiome)
+
+<span class="comment"># 1. 標準化 — 不要 rarefy! 改用 GMPR/TMM/CSS 或保留 raw count 給 ALDEx2</span>
+ps_norm &lt;- <span class="func">transform_sample_counts</span>(ps, <span class="kw">function</span>(x) x / <span class="func">sum</span>(x))  <span class="comment"># 相對豐度</span>
+ps_clr  &lt;- <span class="func">microbiome::transform</span>(ps, <span class="str">"clr"</span>)                <span class="comment"># CLR (compositional)</span>
+
+<span class="comment"># 2. Alpha diversity</span>
+alpha &lt;- <span class="func">estimate_richness</span>(ps, measures=<span class="func">c</span>(<span class="str">"Observed"</span>,<span class="str">"Shannon"</span>,<span class="str">"Simpson"</span>,<span class="str">"Chao1"</span>))
+
+<span class="comment"># 3. Beta diversity (Bray-Curtis + UniFrac)</span>
+ord &lt;- <span class="func">ordinate</span>(ps_norm, method=<span class="str">"PCoA"</span>, distance=<span class="str">"bray"</span>)
+<span class="func">plot_ordination</span>(ps_norm, ord, color=<span class="str">"disease"</span>) + <span class="func">stat_ellipse</span>()
+
+<span class="comment"># 4. PERMANOVA</span>
+d &lt;- phyloseq::<span class="func">distance</span>(ps_norm, method=<span class="str">"bray"</span>)
+<span class="func">adonis2</span>(d ~ disease + age + sex, data = <span class="func">data.frame</span>(<span class="func">sample_data</span>(ps_norm)))
+
+<span class="comment"># 5. 物種網絡 (SparCC)</span>
+<span class="kw">library</span>(SpiecEasi)
+se &lt;- <span class="func">spiec.easi</span>(ps, method=<span class="str">"mb"</span>, lambda.min.ratio=<span class="num">0.01</span>, nlambda=<span class="num">20</span>)</pre></div>
+
+<div class="code-tab-content" id="aldex"><pre><span class="comment"># ALDEx2: 對 compositional 資料的差異豐度 (CLR + Welch's t / Wilcoxon)</span>
+<span class="kw">library</span>(ALDEx2)
+counts &lt;- <span class="func">t</span>(<span class="func">otu_table</span>(ps))   <span class="comment"># ASV × sample</span>
+group  &lt;- <span class="func">sample_data</span>(ps)$disease
+
+x &lt;- <span class="func">aldex.clr</span>(counts, conds=group, mc.samples=<span class="num">128</span>)
+res.t  &lt;- <span class="func">aldex.ttest</span>(x, paired.test=<span class="kw">FALSE</span>)
+res.ef &lt;- <span class="func">aldex.effect</span>(x)
+all &lt;- <span class="func">cbind</span>(res.t, res.ef)
+sig &lt;- all[all$wi.eBH &lt; <span class="num">0.05</span> &amp; <span class="func">abs</span>(all$effect) &gt; <span class="num">1</span>, ]
+
+<span class="comment">## ===========================================================</span>
+
+<span class="comment"># MaAsLin2: GLM with covariates (年齡、性別、抗生素…)</span>
+<span class="kw">library</span>(Maaslin2)
+fit &lt;- <span class="func">Maaslin2</span>(
+  input_data = counts,                  <span class="comment"># 可 raw count 或 relative</span>
+  input_metadata = meta,
+  output = <span class="str">"maaslin_out"</span>,
+  normalization = <span class="str">"TSS"</span>,
+  transform = <span class="str">"LOG"</span>,
+  analysis_method = <span class="str">"LM"</span>,
+  fixed_effects = <span class="func">c</span>(<span class="str">"disease"</span>, <span class="str">"age"</span>, <span class="str">"sex"</span>, <span class="str">"bmi"</span>),
+  random_effects = <span class="func">c</span>(<span class="str">"subject_id"</span>),       <span class="comment"># 縱向研究</span>
+  reference = <span class="str">"disease,healthy"</span>)
+
+<span class="comment">## ===========================================================</span>
+
+<span class="comment"># ANCOM-BC2: bias-corrected log-ratio</span>
+<span class="kw">library</span>(ANCOMBC)
+res &lt;- <span class="func">ancombc2</span>(data = ps, fix_formula = <span class="str">"disease + age + sex"</span>,
+                p_adj_method = <span class="str">"holm"</span>, prv_cut = <span class="num">0.10</span>, lib_cut = <span class="num">1000</span>)</pre></div>
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
-<h2 data-zh="Alpha Diversity：Shannon Index" data-en="Alpha Diversity: Shannon Index">Shannon Index</h2>
-<div data-lang="zh"><p>調整三個物種的相對豐度，看 Shannon 指數變化。最大值出現在「均勻分佈」時。</p></div>
-<div data-lang="en"><p>Tune three species' relative abundances; see Shannon. Maximized at perfect evenness.</p></div>
+<!-- ===== Diversity formulas ===== -->
+<section class="section">
+<div class="section-label" data-zh="多樣性公式" data-en="DIVERSITY FORMULAS">多樣性公式</div>
+<h2 data-zh="alpha / beta diversity 公式速查" data-en="Alpha / Beta diversity formula cheatsheet">公式速查</h2>
+
+<div class="formula-box">
+H' = − Σ<sub>i</sub> p<sub>i</sub> · ln(p<sub>i</sub>)
+<span class="formula-label" data-zh="Shannon 指數：考慮豐富度 + 均勻度；單位 nats" data-en="Shannon index: richness + evenness; units = nats">Shannon (H')</span>
+</div>
+<div class="formula-box">
+D = 1 − Σ<sub>i</sub> p<sub>i</sub><sup>2</sup>
+<span class="formula-label" data-zh="Simpson 指數：隨機抽兩條，屬不同物種的機率" data-en="Simpson: probability two random reads are different species">Simpson (1-D)</span>
+</div>
+<div class="formula-box">
+Chao1 = S<sub>obs</sub> + (F<sub>1</sub><sup>2</sup>) / (2·F<sub>2</sub>)
+<span class="formula-label" data-zh="Chao1：估計總物種數，F₁、F₂ 是 singleton 與 doubleton 數" data-en="Chao1: estimated total richness; F₁, F₂ = singletons, doubletons">Chao1</span>
+</div>
+<div class="formula-box">
+J' = H' / ln(S)
+<span class="formula-label" data-zh="Pielou's evenness：H'/最大可能 H' (S = 物種數)" data-en="Pielou's evenness: H' / max possible H' (S = #species)">Evenness (J')</span>
+</div>
+<div class="formula-box">
+d<sub>BC</sub>(A,B) = Σ<sub>i</sub> |x<sub>iA</sub> − x<sub>iB</sub>| / Σ<sub>i</sub>(x<sub>iA</sub> + x<sub>iB</sub>)
+<span class="formula-label" data-zh="Bray-Curtis 距離：兩樣本豐度差／總和；0=同；1=完全不同" data-en="Bray-Curtis dissimilarity: 0=identical, 1=fully disjoint">Bray-Curtis</span>
+</div>
+<div class="formula-box">
+UniFrac = Σ branches (unshared) / Σ branches (all)
+<span class="formula-label" data-zh="UniFrac：用系統發育樹分支長度算距離；考慮親緣關係" data-en="UniFrac: distance using phylogenetic branch lengths; accounts for relatedness">UniFrac (unweighted)</span>
+</div>
+<div class="formula-box">
+CLR(x<sub>i</sub>) = ln( x<sub>i</sub> / g(x) ) , g(x)=(∏x<sub>i</sub>)<sup>1/D</sup>
+<span class="formula-label" data-zh="Centered log-ratio：把 simplex 投影到歐式空間；可做 PCA、t-test" data-en="Centered log-ratio: maps the simplex to Euclidean space; enables PCA, t-test">CLR transform</span>
+</div>
+</section>
+
+<!-- ===== Interactive 1: Shannon ===== -->
+<section class="section">
+<div class="section-label" data-zh="互動模擬一" data-en="INTERACTIVE 1">互動模擬一</div>
+<h2 data-zh="Alpha Diversity：Shannon / Simpson / Evenness" data-en="Alpha Diversity Simulator">Shannon / Simpson / Evenness 模擬器</h2>
+<div data-lang="zh"><p>調整四個物種的相對豐度，看 Shannon、Simpson、Evenness 同步變化。<strong>練習：</strong>讓 A=100 (其他=0)，三個指標各是多少？再讓 A=B=C=D=25 看看，差距有多大？</p></div>
+<div data-lang="en"><p>Adjust four species' relative abundances and watch Shannon / Simpson / Evenness change. <strong>Try:</strong> A=100 (rest=0), what are the three indices? Then A=B=C=D=25 — how big is the gap?</p></div>
 <div class="interactive-panel">
-<div class="slider-group"><label>Species A (%) <span id="valA">50</span></label><input type="range" id="sliderA" min="0" max="100" value="50" step="1"></div>
+<div class="slider-group"><label>Species A (%) <span id="valA">40</span></label><input type="range" id="sliderA" min="0" max="100" value="40" step="1"></div>
 <div class="slider-group"><label>Species B (%) <span id="valB">30</span></label><input type="range" id="sliderB" min="0" max="100" value="30" step="1"></div>
 <div class="slider-group"><label>Species C (%) <span id="valC">20</span></label><input type="range" id="sliderC" min="0" max="100" value="20" step="1"></div>
+<div class="slider-group"><label>Species D (%) <span id="valD">10</span></label><input type="range" id="sliderD" min="0" max="100" value="10" step="1"></div>
 <div class="stat-row">
 <div class="stat-box"><div class="sb-num" id="shannon">--</div><div class="sb-lbl">Shannon H'</div></div>
-<div class="stat-box"><div class="sb-num" id="simpson">--</div><div class="sb-lbl">Simpson D</div></div>
+<div class="stat-box"><div class="sb-num" id="simpson">--</div><div class="sb-lbl">Simpson 1-D</div></div>
 <div class="stat-box"><div class="sb-num" id="evenness">--</div><div class="sb-lbl">Evenness J'</div></div>
+<div class="stat-box"><div class="sb-num" id="effective">--</div><div class="sb-lbl">Effective S (Hill q=1)</div></div>
+</div>
+<div class="chart-container" style="height:200px"><canvas id="abundChart"></canvas></div>
+</div>
+</section>
+
+<!-- ===== Interactive 2: Bray-Curtis ===== -->
+<section class="section">
+<div class="section-label" data-zh="互動模擬二" data-en="INTERACTIVE 2">互動模擬二</div>
+<h2 data-zh="Beta diversity：Bray-Curtis 與 Jaccard" data-en="Beta diversity: Bray-Curtis &amp; Jaccard">Bray-Curtis 模擬器</h2>
+<div data-lang="zh"><p>調整兩個樣本中三個物種的豐度，看 Bray-Curtis (考慮數量) 與 Jaccard (只考慮有無) 距離差異。<strong>練習：</strong>讓兩樣本物種有無一樣 (Jaccard=0)，但豐度大不同——Bray-Curtis 會多大？</p></div>
+<div data-lang="en"><p>Set three species' abundances in two samples; compare Bray-Curtis (uses counts) and Jaccard (presence/absence). <strong>Try:</strong> identical presence/absence (Jaccard=0) but very different abundances — what does Bray-Curtis show?</p></div>
+<div class="interactive-panel">
+<div class="slider-group"><label>Sample 1: Species X <span id="vS1X">50</span></label><input type="range" id="s1x" min="0" max="100" value="50"></div>
+<div class="slider-group"><label>Sample 1: Species Y <span id="vS1Y">30</span></label><input type="range" id="s1y" min="0" max="100" value="30"></div>
+<div class="slider-group"><label>Sample 1: Species Z <span id="vS1Z">20</span></label><input type="range" id="s1z" min="0" max="100" value="20"></div>
+<div class="slider-group"><label>Sample 2: Species X <span id="vS2X">10</span></label><input type="range" id="s2x" min="0" max="100" value="10"></div>
+<div class="slider-group"><label>Sample 2: Species Y <span id="vS2Y">40</span></label><input type="range" id="s2y" min="0" max="100" value="40"></div>
+<div class="slider-group"><label>Sample 2: Species Z <span id="vS2Z">50</span></label><input type="range" id="s2z" min="0" max="100" value="50"></div>
+<div class="stat-row">
+<div class="stat-box"><div class="sb-num" id="bray">--</div><div class="sb-lbl">Bray-Curtis</div></div>
+<div class="stat-box"><div class="sb-num" id="jacc">--</div><div class="sb-lbl">Jaccard</div></div>
+<div class="stat-box"><div class="sb-num" id="cos">--</div><div class="sb-lbl">Cosine</div></div>
 </div>
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="下游分析" data-en="DOWNSTREAM">下游分析</div>
-<h2 data-zh="核心下游分析" data-en="Core Downstream">核心下游分析</h2>
-<div class="card-grid cols-2">
-<div class="card"><h4 data-zh="Alpha / Beta diversity" data-en="Alpha / Beta diversity">Alpha / Beta diversity</h4><p data-lang="zh">用 phyloseq、vegan、scikit-bio。Alpha 比較組間多樣性；Beta + PERMANOVA 比較群落結構差異。</p><p data-lang="en">phyloseq, vegan, scikit-bio. Alpha compares diversity across groups; Beta + PERMANOVA tests composition shifts.</p></div>
-<div class="card"><h4 data-zh="差異豐度分析" data-en="Differential abundance">差異豐度</h4><p data-lang="zh">微生物比例資料專用：ALDEx2、ANCOM-BC、MaAsLin2、LEfSe。避免直接用 t-test。</p><p data-lang="en">Compositional-aware tools: ALDEx2, ANCOM-BC, MaAsLin2, LEfSe. Avoid t-test on raw proportions.</p></div>
-<div class="card"><h4 data-zh="物種網絡" data-en="Microbial networks">物種網絡</h4><p data-lang="zh">SparCC、SPIEC-EASI 建立物種共生網絡，找微生物社群結構。</p><p data-lang="en">SparCC, SPIEC-EASI build co-occurrence networks to reveal microbial communities.</p></div>
-<div class="card"><h4 data-zh="功能預測" data-en="Function prediction">功能預測</h4><p data-lang="zh">PICRUSt2 從 16S 推估 KO 與 pathway——詳見 Step 3。</p><p data-lang="en">PICRUSt2 infers KOs & pathways from 16S — see Step 3.</p></div>
+<!-- ===== Decision tree ===== -->
+<section class="section">
+<div class="section-label" data-zh="決策引導" data-en="DECISION GUIDE">決策引導</div>
+<h2 data-zh="差異豐度分析工具決策樹" data-en="Differential abundance tool decision tree">DA 工具決策樹</h2>
+<div class="decision-tree"><h4>🌳 <span data-zh="該用哪個差異豐度工具？" data-en="Which DA tool should I use?">該用哪個差異豐度工具？</span></h4>
+<div data-lang="zh">
+<div class="dt-node"><span class="dt-q">Q1:</span><div>樣本數 &lt; 20？ <span class="dt-arrow">→ 是 →</span> <strong>ALDEx2</strong>（蒙地卡羅取樣，小樣本穩）</div></div>
+<div class="dt-node"><span class="dt-q">Q2:</span><div>有多個協變量 (年齡、性別、藥物)？ <span class="dt-arrow">→ 是 →</span> <strong>MaAsLin2</strong>（GLM 支援固定 + 隨機效應）</div></div>
+<div class="dt-node"><span class="dt-q">Q3:</span><div>單一二元組比較 (case vs control)？ <span class="dt-arrow">→ 是 →</span> <strong>ANCOM-BC2</strong>（偏差校正、p-value 解讀直觀）</div></div>
+<div class="dt-node"><span class="dt-q">Q4:</span><div>要找 biomarker for classifier？ <span class="dt-arrow">→ 是 →</span> <strong>LEfSe</strong>（LDA effect size，視覺呈現）</div></div>
+<div class="dt-node"><span class="dt-q">Q5:</span><div>縱向多時點 (longitudinal)？ <span class="dt-arrow">→ 是 →</span> <strong>MaAsLin2 + 隨機效應</strong> 或 <strong>SplinectomeR</strong></div></div>
 </div>
+<div data-lang="en">
+<div class="dt-node"><span class="dt-q">Q1:</span><div>Sample size &lt; 20? <span class="dt-arrow">→ Yes →</span> <strong>ALDEx2</strong> (Monte Carlo, stable on small samples)</div></div>
+<div class="dt-node"><span class="dt-q">Q2:</span><div>Multiple covariates (age, sex, drugs)? <span class="dt-arrow">→ Yes →</span> <strong>MaAsLin2</strong> (GLM, fixed + random effects)</div></div>
+<div class="dt-node"><span class="dt-q">Q3:</span><div>Simple binary case vs control? <span class="dt-arrow">→ Yes →</span> <strong>ANCOM-BC2</strong> (bias-corrected, interpretable p)</div></div>
+<div class="dt-node"><span class="dt-q">Q4:</span><div>Looking for biomarkers for a classifier? <span class="dt-arrow">→ Yes →</span> <strong>LEfSe</strong> (LDA effect size, nice viz)</div></div>
+<div class="dt-node"><span class="dt-q">Q5:</span><div>Longitudinal multi-timepoint? <span class="dt-arrow">→ Yes →</span> <strong>MaAsLin2 + random effects</strong> or <strong>SplinectomeR</strong></div></div>
+</div>
+</div>
+</section>
+
+<!-- ===== Case study ===== -->
+<section class="case-study">
+<h4 data-zh="案例研究：人體微生物計畫 (HMP)──18 個身體部位的條碼指紋" data-en="Case study: Human Microbiome Project (HMP) — 18 body-site signatures">案例研究：HMP 18 個部位的「指紋」</h4>
+<div class="case-meta">Huttenhower et al. 2012, Nature 486:207</div>
+<div data-lang="zh">
+<p>HMP1 (2012) 對 242 位健康成人、18 個身體部位 (口腔多點、皮膚、鼻腔、糞便、陰道、唾液) 跑 V3-V5 16S。發現：</p>
+<ul style="margin-left:24px"><li><strong>每個部位都有「特徵社群」</strong>：糞便 Bacteroidetes + Firmicutes 主導；陰道 Lactobacillus 一枝獨秀 (低 alpha)；唾液 Streptococcus + Prevotella；皮膚 Cutibacterium。</li>
+<li><strong>個體差異大、但部位特徵恆定</strong>：你的糞便與我的糞便差異，遠小於你的糞便與你的皮膚。</li>
+<li><strong>陰道 alpha 最低 (Shannon ~0.7)、糞便最高 (~3.5)</strong>。健康陰道 = 單一 Lactobacillus 主導，這是「低多樣性 = 健康」的反直覺特例。</li>
+<li><strong>功能比物種更穩定</strong>：個體間 KEGG pathway profile 相似度 &gt; 物種 profile。</li>
+</ul>
+<p><strong>啟示：</strong>分析時把 body site 作為主要分組變量，不要把口腔和糞便混在一起。任何結論都應該<strong>分部位</strong>解讀。</p>
+</div>
+<div data-lang="en">
+<p>HMP1 (2012) profiled 242 healthy adults at 18 body sites (multiple oral sites, skin, nares, stool, vagina, saliva) with V3-V5 16S. Findings:</p>
+<ul style="margin-left:24px"><li><strong>Each site has a signature community</strong>: stool dominated by Bacteroidetes + Firmicutes; vagina dominated by <em>Lactobacillus</em> (low alpha); saliva by <em>Streptococcus</em> + <em>Prevotella</em>; skin by <em>Cutibacterium</em>.</li>
+<li><strong>Large between-subject variation, but body-site identity is preserved</strong>: your stool vs my stool diverges far less than your stool vs your skin.</li>
+<li><strong>Vagina has the lowest alpha (Shannon ~0.7), stool the highest (~3.5)</strong>. Healthy vagina = single <em>Lactobacillus</em> dominance, a counterintuitive case where "low diversity = healthy."</li>
+<li><strong>Function more stable than taxonomy</strong>: KEGG pathway profiles are more similar across subjects than species profiles.</li>
+</ul>
+<p><strong>Take-home:</strong> include body site as the primary grouping variable; never pool oral and stool. Always interpret findings <strong>per body site</strong>.</p>
+</div>
+</section>
+
+<!-- ===== Pitfalls ===== -->
+<section class="section">
+<div class="section-label" data-zh="陷阱" data-en="PITFALLS">陷阱</div>
+<h2 data-zh="16S 分析的 5 個關鍵陷阱" data-en="5 key 16S pitfalls">5 個關鍵陷阱</h2>
+<div class="pitfall"><strong data-zh="① Rarefaction 仍在用，但不推薦" data-en="① Rarefaction is still around — but not recommended">① 不要 Rarefy：</strong>
+<span data-lang="zh">傳統做法是隨機 subsample 到固定深度。McMurdie &amp; Holmes 2014 證明這浪費資料且增加變異。<strong>對策：</strong>raw count + ALDEx2 / ANCOM-BC，或 CLR + 線性模型。Rarefaction 唯一仍適用是計算 UniFrac 距離以保證可比。</span>
+<span data-lang="en">Traditional practice was random sub-sampling to a fixed depth. McMurdie &amp; Holmes 2014 showed this wastes data and inflates variance. <strong>Fix:</strong> use raw counts + ALDEx2/ANCOM-BC, or CLR + linear models. Rarefaction lingers only when computing UniFrac to ensure comparability.</span></div>
+<div class="pitfall"><strong data-zh="② 16S copy number 變異" data-en="② 16S copy-number variation">② 拷貝數偏差：</strong>
+<span data-lang="zh"><em>E. coli</em> 有 7 個 16S 基因拷貝，<em>Bifidobacterium</em> 只有 1-3 個。直接讀 reads 數會「放大」高拷貝物種。對策：<code>rrnDB</code> 或 PICRUSt2 內建拷貝數校正；或承認此偏差只比較 case/control 內相同物種。</span>
+<span data-lang="en"><em>E. coli</em> carries 7 copies of 16S; <em>Bifidobacterium</em> has 1-3. Raw read counts inflate high-copy species. Correct with <code>rrnDB</code> or PICRUSt2's built-in normalization, or compare same species across case/control only.</span></div>
+<div class="pitfall"><strong data-zh="③ 用 PCA 而非 PCoA" data-en="③ PCA instead of PCoA">③ PCA vs PCoA：</strong>
+<span data-lang="zh">在原始 OTU 計數上跑 PCA 是錯的——資料是 compositional，PCA 假設歐氏距離不成立。對策：用 PCoA (Bray-Curtis / UniFrac) 或 CLR + PCA。</span>
+<span data-lang="en">Running PCA on raw OTU counts is wrong — data are compositional and PCA's Euclidean-distance assumption is invalid. Use PCoA (Bray-Curtis / UniFrac) or CLR + PCA.</span></div>
+<div class="pitfall"><strong data-zh="④ 忽略 alpha-diversity 不適合比較" data-en="④ Comparing alpha diversity sloppily">④ Alpha 比較陷阱：</strong>
+<span data-lang="zh">Alpha 指數對 library size 敏感。Shannon 比 richness 穩。對策：在比較前 rarefy 到相同深度 (僅供 alpha)、或回歸殘差於 library size。</span>
+<span data-lang="en">Alpha indices are sensitive to library size. Shannon is more robust than richness. Before comparing alpha across samples, rarefy to a common depth (alpha only), or regress out library size.</span></div>
+<div class="pitfall"><strong data-zh="⑤ Chimera 沒去乾淨" data-en="⑤ Leftover chimeras">⑤ Chimera：</strong>
+<span data-lang="zh">PCR 過程中模板 A 的 partial product 跳到模板 B 上延伸，產生「不存在的雜合序列」。DADA2 內建 consensus 去 chimera 通常足夠；mothur 可額外 vsearch UCHIME。檢查 chimera 比例 &gt; 25% 表示 PCR 條件有問題。</span>
+<span data-lang="en">During PCR, a partial extension from template A jumps to template B, creating a hybrid that doesn't exist. DADA2's built-in consensus removal is usually enough; mothur can add vsearch UCHIME. Chimera fraction &gt; 25% indicates poor PCR conditions.</span></div>
+</section>
+
+<!-- ===== Discussion ===== -->
+<section class="discussion">
+<h4 data-zh="討論題：思考一下" data-en="Discussion: think about it">討論題</h4>
+<div data-lang="zh">
+<p><span class="q-ico">Q1.</span> 為什麼同一份糞便用 16S 與 shotgun 跑會產生不同的「優勢菌」？提示：考慮 16S copy number、shotgun 看基因組大小、PCR 偏差。</p>
+<p><span class="q-ico">Q2.</span> 你看到一篇論文聲稱「IBD 患者 alpha diversity 顯著下降」並用 Welch's t-test。哪三點你會質疑？</p>
+<p><span class="q-ico">Q3.</span> 為什麼健康陰道菌相 (alpha 低) 跟健康腸道菌相 (alpha 高) 完全相反？這對「diversity = 健康」的口號意味著什麼？</p>
+<p><span class="q-ico">Q4.</span> ASV 跨研究可比——但即使序列完全相同，兩個研究若用不同 V 區，這條 ASV 是同一回事嗎？</p>
+<p><span class="q-ico">Q5.</span> 你要設計一個 200 人 case/control IBD 研究，預算只夠跑 16S V3-V4。Power analysis 該如何做？提示：beta diversity PERMANOVA 的 effect size R² 多少才偵測得到？</p>
+</div>
+<div data-lang="en">
+<p><span class="q-ico">Q1.</span> Why does the same stool give different "dominant taxa" between 16S and shotgun? Hint: think about 16S copy number, shotgun seeing genome size, PCR bias.</p>
+<p><span class="q-ico">Q2.</span> A paper claims "IBD patients have significantly lower alpha diversity" using Welch's t-test. Name three concerns.</p>
+<p><span class="q-ico">Q3.</span> Why is healthy vagina (low alpha) the opposite of healthy gut (high alpha)? What does this say about the "diversity = health" slogan?</p>
+<p><span class="q-ico">Q4.</span> ASVs are cross-study comparable — but if two studies use different V regions, is the same ASV sequence really the same thing?</p>
+<p><span class="q-ico">Q5.</span> You're designing a 200-subject case/control IBD study, budget for 16S V3-V4 only. How do you power-analyze? Hint: what PERMANOVA R² is detectable?</p>
+</div>
+</section>
+
+<!-- ===== FAQ ===== -->
+<section class="section">
+<div class="section-label" data-zh="常見問答" data-en="FAQ">常見問答</div>
+<h2>FAQ</h2>
+<div class="faq-list">
+<div class="faq-item"><button class="faq-q" data-zh="Q：truncLen 多少才對？" data-en="Q: How do I pick truncLen?">truncLen 多少才對？</button>
+<div class="faq-a"><span data-lang="zh">看 <code>plotQualityProfile</code> 圖，找 R1、R2 質量開始下滑到 Q&lt;30 的位置。R1 通常 220-250，R2 通常 180-220。前後合計需 &gt; primer 區段長 + 12 bp overlap (V3-V4 需 &gt; 460+12 = 472)。</span>
+<span data-lang="en">Look at <code>plotQualityProfile</code>; find where R1/R2 quality drops below Q30. R1 ~220-250, R2 ~180-220. Sum must exceed amplicon length + 12 bp overlap (V3-V4 needs &gt;472).</span></div></div>
+
+<div class="faq-item"><button class="faq-q" data-zh="Q：要不要 rarefy？" data-en="Q: Should I rarefy?">要不要 rarefy？</button>
+<div class="faq-a"><span data-lang="zh">差異豐度分析<strong>不要</strong>。Alpha 比較時可以 (rarefy 到最小深度的 90%)，或更好——用線性模型把 library size 放進去當共變量。UniFrac 距離習慣 rarefy 但 GUniFrac 也可。</span>
+<span data-lang="en">For differential abundance: <strong>no</strong>. For alpha diversity comparison: optional (rarefy to 90% of min depth), but better to put library size as covariate in a linear model. UniFrac distance traditionally uses rarefaction but GUniFrac can avoid it.</span></div></div>
+
+<div class="faq-item"><button class="faq-q" data-zh="Q：SILVA、GreenGenes、GTDB 哪個分類庫？" data-en="Q: SILVA, GreenGenes or GTDB?">SILVA vs GreenGenes vs GTDB？</button>
+<div class="faq-a"><span data-lang="zh"><strong>SILVA</strong> (v138.1) 最完整，QIIME2 預訓 classifier 標配；<strong>GreenGenes2</strong> 重新發布，與 phylogenetic placement 合用；<strong>GTDB</strong> 基於基因組演化更現代，但 ASV 對應較少。<strong>建議：</strong>新研究用 SILVA；想跟 shotgun 比對用 GTDB。</span>
+<span data-lang="en"><strong>SILVA</strong> (v138.1) is the most complete, default for QIIME2 pretrained classifier; <strong>GreenGenes2</strong> is newly re-released and pairs well with phylogenetic placement; <strong>GTDB</strong> is genome-based and modern, but fewer 16S references. <strong>Pick:</strong> SILVA for new studies; GTDB if comparing to shotgun.</span></div></div>
+
+<div class="faq-item"><button class="faq-q" data-zh="Q：PCoA 與 NMDS 差在哪？" data-en="Q: PCoA vs NMDS?">PCoA vs NMDS？</button>
+<div class="faq-a"><span data-lang="zh">PCoA 是線性 (eigendecomposition)，保留距離；NMDS 是非線性，保留秩序。樣本多時 PCoA 較快；NMDS 對非歐距離效果好。建議兩個都跑，看結論一不一致。</span>
+<span data-lang="en">PCoA is linear (eigendecomposition), preserves distances; NMDS is non-linear, preserves ranks. PCoA is faster on large samples; NMDS handles non-Euclidean distances better. Run both and check consistency.</span></div></div>
+
+<div class="faq-item"><button class="faq-q" data-zh="Q：什麼時候用 weighted vs unweighted UniFrac？" data-en="Q: Weighted vs unweighted UniFrac?">weighted vs unweighted UniFrac？</button>
+<div class="faq-a"><span data-lang="zh"><strong>Unweighted</strong>：只看物種有無，對<strong>稀有菌</strong>敏感、適合演化生態問題。<strong>Weighted</strong>：考慮豐度，對<strong>優勢菌</strong>敏感。兩個都跑，常能互補揭露不同訊號。</span>
+<span data-lang="en"><strong>Unweighted</strong>: presence/absence only; sensitive to rare taxa; great for evolutionary ecology. <strong>Weighted</strong>: incorporates abundance; sensitive to dominant taxa. Run both — they often reveal complementary signal.</span></div></div>
+
+<div class="faq-item"><button class="faq-q" data-zh="Q：樣本量多少才夠？" data-en="Q: What sample size do I need?">樣本量多少才夠？</button>
+<div class="faq-a"><span data-lang="zh">取決於 effect size。Beta-diversity PERMANOVA 偵測 R²=0.05 (小) 需每組 ≥ 30；R²=0.10 (中) 需 ≥ 15；R²=0.20 (大) 需 ≥ 8。差異豐度看 ASV：偵測 2× fold-change 在 100 個豐度 ASV，每組 30-50 樣本。</span>
+<span data-lang="en">Depends on effect. PERMANOVA detects R²=0.05 (small) with ≥30/group; R²=0.10 (medium) ≥15; R²=0.20 (large) ≥8. For DA on 100 abundant ASVs aiming at 2× fold-change, 30-50 per group.</span></div></div>
+
+<div class="faq-item"><button class="faq-q" data-zh="Q：mock community 是什麼？要不要做？" data-en="Q: What's a mock community? Should I run one?">mock community？</button>
+<div class="faq-a"><span data-lang="zh">已知比例的細菌混合 (如 Zymo D6300 含 8 菌 + 2 酵母)。每個 run 跑一管當 positive control。可量化：① DNA 萃取偏差、② primer 覆蓋、③ 分類準確度。強烈建議每個 batch 至少 1 個。</span>
+<span data-lang="en">A defined mix of bacteria at known proportions (e.g., Zymo D6300 with 8 bacteria + 2 yeasts). Include one per run as a positive control. Quantifies (1) extraction bias, (2) primer coverage, (3) classifier accuracy. Strongly recommended ≥1 per batch.</span></div></div>
+</div>
+</section>
+
+<!-- ===== Quiz ===== -->
+<section class="quiz-section">
+<h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">1. 一個樣本只有兩個物種，比例 99% / 1%。Shannon H' 大約是？</p>
+<p data-lang="en">1. A sample has two species at 99% / 1%. Shannon H' is approximately?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 0.69 (= ln 2，最大可能)</span><span data-lang="en">A. 0.69 (= ln 2, the maximum)</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 0.50</span><span data-lang="en">B. 0.50</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 約 0.056</span><span data-lang="en">C. ~0.056</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 1.00</span><span data-lang="en">D. 1.00</span></div>
+</div><div class="quiz-feedback" id="fb1"></div></div>
+
+<div class="quiz-q" data-answer="1">
+<p data-lang="zh">2. 為什麼 ASV 比 OTU 更能跨研究比較？</p>
+<p data-lang="en">2. Why are ASVs more cross-study comparable than OTUs?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. ASV 解析度更低</span><span data-lang="en">A. ASVs have lower resolution</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. ASV ID 是序列本身，相同序列就是相同 ASV</span><span data-lang="en">B. ASV IDs are the sequences themselves — identical sequences = same ASV</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. ASV 不需要 chimera 過濾</span><span data-lang="en">C. ASVs don't need chimera filtering</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. ASV 比較不需要 V 區一致</span><span data-lang="en">D. ASVs don't require matching V regions</span></div>
+</div><div class="quiz-feedback" id="fb2"></div></div>
+
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">3. 你做兩組糞便菌相比較，下列哪個分析最不適當？</p>
+<p data-lang="en">3. You compare two stool-microbiome groups. Which is the LEAST appropriate?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. CLR + linear model</span><span data-lang="en">A. CLR + linear model</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. ALDEx2 + Welch's t</span><span data-lang="en">B. ALDEx2 + Welch's t</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 直接對 relative abundance 做 t-test</span><span data-lang="en">C. Plain t-test on relative abundances</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. ANCOM-BC2</span><span data-lang="en">D. ANCOM-BC2</span></div>
+</div><div class="quiz-feedback" id="fb3"></div></div>
+
+<div class="quiz-q" data-answer="0">
+<p data-lang="zh">4. 健康陰道 (Lactobacillus 一枝獨秀) Shannon ≈ 0.7；健康腸道 Shannon ≈ 3.5。這說明：</p>
+<p data-lang="en">4. Healthy vagina (Lactobacillus-dominant) Shannon ≈ 0.7; healthy gut Shannon ≈ 3.5. This shows:</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 「高多樣性 = 健康」不是普遍規則，依部位定義</span><span data-lang="en">A. "High diversity = health" is not universal; depends on body site</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 陰道菌相一定有問題</span><span data-lang="en">B. The vaginal community must be diseased</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 兩個指數計算公式不同</span><span data-lang="en">C. The two indices use different formulae</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 應該 rarefy 之後才能比</span><span data-lang="en">D. Should rarefy before comparing</span></div>
+</div><div class="quiz-feedback" id="fb4"></div></div>
+
+<div class="quiz-q" data-answer="1">
+<p data-lang="zh">5. NSTI 是什麼指標？</p>
+<p data-lang="en">5. What is NSTI?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 16S 拷貝數校正</span><span data-lang="en">A. 16S copy-number correction</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. PICRUSt2 中 ASV 與參考樹距離的指標</span><span data-lang="en">B. Distance of an ASV from the PICRUSt2 reference tree</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. DADA2 的錯誤模型參數</span><span data-lang="en">C. DADA2's error-model parameter</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. UniFrac 距離的標準化</span><span data-lang="en">D. UniFrac distance normalization</span></div>
+</div><div class="quiz-feedback" id="fb5"></div></div>
+</section>
+
+<!-- ===== Further reading ===== -->
+<section class="section">
+<div class="section-label" data-zh="延伸閱讀" data-en="FURTHER READING">延伸閱讀</div>
+<h2 data-zh="重要論文" data-en="Key papers">重要論文</h2>
+<ul style="margin-left:24px;color:var(--c-ink-light);line-height:1.9">
+<li><strong>Callahan et al. 2016</strong>. <em>DADA2: High-resolution sample inference from Illumina amplicon data</em>. Nat Methods 13:581.</li>
+<li><strong>Callahan, McMurdie, Holmes 2017</strong>. <em>Exact sequence variants should replace operational taxonomic units</em>. ISME J 11:2639.</li>
+<li><strong>Bolyen et al. 2019</strong>. <em>Reproducible, interactive, scalable and extensible microbiome data science using QIIME2</em>. Nat Biotechnol 37:852.</li>
+<li><strong>Gloor et al. 2017</strong>. <em>Microbiome datasets are compositional: and this is not optional</em>. Front Microbiol 8:2224.</li>
+<li><strong>Lin &amp; Peddada 2020</strong>. <em>Analysis of compositions of microbiomes with bias correction (ANCOM-BC)</em>. Nat Commun 11:3514.</li>
+<li><strong>Mallick et al. 2021</strong>. <em>Multivariable association discovery in population-scale meta-omics studies (MaAsLin2)</em>. PLoS Comput Biol 17:e1009442.</li>
+<li><strong>Huttenhower et al. 2012</strong>. <em>Structure, function and diversity of the healthy human microbiome (HMP)</em>. Nature 486:207.</li>
+<li><strong>Davis et al. 2018</strong>. <em>Simple statistical identification and removal of contaminant sequences (decontam)</em>. Microbiome 6:226.</li>
+</ul>
 </section>
 
 <nav class="page-nav"><a href="index.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Microbiome 總覽" data-en="Microbiome Overview">Microbiome 總覽</span></a><a href="metagenomics.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 2：Metagenomics" data-en="Step 2: Metagenomics">Step 2：Metagenomics</span></a></nav>
@@ -115,17 +590,59 @@ qiime feature-classifier classify-sklearn \
 <script>
 window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
 function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
-function up(){
-  let a=+document.getElementById('sliderA').value;let b=+document.getElementById('sliderB').value;let c=+document.getElementById('sliderC').value;
-  document.getElementById('valA').textContent=a;document.getElementById('valB').textContent=b;document.getElementById('valC').textContent=c;
-  const s=a+b+c;if(s===0){a=1;}
-  const p=[a/(a+b+c||1),b/(a+b+c||1),c/(a+b+c||1)];
-  const H=-p.filter(x=>x>0).reduce((acc,x)=>acc+x*Math.log(x),0);
+
+// Alpha diversity sim
+let abundChart;
+function upAlpha(){
+  let a=+document.getElementById('sliderA').value,b=+document.getElementById('sliderB').value,
+      c=+document.getElementById('sliderC').value,d=+document.getElementById('sliderD').value;
+  document.getElementById('valA').textContent=a;document.getElementById('valB').textContent=b;
+  document.getElementById('valC').textContent=c;document.getElementById('valD').textContent=d;
+  const s=a+b+c+d||1;
+  const p=[a/s,b/s,c/s,d/s].filter(x=>x>0);
+  const H=-p.reduce((acc,x)=>acc+x*Math.log(x),0);
   const D=1-p.reduce((acc,x)=>acc+x*x,0);
-  const J=H/Math.log(3);
+  const S=p.length;const J=S>1?H/Math.log(S):0;
+  const eff=Math.exp(H);
   document.getElementById('shannon').textContent=H.toFixed(3);
   document.getElementById('simpson').textContent=D.toFixed(3);
   document.getElementById('evenness').textContent=J.toFixed(3);
+  document.getElementById('effective').textContent=eff.toFixed(2);
+  const ctx=document.getElementById('abundChart');
+  if(abundChart) abundChart.destroy();
+  abundChart=new Chart(ctx,{type:'bar',data:{labels:['A','B','C','D'],datasets:[{label:'Relative abundance',data:[a/s,b/s,c/s,d/s],backgroundColor:['#10b981','#3b82f6','#f59e0b','#ef4444']}]},options:{plugins:{legend:{display:false}},scales:{y:{max:1,title:{display:true,text:'Proportion'}}}}});
 }
-['sliderA','sliderB','sliderC'].forEach(id=>document.getElementById(id).addEventListener('input',up));up();
+['sliderA','sliderB','sliderC','sliderD'].forEach(id=>document.getElementById(id).addEventListener('input',upAlpha));upAlpha();
+
+// Beta diversity sim
+function upBeta(){
+  const v=(id)=>+document.getElementById(id).value;
+  const s1=[v('s1x'),v('s1y'),v('s1z')];const s2=[v('s2x'),v('s2y'),v('s2z')];
+  document.getElementById('vS1X').textContent=s1[0];document.getElementById('vS1Y').textContent=s1[1];document.getElementById('vS1Z').textContent=s1[2];
+  document.getElementById('vS2X').textContent=s2[0];document.getElementById('vS2Y').textContent=s2[1];document.getElementById('vS2Z').textContent=s2[2];
+  // Bray-Curtis
+  const num=s1.reduce((a,x,i)=>a+Math.abs(x-s2[i]),0);
+  const den=s1.reduce((a,x,i)=>a+x+s2[i],0)||1;
+  const bray=num/den;
+  // Jaccard (presence/absence)
+  const p1=s1.map(x=>x>0?1:0);const p2=s2.map(x=>x>0?1:0);
+  const inter=p1.reduce((a,x,i)=>a+(x&&p2[i]?1:0),0);
+  const uni=p1.reduce((a,x,i)=>a+(x||p2[i]?1:0),0)||1;
+  const jacc=1-inter/uni;
+  // Cosine
+  const dot=s1.reduce((a,x,i)=>a+x*s2[i],0);
+  const n1=Math.sqrt(s1.reduce((a,x)=>a+x*x,0));const n2=Math.sqrt(s2.reduce((a,x)=>a+x*x,0));
+  const cos=1-dot/((n1*n2)||1);
+  document.getElementById('bray').textContent=bray.toFixed(3);
+  document.getElementById('jacc').textContent=jacc.toFixed(3);
+  document.getElementById('cos').textContent=cos.toFixed(3);
+}
+['s1x','s1y','s1z','s2x','s2y','s2z'].forEach(id=>document.getElementById(id).addEventListener('input',upBeta));upBeta();
+
+// FAQ
+document.querySelectorAll('.faq-q').forEach(b=>b.addEventListener('click',()=>{b.classList.toggle('open');b.nextElementSibling.classList.toggle('open');}));
+document.querySelectorAll('.level-tabs').forEach(tabs=>{tabs.querySelectorAll('.level-tab').forEach(t=>t.addEventListener('click',()=>{const tgt=t.dataset.tab;tabs.querySelectorAll('.level-tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===tgt));tabs.parentElement.querySelectorAll('.level-pane').forEach(p=>p.classList.toggle('active',p.dataset.pane===tgt));}));});
+
+// Quiz feedback
+document.querySelectorAll('.quiz-q').forEach((q,i)=>{const ans=+q.dataset.answer;q.querySelectorAll('.quiz-opt').forEach(o=>{o.addEventListener('click',()=>{const idx=+o.dataset.idx;q.querySelectorAll('.quiz-opt').forEach(x=>x.classList.remove('selected','correct','incorrect'));o.classList.add('selected',idx===ans?'correct':'incorrect');const fb=q.querySelector('.quiz-feedback');fb.textContent=idx===ans?'✓ Correct!':'✗ Try again';fb.className='quiz-feedback '+(idx===ans?'show correct':'show incorrect');});});});
 </script></body></html>

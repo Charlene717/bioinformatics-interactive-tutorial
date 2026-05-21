@@ -7,41 +7,161 @@
     <li><a href="../index.html">Hub</a></li><li><a href="index.html" class="active">Spatial</a></li><li><a href="platforms.html">Platforms</a></li><li><a href="preprocessing.html">Preproc</a></li><li><a href="spatial-analysis.html">Analysis</a></li><li><a href="deconvolution.html">Deconv</a></li><li><a href="interactions.html">Comms</a></li>
   </ul>
 </div></nav>
-<header class="page-hero"><div class="step-badge">TRACK 2 · SPATIAL</div><h1 data-zh="空間轉錄組學" data-en="Spatial Transcriptomics">空間轉錄組學</h1><p class="subtitle" data-lang="zh">在保留組織空間結構的前提下測量基因表達——回答「哪個細胞，在哪裡，做什麼」。</p><p class="subtitle" data-lang="en">Measure gene expression while preserving tissue architecture — "which cell, where, doing what?"</p></header><main class="content-wrap">
+<header class="page-hero"><div class="step-badge">TRACK 2 · SPATIAL TRANSCRIPTOMICS</div>
+<h1 data-zh="空間轉錄組學" data-en="Spatial Transcriptomics">空間轉錄組學</h1>
+<p class="subtitle" data-lang="zh">在保留組織空間結構的前提下測量基因表達——回答「哪個細胞，在哪裡，做什麼，跟誰對話」。</p>
+<p class="subtitle" data-lang="en">Measure gene expression while preserving tissue architecture — "which cell, where, doing what, talking to whom?"</p>
+<div class="diff-chips" style="justify-content:center;margin-top:18px">
+  <span class="diff-chip beg">🟢 <span data-zh="入門：理解平台與工作流程" data-en="Beginner: Platforms & workflow">入門：平台</span></span>
+  <span class="diff-chip int">🟡 <span data-zh="進階：聚類、SVG、解構" data-en="Intermediate: Clustering, SVG, deconv">進階：分析</span></span>
+  <span class="diff-chip adv">🔴 <span data-zh="高階：細胞通訊、空間統計" data-en="Advanced: CCC, spatial stats">高階：通訊</span></span>
+</div>
+</header><main class="content-wrap">
 
-<section class="section"><div class="section-label" data-zh="總覽" data-en="OVERVIEW">總覽</div>
-<h2 data-zh="為什麼需要空間資訊？" data-en="Why Spatial?">為什麼需要空間資訊？</h2>
-<div data-lang="zh"><p>scRNA-seq 把細胞分散懸浮後測序——獲得豐富的細胞類型資訊，但「位置」這條軸完全丟失。腫瘤的腫瘤－基質介面、發育中神經元的分層、肝小葉的中心－門脈軸——這些都需要空間訊息。</p><p>空間轉錄組學技術可分為兩大類：基於 array / barcode（如 Visium、Slide-seq；解析度 1–100 μm）與基於影像（imaging-based）的單分子 FISH（如 MERFISH、Xenium；亞細胞解析度但 panel 受限）。</p></div>
-<div data-lang="en"><p>scRNA-seq dissociates tissue into a suspension — rich cell-type info, zero spatial information. Tumor-stroma interfaces, neuronal layers, hepatic central-to-portal axes — all require spatial context.</p><p>Spatial technologies split into two families: array/barcode-based (Visium, Slide-seq; 1–100 μm resolution) and imaging-based smFISH (MERFISH, Xenium; sub-cellular resolution but limited panel size).</p></div>
+<!-- Why spatial matters -->
+<section class="section"><div class="section-label" data-zh="為什麼重要" data-en="WHY IT MATTERS">為什麼重要</div>
+<h2 data-zh="為什麼我們需要空間資訊？" data-en="Why do we need spatial information?">為什麼需要空間資訊？</h2>
+<div data-lang="zh">
+<p>2009 年 Tang 等人的第一篇單細胞 RNA-seq 論文震撼了生物學界——我們終於能逐一細胞讀取轉錄組。但代價是：細胞必須先被酶解、懸浮、單獨封裝，<strong>所有的「位置資訊」都被沖洗掉了</strong>。對於以下問題，scRNA-seq 完全束手無策：</p>
+<ul style="margin:8px 0 14px 24px;color:var(--c-ink-light)">
+<li>腫瘤的<strong>侵犯前緣（invasive front）</strong>與核心區域有何不同？</li>
+<li>大腦皮層的<strong>六層神經元</strong>如何在 D-V 軸上垂直排列？</li>
+<li>肝小葉的<strong>中央－門脈軸（zonation）</strong>如何決定代謝分區？</li>
+<li>胚胎發育中，<strong>形態發生素梯度</strong>如何驅動細胞命運？</li>
+<li>T 細胞是否真的與其感受到的腫瘤細胞「<strong>物理接觸</strong>」？</li>
+</ul>
+<p>2016 年，瑞典皇家理工學院的 <span class="term">Ståhl 等人<span class="term-tip">Ståhl PL et al. Science 2016: Visualization and analysis of gene expression in tissue sections by spatial transcriptomics. 這篇 Visium 前身的論文開啟了商業化空間轉錄組時代。</span></span> 發表了第一個商業可行的空間轉錄組學技術（後來成為 10x Visium）。從此，空間組學成為 Nature 連續三年（2020, 2021, 2022）的「Method of the Year」候選之一，2020 年正式獲獎。</p>
+</div>
+<div data-lang="en">
+<p>The 2009 first single-cell RNA-seq paper (Tang et al.) shocked biology — finally, we could read transcriptomes one cell at a time. But there was a price: cells must be enzymatically dissociated, suspended, and individually encapsulated, and <strong>all spatial information is washed away</strong>. scRNA-seq is helpless against questions like:</p>
+<ul style="margin:8px 0 14px 24px;color:var(--c-ink-light)">
+<li>How does a tumor's <strong>invasive front</strong> differ from its core?</li>
+<li>How are the <strong>six cortical layers</strong> stacked along the dorsal-ventral axis?</li>
+<li>How does <strong>liver zonation</strong> (central-portal axis) drive metabolic compartmentalization?</li>
+<li>How do <strong>morphogen gradients</strong> drive cell-fate decisions in development?</li>
+<li>Is a T cell actually in <strong>physical contact</strong> with the tumor cell it senses?</li>
+</ul>
+<p>In 2016, <span class="term">Ståhl et al.<span class="term-tip">Ståhl PL et al. Science 2016: Visualization and analysis of gene expression in tissue sections by spatial transcriptomics — the paper that birthed what became 10x Visium.</span></span> at KTH Stockholm published the first commercially viable spatial transcriptomics technology (the ancestor of 10x Visium). Since then, spatial omics was a Method-of-the-Year nominee three years in a row (2020-2022) and won in 2020.</p>
+</div>
+
+<div class="analogy">
+<div class="an-title" data-zh="比喻：拼圖 vs 散落的拼圖塊" data-en="Analogy: Jigsaw vs scattered puzzle pieces">比喻：拼圖 vs 散落的拼圖塊</div>
+<p data-lang="zh"><strong>scRNA-seq</strong> 就像把一幅 1000 片拼圖打散倒進袋子裡，然後逐片描述顏色、形狀——細節豐富，但你永遠不知道這片是「天空」還是「樹葉」，因為它們可能都是藍色的。<strong>空間轉錄組學</strong> 則是拍照同時記錄每片的座標，你可以同時知道每片「長什麼樣」和「在哪裡」。</p>
+<p data-lang="en"><strong>scRNA-seq</strong> is like dumping a 1000-piece jigsaw into a bag and describing each piece in detail — rich color and shape information, but you'll never know whether a blue piece is "sky" or "blue leaf". <strong>Spatial transcriptomics</strong> photographs the puzzle in place, recording every piece's coordinates: now you know both what each piece looks like and where it sits.</p>
+</div>
+
+<div class="analogy">
+<div class="an-title" data-zh="比喻二：城市地圖 vs 街頭訪談" data-en="Analogy 2: City map vs street interviews">比喻二：城市地圖 vs 街頭訪談</div>
+<p data-lang="zh">想像你在研究一座城市的就業結構。<strong>scRNA-seq</strong> 像隨機在火車站抽 10,000 個人問職業——你會得到精確的職業分佈，但無法知道金融業聚集在哪、住宅區與商業區如何銜接。<strong>空間轉錄組學</strong> 則是整個城市的「人口－職業熱力圖」——你能直接看到華爾街、矽谷、唐人街的分布；缺點是每個格子裡的個人細節不如逐個訪談清楚。<strong>結合兩者</strong>（spatial + scRNA reference）才能同時擁有解析度和地圖。</p>
+<p data-lang="en">Imagine studying a city's job structure. <strong>scRNA-seq</strong> is like randomly sampling 10,000 commuters at the train station — accurate job distribution, but you can't see where finance clusters, or how residential meets commercial. <strong>Spatial transcriptomics</strong> is a city-wide heatmap of "population × profession" — you can see Wall Street, Silicon Valley, Chinatown directly; but the individual detail per pixel is fuzzier. <strong>Combining the two</strong> (spatial + scRNA reference) gives both resolution and the map.</p>
+</div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="章節" data-en="CHAPTERS">章節</div>
-<h2 data-zh="五章節學習路徑" data-en="Five-chapter Learning Path">五章節學習路徑</h2>
+<!-- Two families overview -->
+<section class="section"><div class="section-label" data-zh="兩大技術家族" data-en="TWO FAMILIES">兩大技術家族</div>
+<h2 data-zh="Array-based vs Imaging-based" data-en="Array-based vs Imaging-based">兩大技術家族鳥瞰</h2>
+<p data-lang="zh">空間轉錄組學技術可分為兩大家族——它們的權衡是這個領域最重要的二分法。理解這個分歧，你就理解了大半個 spatial omics。</p>
+<p data-lang="en">Spatial transcriptomics splits into two technology families — this trade-off is the field's most important dichotomy. Grasp it and you've grasped half of spatial omics.</p>
+
+<div class="vs-grid">
+<div class="vs-side left">
+<h4>🟢 <span data-zh="Array-based / NGS" data-en="Array-based / NGS">Array-based / NGS</span></h4>
+<p data-lang="zh" style="font-size:.88rem;margin-bottom:10px"><strong>邏輯：</strong>玻片上預先排列數百萬個帶<span class="term">barcode<span class="term-tip">每個 barcode 對應一個唯一空間座標——讀到這個 barcode 就知道訊號來自玻片哪個 spot。</span></span> 的 poly-T 寡核苷酸，組織釋放的 polyA mRNA 落在哪個 spot 就被該 spot 的 barcode 標記。</p>
+<p data-lang="en" style="font-size:.88rem;margin-bottom:10px"><strong>Logic:</strong> millions of <span class="term">barcoded<span class="term-tip">Each barcode maps uniquely to one spatial position — reading the barcode tells you which spot on the slide the signal came from.</span></span> poly-T oligos pre-arranged on a slide; polyA mRNA released from tissue is captured by whichever spot it lands on.</p>
+<ul>
+<li data-lang="zh"><strong>優：</strong>全轉錄組（無 panel 限制），流程接近 scRNA-seq</li>
+<li data-lang="zh"><strong>限：</strong>解析度受 barcode 大小限制（10-100 μm）</li>
+<li data-lang="zh"><strong>代表：</strong>Visium、Visium HD、Slide-seq、Stereo-seq、HDST</li>
+<li data-lang="en"><strong>Pro:</strong> whole transcriptome (no panel limit), workflow close to scRNA-seq</li>
+<li data-lang="en"><strong>Limit:</strong> resolution capped by barcode size (10–100 μm)</li>
+<li data-lang="en"><strong>Examples:</strong> Visium, Visium HD, Slide-seq, Stereo-seq, HDST</li>
+</ul>
+</div>
+<div class="vs-mid">VS</div>
+<div class="vs-side right">
+<h4>🟣 <span data-zh="Imaging-based / smFISH" data-en="Imaging-based / smFISH">Imaging-based / smFISH</span></h4>
+<p data-lang="zh" style="font-size:.88rem;margin-bottom:10px"><strong>邏輯：</strong>針對預設的基因 panel 設計多輪 FISH 探針，逐輪拍照——每個基因有獨一無二的「<span class="term">組合編碼<span class="term-tip">如 MERFISH 用 16-bit Hamming 編碼：每基因在 16 輪中固定 4 輪「亮」、12 輪「暗」，靠這個 fingerprint 解碼。</span></span>」，根據點在哪幾輪亮起來就能解碼是哪個基因。</p>
+<p data-lang="en" style="font-size:.88rem;margin-bottom:10px"><strong>Logic:</strong> design multi-round FISH probes for a pre-selected gene panel, image round-by-round — each gene has a unique <span class="term">combinatorial code<span class="term-tip">e.g., MERFISH uses 16-bit Hamming codes — each gene "lights up" in a fixed 4 of 16 rounds; this fingerprint decodes identity.</span></span> across rounds.</p>
+<ul>
+<li data-lang="zh"><strong>優：</strong>亞細胞解析度，保留原位形貌，可同時看 RNA + 蛋白</li>
+<li data-lang="zh"><strong>限：</strong>panel 多為 100-1000 基因，價格高、影像處理重</li>
+<li data-lang="zh"><strong>代表：</strong>MERFISH、Xenium、CosMx、STARmap、seqFISH+</li>
+<li data-lang="en"><strong>Pro:</strong> sub-cellular resolution, preserves morphology, can co-detect protein</li>
+<li data-lang="en"><strong>Limit:</strong> 100–1000 gene panel, expensive, image-processing heavy</li>
+<li data-lang="en"><strong>Examples:</strong> MERFISH, Xenium, CosMx, STARmap, seqFISH+</li>
+</ul>
+</div>
+</div>
+</section>
+
+<!-- Chapters -->
+<section class="section"><div class="section-label" data-zh="學習路徑" data-en="CHAPTERS">學習路徑</div>
+<h2 data-zh="五章節學習地圖" data-en="Five-chapter Learning Map">五章節學習地圖</h2>
+<p data-lang="zh">本軌道按真實分析順序組織。建議依序學習；每章末附自我檢測。</p>
+<p data-lang="en">This track is ordered by real analysis sequence. Sequential study recommended; each chapter ends with a self-check.</p>
 <div class="hub-steps-grid">
-  <a href="platforms.html" class="hub-card"><div class="hub-emoji">🔬</div><span class="step-num">Step 1</span><h3 data-zh="平台與技術" data-en="Platforms & Technologies">平台與技術</h3><p data-lang="zh">Visium / Visium HD、Slide-seq、Stereo-seq、MERFISH、Xenium、CosMx 解析度與選擇。</p><p data-lang="en">Visium / Visium HD, Slide-seq, Stereo-seq, MERFISH, Xenium, CosMx — resolution and trade-offs.</p></a>
-  <a href="preprocessing.html" class="hub-card"><div class="hub-emoji">📥</div><span class="step-num">Step 2</span><h3 data-zh="資料載入與 QC" data-en="Loading & QC">載入與 QC</h3><p data-lang="zh">SpaceRanger 輸出結構、Seurat / Scanpy 載入、空間樣本的特殊 QC 指標。</p><p data-lang="en">SpaceRanger output, loading in Seurat / Scanpy, and spatial-specific QC metrics.</p></a>
-  <a href="spatial-analysis.html" class="hub-card"><div class="hub-emoji">🧩</div><span class="step-num">Step 3</span><h3 data-zh="空間聚類與 SVG" data-en="Spatial Clustering & SVGs">聚類與 SVG</h3><p data-lang="zh">spatial-aware clustering (BayesSpace、Banksy)、SVG (SpatialDE、SPARK、Moran's I)。</p><p data-lang="en">Spatial-aware clustering (BayesSpace, Banksy), SVGs (SpatialDE, SPARK, Moran's I).</p></a>
-  <a href="deconvolution.html" class="hub-card"><div class="hub-emoji">🎯</div><span class="step-num">Step 4</span><h3 data-zh="Deconvolution" data-en="Deconvolution">解構細胞組成</h3><p data-lang="zh">把多細胞 spot 拆回 cell type 比例：cell2location、RCTD、SPOTlight、CARD。</p><p data-lang="en">Break a multi-cell spot into cell-type proportions: cell2location, RCTD, SPOTlight, CARD.</p></a>
-  <a href="interactions.html" class="hub-card"><div class="hub-emoji">💬</div><span class="step-num">Step 5</span><h3 data-zh="空間細胞通訊" data-en="Spatial Cell-Cell Comm">空間細胞通訊</h3><p data-lang="zh">考慮鄰近關係的 ligand-receptor 分析：COMMOT、MISTy、stLearn。</p><p data-lang="en">Ligand-receptor analysis with neighbor information: COMMOT, MISTy, stLearn.</p></a>
+  <a href="platforms.html" class="hub-card"><div class="hub-emoji">🔬</div><span class="step-num">Step 1 · 🟢</span><h3 data-zh="平台與技術" data-en="Platforms & Technologies">平台與技術</h3><p data-lang="zh">Visium、Visium HD、Slide-seq、Stereo-seq、MERFISH、Xenium、CosMx 的解析度、化學原理與選擇邏輯。</p><p data-lang="en">Resolution, chemistry, and choice logic for Visium, Visium HD, Slide-seq, Stereo-seq, MERFISH, Xenium, CosMx.</p></a>
+  <a href="preprocessing.html" class="hub-card"><div class="hub-emoji">📥</div><span class="step-num">Step 2 · 🟢</span><h3 data-zh="資料載入與 QC" data-en="Loading & QC">載入與 QC</h3><p data-lang="zh">SpaceRanger 輸出結構、Seurat / Scanpy 載入、空間樣本獨有的壞死區與組織覆蓋率指標。</p><p data-lang="en">SpaceRanger output structure, Seurat / Scanpy loading, spatial-specific QC: necrotic regions, tissue coverage.</p></a>
+  <a href="spatial-analysis.html" class="hub-card"><div class="hub-emoji">🧩</div><span class="step-num">Step 3 · 🟡</span><h3 data-zh="空間聚類與 SVG" data-en="Spatial Clustering & SVGs">聚類與 SVG</h3><p data-lang="zh">為什麼 Louvain 會「切碎」皮層？BayesSpace、Banksy、SpaGCN 的數學直覺；Moran's I 自相關。</p><p data-lang="en">Why does Louvain shred cortical layers? Math intuition behind BayesSpace, Banksy, SpaGCN; Moran's I autocorrelation.</p></a>
+  <a href="deconvolution.html" class="hub-card"><div class="hub-emoji">🎯</div><span class="step-num">Step 4 · 🟡</span><h3 data-zh="Deconvolution" data-en="Deconvolution">解構細胞組成</h3><p data-lang="zh">把多細胞 spot 拆回 cell type 比例：cell2location、RCTD、SPOTlight、CARD 的原理與選用。</p><p data-lang="en">Decompose multi-cell spots into cell-type proportions: cell2location, RCTD, SPOTlight, CARD — when to use which.</p></a>
+  <a href="interactions.html" class="hub-card"><div class="hub-emoji">💬</div><span class="step-num">Step 5 · 🔴</span><h3 data-zh="空間細胞通訊" data-en="Spatial Cell-Cell Comm">空間細胞通訊</h3><p data-lang="zh">加入「距離」的 ligand-receptor 分析：COMMOT、MISTy、stLearn 與 wet-lab 驗證策略。</p><p data-lang="en">Distance-aware ligand-receptor analysis: COMMOT, MISTy, stLearn — and wet-lab validation strategies.</p></a>
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="關鍵概念" data-en="KEY CONCEPTS">關鍵概念</div>
-<h2 data-zh="入門前必懂三件事" data-en="Three Things to Know Before Starting">入門前必懂三件事</h2>
-<div class="card-grid cols-3">
-<div class="card"><div class="card-icon">📏</div><h4 data-zh="解析度 vs 通量" data-en="Resolution vs throughput">解析度 vs 通量</h4><p data-lang="zh">Visium 一個 spot ~55 μm = 1-10 細胞；MERFISH 是亞細胞但 panel ≤ 1000 基因。沒有完美技術。</p><p data-lang="en">A Visium spot ≈ 55 μm = 1-10 cells; MERFISH is sub-cellular but limited to ≤ 1000 genes. No perfect tech.</p></div>
-<div class="card"><div class="card-icon">🧪</div><h4 data-zh="影像 vs 表達整合" data-en="Image + expression">影像 ✕ 表達</h4><p data-lang="zh">空間資料 ≠ 純表達矩陣——還含組織學影像 (H&E)。優秀分析會同時利用兩者。</p><p data-lang="en">Spatial data ≠ pure matrix — there's also histology (H&E). Good analyses use both.</p></div>
-<div class="card"><div class="card-icon">🏷️</div><h4 data-zh="多細胞 spot" data-en="Multi-cell spot">多細胞 spot</h4><p data-lang="zh">Visium 一個 spot 含多種細胞 → 用 deconvolution 拆比例，或用 reference-guided 細胞註釋。</p><p data-lang="en">A Visium spot contains multiple cell types → use deconvolution for proportions or reference-guided annotation.</p></div>
+<!-- Three key concepts -->
+<section class="section"><div class="section-label" data-zh="核心概念" data-en="KEY CONCEPTS">核心概念</div>
+<h2 data-zh="入門前必懂的四件事" data-en="Four Things to Know Before Starting">入門前必懂的四件事</h2>
+<div class="card-grid cols-2">
+<div class="card"><div class="card-icon">📏</div><h4 data-zh="解析度 vs 通量：永恆的權衡" data-en="Resolution vs throughput: the eternal trade-off">解析度 vs 通量</h4>
+<p data-lang="zh">Visium spot ~55 μm = 1-10 細胞，但量測全 ~20,000 基因。MERFISH 是亞細胞，但 panel ≤ 1,000 基因。Stereo-seq 兼顧亞細胞與全轉錄組——代價是資料量爆炸（單樣本可達 TB 級）。<strong>沒有「全勝」平台</strong>。</p>
+<p data-lang="en">A Visium spot ~55 μm = 1-10 cells but measures all ~20,000 genes. MERFISH is sub-cellular but panel ≤ 1,000 genes. Stereo-seq does both but data balloons to TB scale per sample. <strong>No "win-all" platform exists.</strong></p>
+</div>
+<div class="card"><div class="card-icon">🧪</div><h4 data-zh="影像 + 表達：雙模態" data-en="Image + expression: bimodal">影像 ✕ 表達</h4>
+<p data-lang="zh">空間資料 ≠ 純表達矩陣——一定還含 H&E 或螢光組織學影像。優秀的分析會用影像來輔助分群（如 SpaGCN）、定位（fiducial alignment）、與品質檢核（壞死區辨識）。</p>
+<p data-lang="en">Spatial data ≠ pure matrix — there's always H&E or fluorescent histology. Great analyses use the image for clustering (e.g., SpaGCN), alignment (fiducials), and QC (identifying necrotic zones).</p>
+</div>
+<div class="card"><div class="card-icon">🏷️</div><h4 data-zh="多細胞 spot 的本質" data-en="Multi-cell spot reality">多細胞 spot</h4>
+<p data-lang="zh">在 array-based 平台，一個 spot 不是「一個細胞」而是「附近所有細胞釋放 mRNA 的混合物」。直接做 cluster 容易得到「免疫＋上皮」混雜的奇怪 cluster。解法：<strong>deconvolution</strong> 拆比例或匹配 scRNA reference 註釋。</p>
+<p data-lang="en">On array platforms, a spot is not "one cell" but "a soup of mRNA from nearby cells". Plain clustering yields odd "immune + epithelial" mixtures. Solution: <strong>deconvolution</strong> for proportions or reference-guided annotation.</p>
+</div>
+<div class="card"><div class="card-icon">🗺️</div><h4 data-zh="空間統計才是核心" data-en="Spatial statistics is the core">空間統計</h4>
+<p data-lang="zh">忽略座標只看表達，你做的不是「空間」分析。真正利用空間的指標是<strong>自相關</strong>（Moran's I、Geary's C）與<strong>鄰居圖</strong>。本軌道將反覆強調這個概念。</p>
+<p data-lang="en">Ignoring coordinates and just looking at expression isn't "spatial" analysis. The real tools are <strong>autocorrelation</strong> (Moran's I, Geary's C) and <strong>neighbor graphs</strong> — recurring themes in this track.</p>
+</div>
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="範例資料" data-en="DATASETS">範例資料</div>
-<h2 data-zh="公開資料集" data-en="Public Datasets">公開資料集</h2>
-<div data-lang="zh"><ul style="margin-left:24px;color:var(--c-ink-light);"><li><strong>10x Visium 公開展示資料</strong>：人類乳腺癌、人類腎臟、小鼠腦冠狀切片。</li><li><strong>STARmap PLUS</strong>：Wang et al. 2018-2023，小鼠 visual cortex 與發育海馬。</li><li><strong>MERFISH brain atlas</strong>：Allen Brain Map 小鼠全腦。</li><li><strong>STOmics DB</strong>：華大基因 Stereo-seq 平台公開資料庫。</li><li><strong>Spatial Omics DB (SODB)</strong>：跨平台空間轉錄組資料整合。</li></ul></div>
-<div data-lang="en"><ul style="margin-left:24px;color:var(--c-ink-light);"><li><strong>10x Visium showcase</strong>: Human breast cancer, kidney, mouse coronal brain.</li><li><strong>STARmap PLUS</strong>: Wang et al. 2018-2023 — visual cortex and developing hippocampus.</li><li><strong>MERFISH brain atlas</strong>: Allen Brain Map whole mouse brain.</li><li><strong>STOmics DB</strong>: BGI Stereo-seq platform public database.</li><li><strong>Spatial Omics DB (SODB)</strong>: cross-platform spatial transcriptomics integration.</li></ul></div>
+<!-- Public datasets -->
+<section class="section"><div class="section-label" data-zh="公開資料" data-en="PUBLIC DATA">公開資料</div>
+<h2 data-zh="可立即下載的範例資料" data-en="Datasets you can download right now">公開資料集</h2>
+<div class="real-data">
+<div class="rd-title" data-zh="精選六大公開資料集" data-en="Six curated public datasets">精選六大公開資料集</div>
+<ul>
+<li><strong>10x Genomics Visium showcase</strong> — <span data-lang="zh">人類乳腺癌、人類腎臟、小鼠冠狀腦切片。新手第一站。</span><span data-lang="en">Human breast cancer, human kidney, mouse coronal brain. Start here.</span> <a href="https://www.10xgenomics.com/datasets" target="_blank">10xgenomics.com/datasets</a></li>
+<li><strong>10x Visium HD CRC</strong> — <span data-lang="zh">2024 推出的 2 μm bin 大腸癌資料，可體驗近單細胞解析度。</span><span data-lang="en">2024-released 2 μm bin colorectal cancer; experience near-single-cell resolution.</span></li>
+<li><strong>Vizgen MERFISH Mouse Brain Atlas</strong> — <span data-lang="zh">500-gene panel 全鼠腦 9 切片，免費下載。</span><span data-lang="en">500-gene panel, 9 whole mouse brain sections, free download.</span> <a href="https://info.vizgen.com/mouse-brain-data" target="_blank">vizgen.com</a></li>
+<li><strong>STOmics DB (BGI Stereo-seq)</strong> — <span data-lang="zh">小鼠胚胎 E9.5-E16.5 organogenesis、軸突螢光 paint。</span><span data-lang="en">Mouse embryo E9.5-E16.5 organogenesis, axon fluorescent paint.</span> <a href="https://db.cngb.org/stomics/" target="_blank">db.cngb.org/stomics</a></li>
+<li><strong>Allen Brain Cell Atlas MERFISH</strong> — <span data-lang="zh">小鼠全腦 4 百萬細胞、1,100 基因，是目前最大空間 atlas。</span><span data-lang="en">Whole mouse brain, 4 M cells, 1,100 genes — currently the largest spatial atlas.</span></li>
+<li><strong>Spatial Omics Database (SODB)</strong> — <span data-lang="zh">跨平台整合資料庫，含 700+ 樣本，已 normalize 為 AnnData。</span><span data-lang="en">Cross-platform integrated DB, 700+ samples pre-normalized as AnnData.</span> <a href="https://gene.ai.tencent.com/SpatialOmics/" target="_blank">SpatialOmics</a></li>
+</ul>
+</div>
 </section>
 
-<nav class="page-nav"><a href="../index.html"><span class="nav-dir" data-zh="← 返回" data-en="← Back">← 返回</span><span class="nav-title" data-zh="主頁" data-en="Hub">主頁</span></a><a href="platforms.html"><span class="nav-dir" data-zh="開始 →" data-en="Start →">開始 →</span><span class="nav-title" data-zh="Step 1：平台" data-en="Step 1: Platforms">Step 1：平台</span></a></nav>
+<!-- Roadmap / what you'll learn -->
+<section class="section"><div class="section-label" data-zh="學習成果" data-en="LEARNING OUTCOMES">學習成果</div>
+<h2 data-zh="完成本軌道後，你將能…" data-en="By the end of this track, you can…">完成後你將能…</h2>
+<div class="steps-vertical">
+<div class="step-item" data-num="1"><h4 data-zh="挑對平台" data-en="Choose the right platform">挑對平台</h4><p data-lang="zh">面對「FFPE 大腸癌切片」「胚胎 organogenesis」「腦皮層 layer 分析」等情境，能說出該選 Visium FFPE / Stereo-seq / Xenium，以及為什麼。</p><p data-lang="en">Given "FFPE colorectal", "embryo organogenesis", or "cortical layer analysis", you can pick Visium FFPE / Stereo-seq / Xenium and explain why.</p></div>
+<div class="step-item" data-num="2"><h4 data-zh="獨立完成完整流程" data-en="Run an end-to-end pipeline">獨立完成完整流程</h4><p data-lang="zh">從 SpaceRanger 輸出開始，做完 QC、normalization、空間聚類、SVG 偵測、deconvolution、空間細胞通訊。</p><p data-lang="en">From SpaceRanger outputs through QC, normalization, spatial clustering, SVG detection, deconvolution, and spatial CCC.</p></div>
+<div class="step-item" data-num="3"><h4 data-zh="避開新手陷阱" data-en="Avoid common pitfalls">避開新手陷阱</h4><p data-lang="zh">不會把高 mt% 壞死區誤判為某個細胞群、不會用 mismatched scRNA reference 解構、不會把 LR co-expression 當成「真實互動」。</p><p data-lang="en">Won't confuse necrotic high-mt regions with a cell type; won't deconvolve with mismatched references; won't mistake LR co-expression for "real interaction".</p></div>
+<div class="step-item" data-num="4"><h4 data-zh="解讀文獻、串接 scRNA" data-en="Read literature, connect with scRNA">解讀文獻、串接 scRNA</h4><p data-lang="zh">能讀懂頂刊空間轉錄組論文（Cell / Nature 級）的 method 章節，理解 cell2location、COMMOT 在做什麼，並能設計自己的 scRNA + spatial 整合策略。</p><p data-lang="en">Read method sections of Cell/Nature-level spatial papers; understand what cell2location / COMMOT do under the hood; design your own scRNA + spatial integration strategy.</p></div>
+</div>
+</section>
+
+<nav class="page-nav">
+<a href="../index.html"><span class="nav-dir" data-zh="← 返回" data-en="← Back">← 返回</span><span class="nav-title" data-zh="主頁" data-en="Hub">主頁</span></a>
+<a href="platforms.html"><span class="nav-dir" data-zh="開始 →" data-en="Start →">開始 →</span><span class="nav-title" data-zh="Step 1：平台" data-en="Step 1: Platforms">Step 1：平台</span></a>
+</nav>
 </main>
 <footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
 <script src="../i18n.js"></script>

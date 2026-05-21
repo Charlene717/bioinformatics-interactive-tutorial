@@ -4,23 +4,43 @@
 <nav class="top-nav"><div class="top-nav-inner">
   <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
   <ul class="top-nav-links">
-    <li><a href="../index.html">Hub</a></li>
-    <li><a href="index.html" class="active">Bulk RNA</a></li>
-    <li><a href="qc-trim.html">QC</a></li>
-    <li><a href="alignment.html">Align</a></li>
-    <li><a href="quantification.html">Quant</a></li>
-    <li><a href="normalization.html">Norm</a></li>
-    <li><a href="de.html">DE</a></li>
-    <li><a href="visualization.html">Viz</a></li>
-    <li><a href="gsea.html">GSEA</a></li>
+    <li><a href="../index.html">Hub</a></li><li><a href="index.html" class="active">Bulk RNA</a></li><li><a href="qc-trim.html">QC</a></li><li><a href="alignment.html">Align</a></li><li><a href="quantification.html">Quant</a></li><li><a href="normalization.html">Norm</a></li><li><a href="de.html">DE</a></li><li><a href="visualization.html">Viz</a></li><li><a href="gsea.html">GSEA</a></li>
   </ul>
 </div></nav>
-<header class="page-hero"><div class="step-badge">TRACK 1 · BULK RNA-seq</div><h1 data-zh="Bulk RNA-seq 分析路線" data-en="Bulk RNA-seq Analysis Track">Bulk RNA-seq 分析路線</h1><p class="subtitle" data-lang="zh">從 FASTQ 原始檔到差異表達基因 (DEGs) 與功能性結論——七章帶你跑完完整流程。</p><p class="subtitle" data-lang="en">From FASTQ to differentially expressed genes (DEGs) and functional conclusions — seven chapters covering the full workflow.</p></header><main class="content-wrap">
+<header class="page-hero"><div class="step-badge">TRACK 1 · BULK RNA-seq</div>
+<h1 data-zh="Bulk RNA-seq 分析路線" data-en="Bulk RNA-seq Analysis Track">Bulk RNA-seq 分析路線</h1>
+<p class="subtitle" data-lang="zh">從 FASTQ 原始檔到差異表達基因 (DEGs) 與功能性結論——體學流程的「皇冠章」。</p>
+<p class="subtitle" data-lang="en">From FASTQ to DEGs and functional conclusions — the crown jewel of omics workflows.</p>
+<div style="margin-top:18px"><span class="diff-chip beg">🟢 Beginner-friendly</span><span class="diff-chip int">🟡 Career-ready</span><span class="diff-chip adv">🔴 Advanced topics covered</span></div>
+</header>
+<main class="content-wrap">
 
-<section class="section"><div class="section-label" data-zh="總覽" data-en="OVERVIEW">總覽</div>
+<section class="section">
+<div class="section-label" data-zh="開場故事" data-en="MOTIVATION">開場故事</div>
+<h2 data-zh="為什麼 Bulk RNA-seq 仍是 2025 年的王者？" data-en="Why Bulk RNA-seq remains king in 2025">為什麼 Bulk RNA-seq 仍是 2025 年的王者？</h2>
+<div data-lang="zh">
+<p>單細胞 RNA-seq、空間轉錄組看起來更炫，但 <strong>Bulk RNA-seq 在 2024 年仍佔所有公開 RNA-seq 樣本的 70%+</strong>。原因？三個現實：</p>
+<ol style="margin-left:22px;color:var(--c-ink-light);">
+<li><strong>成本：</strong>每樣本 ~$100；單細胞 ~$1,500；空間 ~$2,500</li>
+<li><strong>統計力：</strong>對 cohort-level DE 分析（n≥10），bulk 的 power 仍勝過 pseudo-bulk</li>
+<li><strong>已知 baseline：</strong>20 年資料庫（GTEx、TCGA、ENCODE）都是 bulk，新研究若要與歷史 cohort 比對，bulk 是橋樑</li>
+</ol>
+<p>掌握 Bulk RNA-seq 流程，等於掌握了體學分析的「通用語」——從這裡進階到 scRNA-seq、spatial、long-read RNA，會發現核心統計與工具邏輯都是延伸自 bulk。</p>
+</div>
+<div data-lang="en">
+<p>Single-cell and spatial transcriptomics look glamorous, but <strong>bulk RNA-seq still accounts for 70%+ of all public RNA-seq samples in 2024</strong>. Why? Three pragmatic reasons:</p>
+<ol style="margin-left:22px;color:var(--c-ink-light);">
+<li><strong>Cost:</strong> ~$100/sample (bulk) vs ~$1,500 (scRNA) vs ~$2,500 (spatial)</li>
+<li><strong>Statistical power:</strong> for cohort DE (n≥10), bulk outperforms pseudo-bulk single-cell</li>
+<li><strong>Established baseline:</strong> 20 years of data (GTEx, TCGA, ENCODE) are bulk — your new study connects to history through bulk</li>
+</ol>
+<p>Master bulk RNA-seq and you master the lingua franca of omics. Progressing to scRNA / spatial / long-read RNA, you'll find the core statistics and tools are extensions of bulk.</p>
+</div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="總覽" data-en="OVERVIEW">總覽</div>
 <h2 data-zh="完整分析流程" data-en="End-to-end Workflow">完整分析流程</h2>
-<div data-lang="zh"><p>Bulk RNA-seq 量化一個樣本中所有細胞混合的 mRNA 表達量。雖然解析度比 scRNA-seq 粗，但深度更高、噪音更低，是研究兩組樣本（如 case vs. control）轉錄組差異最普及的方法。完整流程通常包含七個步驟：</p></div>
-<div data-lang="en"><p>Bulk RNA-seq quantifies the averaged mRNA expression across all cells in a sample. While coarser than scRNA-seq, it offers higher depth and lower noise — the most popular way to compare transcriptomes between groups (case vs. control). A full workflow has seven steps:</p></div>
 <div class="flow-chain">
   <span class="fc-step">FASTQ</span><span class="fc-arrow">→</span>
   <span class="fc-step">QC / Trim</span><span class="fc-arrow">→</span>
@@ -30,25 +50,79 @@
   <span class="fc-step">DE</span><span class="fc-arrow">→</span>
   <span class="fc-step">GSEA</span>
 </div>
+<div data-lang="zh"><p>Bulk RNA-seq 量化樣本中所有細胞混合的 mRNA 表達量。雖然解析度比 scRNA-seq 粗，但深度更高、噪音更低，是研究兩組樣本（如 case vs. control）轉錄組差異最普及的方法。每章節對應一個關鍵流程步驟，建議按順序學習。</p></div>
+<div data-lang="en"><p>Bulk RNA-seq quantifies the averaged mRNA expression across all cells in a sample. Coarser than scRNA-seq but with greater depth and lower noise — the most popular way to compare transcriptomes between groups (case vs control). Each chapter targets a pipeline step; recommended to study in order.</p></div>
+
+<div class="analogy" data-lang="zh"><strong>類比：</strong>Bulk RNA-seq 就像「把一個城市所有人的飲食習慣平均成一個值」——你看不出富人吃魚子醬、窮人吃泡麵，但能告訴你城市整體的鹽攝取趨勢。在大量樣本下，這種「平均化」反而是統計力的優勢。</div>
+<div class="analogy" data-lang="en"><strong>Analogy:</strong> Bulk RNA-seq is like averaging the dietary habits of an entire city into one number — you lose the rich-vs-poor contrast, but you accurately capture the city's overall salt intake trend. Across many cohorts, this averaging is a statistical strength.</div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="章節" data-en="CHAPTERS">章節</div>
+<section class="section">
+<div class="section-label" data-zh="章節" data-en="CHAPTERS">章節</div>
 <h2 data-zh="七章節學習路徑" data-en="Seven-chapter Learning Path">七章節學習路徑</h2>
 <div class="hub-steps-grid">
-  <a href="qc-trim.html" class="hub-card"><div class="hub-emoji">🔬</div><span class="step-num">Step 1</span><h3 data-zh="原始品質管控與修剪" data-en="Raw QC & Trimming">原始品質管控與修剪</h3><p data-lang="zh">FastQC 與 MultiQC 解讀，fastp / Trimmomatic 移除接頭與低品質鹼基。</p><p data-lang="en">Interpret FastQC / MultiQC reports; trim adapters and low-quality bases with fastp / Trimmomatic.</p></a>
-  <a href="alignment.html" class="hub-card"><div class="hub-emoji">🎯</div><span class="step-num">Step 2</span><h3 data-zh="對齊到參考基因組" data-en="Alignment to Reference">對齊到參考基因組</h3><p data-lang="zh">STAR / HISAT2 比對 vs. Salmon / kallisto pseudo-alignment：原理、選擇與輸出。</p><p data-lang="en">STAR / HISAT2 alignment vs. Salmon / kallisto pseudo-alignment: principles, trade-offs, and outputs.</p></a>
-  <a href="quantification.html" class="hub-card"><div class="hub-emoji">🔢</div><span class="step-num">Step 3</span><h3 data-zh="表達量定量" data-en="Quantification">表達量定量</h3><p data-lang="zh">featureCounts / HTSeq 從 BAM 計數，Salmon 直接由 reads 估計 TPM；tximport 統合工作流。</p><p data-lang="en">featureCounts / HTSeq from BAM, Salmon direct TPM estimation; tximport unifies the workflow.</p></a>
-  <a href="normalization.html" class="hub-card"><div class="hub-emoji">⚖️</div><span class="step-num">Step 4</span><h3 data-zh="標準化" data-en="Normalization">標準化</h3><p data-lang="zh">CPM / TPM / FPKM、TMM、median-of-ratios、vst / rlog——什麼時候用哪個？</p><p data-lang="en">CPM / TPM / FPKM, TMM, median-of-ratios, vst / rlog — when to use which?</p></a>
-  <a href="de.html" class="hub-card"><div class="hub-emoji">📊</div><span class="step-num">Step 5</span><h3 data-zh="差異表達分析" data-en="Differential Expression">差異表達分析</h3><p data-lang="zh">DESeq2、edgeR、limma-voom：三大主流套件的模型、優缺點、選擇指南。</p><p data-lang="en">DESeq2, edgeR, limma-voom: models, pros/cons, and selection guide for the three mainstream tools.</p></a>
+  <a href="qc-trim.html" class="hub-card"><div class="hub-emoji">🔬</div><span class="step-num">Step 1</span><h3 data-zh="原始品質管控與修剪" data-en="Raw QC & Trimming">原始品質管控與修剪</h3><p data-lang="zh">FastQC / MultiQC、fastp、Trimmomatic 解讀。為什麼第一步看 reads 就決定下游成敗。</p><p data-lang="en">Interpret FastQC / MultiQC; use fastp / Trimmomatic. Why inspecting reads first determines downstream success.</p></a>
+  <a href="alignment.html" class="hub-card"><div class="hub-emoji">🎯</div><span class="step-num">Step 2</span><h3 data-zh="對齊到參考基因組" data-en="Alignment to Reference">對齊到參考基因組</h3><p data-lang="zh">STAR / HISAT2 比對 vs. Salmon / kallisto pseudo-alignment：原理、選擇、輸出。</p><p data-lang="en">STAR / HISAT2 alignment vs Salmon / kallisto pseudo-alignment: principles, trade-offs, outputs.</p></a>
+  <a href="quantification.html" class="hub-card"><div class="hub-emoji">🔢</div><span class="step-num">Step 3</span><h3 data-zh="表達量定量" data-en="Quantification">表達量定量</h3><p data-lang="zh">featureCounts / HTSeq 從 BAM 計數，Salmon 直接由 reads 估 TPM；tximport 統合。</p><p data-lang="en">featureCounts / HTSeq from BAM, Salmon TPM estimation; tximport unifies the workflow.</p></a>
+  <a href="normalization.html" class="hub-card"><div class="hub-emoji">⚖️</div><span class="step-num">Step 4</span><h3 data-zh="標準化" data-en="Normalization">標準化</h3><p data-lang="zh">CPM / TPM / FPKM、TMM、median-of-ratios、vst / rlog——何時用哪個？</p><p data-lang="en">CPM / TPM / FPKM, TMM, median-of-ratios, vst / rlog — when to use which?</p></a>
+  <a href="de.html" class="hub-card"><div class="hub-emoji">📊</div><span class="step-num">Step 5</span><h3 data-zh="差異表達分析" data-en="DE Analysis">差異表達分析</h3><p data-lang="zh">DESeq2、edgeR、limma-voom：模型、優缺點、選擇指南。</p><p data-lang="en">DESeq2, edgeR, limma-voom: models, pros/cons, selection guide.</p></a>
   <a href="visualization.html" class="hub-card"><div class="hub-emoji">🎨</div><span class="step-num">Step 6</span><h3 data-zh="結果視覺化" data-en="Visualization">結果視覺化</h3><p data-lang="zh">Volcano、MA、Heatmap、PCA、Boxplot——哪張圖回答哪個問題？</p><p data-lang="en">Volcano, MA, Heatmap, PCA, Boxplot — which plot answers which question?</p></a>
-  <a href="gsea.html" class="hub-card"><div class="hub-emoji">🧭</div><span class="step-num">Step 7</span><h3 data-zh="功能富集 / GSEA" data-en="Functional Enrichment / GSEA">功能富集 / GSEA</h3><p data-lang="zh">ORA vs. GSEA、GO / KEGG / Hallmark、clusterProfiler 與 fgsea 實作。</p><p data-lang="en">ORA vs. GSEA, GO / KEGG / Hallmark, clusterProfiler and fgsea in practice.</p></a>
+  <a href="gsea.html" class="hub-card"><div class="hub-emoji">🧭</div><span class="step-num">Step 7</span><h3 data-zh="功能富集 / GSEA" data-en="Enrichment / GSEA">功能富集 / GSEA</h3><p data-lang="zh">ORA vs. GSEA、GO / KEGG / Hallmark、clusterProfiler 與 fgsea 實作。</p><p data-lang="en">ORA vs GSEA, GO / KEGG / Hallmark, clusterProfiler / fgsea in practice.</p></a>
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="資料準備" data-en="DATA">資料準備</div>
+<section class="section">
+<div class="section-label" data-zh="生物學脈絡" data-en="BIOLOGICAL CONTEXT">生物學脈絡</div>
+<h2 data-zh="從 mRNA 到 DEGs：一個分子的旅程" data-en="From mRNA to DEGs: a molecular journey">從 mRNA 到 DEGs：一個分子的旅程</h2>
+<div class="steps-vertical">
+<div class="step-item" data-num="1"><h4 data-zh="① 細胞內：mRNA 轉錄" data-en="① Inside the cell: mRNA transcription">① 細胞內：mRNA 轉錄</h4>
+<div data-lang="zh"><p>細胞核中，DNA 被 RNA polymerase II 轉錄成 mRNA。每個基因每分鐘可能產生 1-100 份 mRNA，取決於 promoter 強度、TF 結合、染色質可及性。<strong>RNA-seq 試圖捕捉這一刻的「轉錄活動快照」</strong>——但別忘記 mRNA 半衰期（分鐘到小時不等），所以你看到的是過去 1-2 小時的平均，不是當下。</p></div>
+<div data-lang="en"><p>In the nucleus, DNA is transcribed by RNA polymerase II into mRNA. Each gene may produce 1–100 mRNAs per minute depending on promoter strength, TF binding, and chromatin accessibility. <strong>RNA-seq tries to capture a snapshot of transcriptional activity</strong> — but mRNA half-lives range minutes to hours, so you're seeing an average over the past 1–2 hours.</p></div>
+</div>
+<div class="step-item" data-num="2"><h4 data-zh="② 抽取：RNA 萃取與品質" data-en="② Extraction: RNA isolation & quality">② 抽取：RNA 萃取與品質</h4>
+<div data-lang="zh"><p>從組織/細胞抽出 total RNA（含 mRNA、rRNA、tRNA、miRNA…）。<span class="term">RIN<span class="term-tip">RNA Integrity Number。Bioanalyzer 跑 28S/18S rRNA 比例自動判斷。10 = 完美完整、1 = 嚴重降解。RIN ≥ 7 是 RNA-seq 標準門檻。</span></span> ≥ 7 才適合 RNA-seq。rRNA 佔 total RNA 90%+，所以下一步要去 rRNA。</p></div>
+<div data-lang="en"><p>Total RNA is extracted (mRNA + rRNA + tRNA + miRNA…). <span class="term">RIN<span class="term-tip">RNA Integrity Number. Bioanalyzer-derived from 28S/18S rRNA ratio. 10 = perfect; 1 = severely degraded. RIN ≥ 7 is the RNA-seq standard.</span></span> ≥ 7 is required for RNA-seq. Since rRNA is &gt;90% of total RNA, it must be depleted next.</p></div>
+</div>
+<div class="step-item" data-num="3"><h4 data-zh="③ Library prep：兩種路徑" data-en="③ Library prep: two routes">③ Library prep：兩種路徑</h4>
+<div data-lang="zh"><p><strong>polyA selection</strong>（捕獲 mRNA 的 3' polyA 尾）：用 oligo-dT 磁珠。簡單便宜，但對降解 RNA 偏向 3'。<br><strong>ribozero / rRNA depletion</strong>：用探針移除 rRNA。保留 non-polyA RNA（lncRNA、histone mRNA），對降解樣本更穩定。<br>選擇影響後續 QC 中 rRNA% 解讀，也影響 GSEA 的 gene-set 涵蓋。</p></div>
+<div data-lang="en"><p><strong>polyA selection</strong> (capture mRNA 3' polyA tails) — uses oligo-dT beads. Simple, cheap, but biased toward 3' for degraded RNA.<br><strong>ribozero / rRNA depletion</strong> — probes remove rRNA. Retains non-polyA RNA (lncRNA, histone mRNA), more stable for degraded samples.<br>This choice affects downstream rRNA% interpretation and GSEA gene-set coverage.</p></div>
+</div>
+<div class="step-item" data-num="4"><h4 data-zh="④ Reverse transcription + fragmentation" data-en="④ Reverse transcription + fragmentation">④ 反轉錄 + 片段化</h4>
+<div data-lang="zh"><p>mRNA → cDNA（反轉錄）→ 切成 200-500 bp 片段（fragmentation）。隨後加接頭、PCR 擴增。<strong>random hexamer priming</strong> 用六鹼基隨機引子，每個 6-mer 起始效率略不同——這就是 FastQC「per base sequence content」前 10-12 bp 偏差的根源（很多人誤以為是品質問題）。</p></div>
+<div data-lang="en"><p>mRNA → cDNA (reverse transcription) → fragmented to 200–500 bp → adapters ligated → PCR amplified. <strong>Random hexamer priming</strong> uses 6-base random primers with slightly different efficiencies — this is the root of FastQC's "per base sequence content" imbalance in the first 10–12 bp (often misread as a quality issue).</p></div>
+</div>
+<div class="step-item" data-num="5"><h4 data-zh="⑤ Sequencing → FASTQ" data-en="⑤ Sequencing → FASTQ">⑤ 定序 → FASTQ</h4>
+<div data-lang="zh"><p>Illumina SBS（synthesis-by-sequencing）每循環加入一個螢光標記 nucleotide，影像化解讀。輸出 FASTQ：每 read 4 行（ID、序列、+、品質）。<strong>從這裡開始，QC 與分析是分析師的責任。</strong></p></div>
+<div data-lang="en"><p>Illumina SBS (synthesis-by-sequencing) adds one fluorescent nucleotide per cycle, imaging the result. Output: FASTQ — 4 lines per read (ID, sequence, +, quality). <strong>From here on, QC and analysis are the analyst's responsibility.</strong></p></div>
+</div>
+</div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="資料準備" data-en="DATA">資料準備</div>
 <h2 data-zh="範例資料集" data-en="Example Datasets">範例資料集</h2>
-<div data-lang="zh"><p>學習 Bulk RNA-seq 最棒的公開資料集：</p><ul style="margin-left:24px;color:var(--c-ink-light);"><li><strong>airway</strong>（Bioconductor）：人類氣管平滑肌細胞 ± dexamethasone，DESeq2 教學的招牌資料。</li><li><strong>pasilla</strong>（Bioconductor）：果蠅 splicing factor 敲低 vs. control。</li><li><strong>GTEx</strong>：53 種人類組織的大規模 RNA-seq。</li><li><strong>TCGA</strong>：33 種癌症的 paired tumor/normal 表達矩陣。</li><li><strong>recount3</strong>：超過 80 萬個 SRA 樣本統一處理後的 count matrix。</li></ul></div>
-<div data-lang="en"><p>Top public datasets for learning Bulk RNA-seq:</p><ul style="margin-left:24px;color:var(--c-ink-light);"><li><strong>airway</strong> (Bioconductor): Human airway smooth muscle ± dexamethasone — DESeq2's signature teaching dataset.</li><li><strong>pasilla</strong> (Bioconductor): Drosophila splicing-factor knockdown vs. control.</li><li><strong>GTEx</strong>: Large-scale RNA-seq across 53 human tissues.</li><li><strong>TCGA</strong>: Paired tumor/normal expression for 33 cancer types.</li><li><strong>recount3</strong>: Over 800k SRA samples uniformly reprocessed into count matrices.</li></ul></div>
+<div data-lang="zh">
+<p>學習 Bulk RNA-seq 最棒的公開資料集：</p>
+<ul style="margin-left:24px;color:var(--c-ink-light);">
+<li><strong>airway</strong>（Bioconductor）<span class="real-data" data-zh="真實資料" data-en="Real Data">真實資料</span>：人類氣管平滑肌細胞 ± dexamethasone，DESeq2 教學的招牌資料</li>
+<li><strong>pasilla</strong>（Bioconductor）<span class="real-data" data-zh="真實資料" data-en="Real Data">真實資料</span>：果蠅 splicing factor 敲低 vs. control</li>
+<li><strong>GTEx</strong>：53 種人類組織的大規模 RNA-seq，免費下載 count matrix</li>
+<li><strong>TCGA</strong>：33 種癌症的 paired tumor/normal 表達矩陣，含臨床資訊</li>
+<li><strong>recount3</strong>：超過 80 萬個 SRA 樣本統一處理後的 count matrix</li>
+<li><strong>ARCHS4</strong>：50 萬個 GEO RNA-seq 樣本的標準化矩陣，可一鍵 GO/KEGG enrichment</li>
+</ul>
+</div>
+<div data-lang="en">
+<p>Top public datasets for learning Bulk RNA-seq:</p>
+<ul style="margin-left:24px;color:var(--c-ink-light);">
+<li><strong>airway</strong> (Bioconductor) <span class="real-data">Real Data</span>: Human airway smooth muscle ± dexamethasone — DESeq2's signature teaching dataset</li>
+<li><strong>pasilla</strong> (Bioconductor) <span class="real-data">Real Data</span>: Drosophila splicing-factor knockdown vs. control</li>
+<li><strong>GTEx</strong>: large-scale RNA-seq across 53 human tissues; free count matrices</li>
+<li><strong>TCGA</strong>: paired tumor/normal expression for 33 cancer types with clinical info</li>
+<li><strong>recount3</strong>: 800k+ SRA samples uniformly reprocessed into count matrices</li>
+<li><strong>ARCHS4</strong>: 500k GEO RNA-seq samples in a standardized matrix; one-click GO/KEGG enrichment</li>
+</ul>
+</div>
 </section>
 
 <nav class="page-nav"><a href="../index.html"><span class="nav-dir" data-zh="← 返回" data-en="← Back">← 返回</span><span class="nav-title" data-zh="主頁" data-en="Hub">主頁</span></a><a href="qc-trim.html"><span class="nav-dir" data-zh="開始 →" data-en="Start →">開始 →</span><span class="nav-title" data-zh="Step 1：QC 與 Trimming" data-en="Step 1: QC & Trimming">Step 1：QC 與 Trimming</span></a></nav>

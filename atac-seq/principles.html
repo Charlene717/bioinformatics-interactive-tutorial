@@ -8,72 +8,391 @@
   </ul>
 </div></nav>
 <div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
-<header class="page-hero"><div class="step-badge">STEP 1 / 4</div><h1 data-zh="ATAC-seq 原理與片段分佈" data-en="ATAC-seq Principle & Fragment Distribution">ATAC-seq 原理與片段分佈</h1><p class="subtitle" data-lang="zh">Tn5 如何只切開放區域、為什麼 fragment size 分佈長得像「鋸齒山脈」。</p><p class="subtitle" data-lang="en">How Tn5 cuts only open regions and why the fragment-size distribution looks like a "sawtooth mountain".</p></header><main class="content-wrap">
+<header class="page-hero"><div class="step-badge">STEP 1 / 4 · PRINCIPLES</div>
+<h1 data-zh="ATAC-seq 原理與片段分佈" data-en="ATAC-seq Principle & Fragment Distribution">ATAC-seq 原理與片段分佈</h1>
+<p class="subtitle" data-lang="zh">Tn5 怎麼工作？為什麼 fragment-size 直方圖看起來像「鋸齒山脈」？為什麼一定要 +4/-5 shift？從 bp 級的生化細節到 omni-ATAC 與 scATAC 的演化。</p>
+<p class="subtitle" data-lang="en">How does Tn5 work? Why does the fragment-size histogram look like a "sawtooth mountain"? Why is the +4/-5 shift mandatory? From bp-level biochemistry to omni-ATAC and scATAC evolution.</p>
+<div style="margin-top:14px;"><span class="diff-chip beg">🟢 Beginner</span><span class="diff-chip int">🟡 Intermediate</span></div>
+</header><main class="content-wrap">
 
-<section class="section"><div class="section-label" data-zh="生化原理" data-en="BIOCHEM">生化原理</div>
-<h2 data-zh="Tn5 轉位酶機制" data-en="Tn5 Transposase Mechanism">Tn5 轉位酶</h2>
-<div data-lang="zh"><p>Tn5 來自細菌轉位元；工程化版本攜帶 Illumina 接頭。它對 <strong>開放、無核小體保護的 DNA</strong> 有強烈偏好，會以二聚體形式同時切兩條鏈並將接頭嵌入。一個 ATAC 反應裡，Tn5 完成「切＋接 (tagmentation)」一步搞定。</p></div>
-<div data-lang="en"><p>Tn5 is a bacterial transposase; the engineered ATAC version carries Illumina adapters. It strongly prefers <strong>open, nucleosome-free DNA</strong>, working as a dimer to cut both strands and insert the adapter. In one ATAC reaction, Tn5 performs "cut + ligate" (tagmentation) in a single step.</p></div>
-<div class="card-grid cols-2">
-<div class="card"><h4 data-zh="切位精度" data-en="Cut precision">切位精度</h4><p data-lang="zh">Tn5 切位形成單鹼基級的訊號。但因蛋白本身會「橋接」9 bp，read 起點對應實際開放邊界要 <strong>shift +4 / -5 bp</strong>。</p><p data-lang="en">Tn5 cuts at single-base precision. Because the protein bridges a 9-bp duplex, read starts must be <strong>shifted +4 / -5 bp</strong> to match real openness.</p></div>
-<div class="card"><h4 data-zh="片段大小分佈" data-en="Fragment-size distribution">片段大小分佈</h4><p data-lang="zh">在 fragment-length 直方圖上會出現三個明顯區段：&lt;100 bp 的 nucleosome-free (NFR)、~180 bp 的 mono-nucleosome、~360 bp 的 di-nucleosome——10.5 bp 的小週期 ripple 來自 DNA 雙螺旋。</p><p data-lang="en">The fragment-length histogram shows three peaks: &lt;100 bp nucleosome-free (NFR), ~180 bp mono-nucleosome, ~360 bp di-nucleosome — with ~10.5 bp ripples from the DNA helix.</p></div>
+<section class="section"><div class="section-label" data-zh="為何重要" data-en="WHY THIS MATTERS">為何重要</div>
+<h2 data-zh="從生化機制理解 ATAC，才能正確解讀數據" data-en="Understand the Biochemistry to Read the Data">從生化機制理解 ATAC，才能正確解讀數據</h2>
+<div data-lang="zh">
+<p>許多人把 ATAC-seq 當「黑盒子」——丟 fastq 進 nf-core，拿 peaks 出來看。但<strong>當 QC 異常時，唯一能診斷的方式就是回到生化原理</strong>：為什麼 chrM 高？為什麼片段太短？為什麼 NFR 峰消失？這些都源於 Tn5 與染色質的交互作用。</p>
+<p>這一章從<strong>分子層次</strong>建立你對 ATAC 的物理直覺：Tn5 二聚體如何「跳」進開放 DNA、9-bp 切位為何需要 +4/-5 校正、為什麼片段呈現 NFR + 核小體 ladder、以及 2013 原始版到 2017 omni-ATAC 的關鍵改良。</p>
+</div>
+<div data-lang="en">
+<p>Many treat ATAC-seq as a black box — fastq in, peaks out via nf-core. But <strong>when QC fails, only the underlying biochemistry diagnoses the problem</strong>: why is chrM high? why are fragments too short? why did the NFR peak vanish? Each is a downstream consequence of Tn5–chromatin physics.</p>
+<p>This chapter builds your <strong>molecular intuition</strong>: how the Tn5 dimer "jumps" into open DNA, why the 9-bp cut needs +4/-5 correction, why fragments form an NFR + nucleosomal ladder, and what changed between the 2013 original and 2017 omni-ATAC.</p>
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
-<h2 data-zh="片段大小分佈" data-en="Fragment-size Distribution">片段大小分佈</h2>
-<div data-lang="zh"><p>調整樣本品質（細胞活性、Tn5:核 比例），看 fragment-size 直方圖如何變化：</p></div>
-<div data-lang="en"><p>Tune sample quality (cell viability, Tn5:nuclei ratio); watch the fragment-size histogram change:</p></div>
+<section class="section"><div class="section-label" data-zh="生化原理" data-en="BIOCHEMISTRY">生化原理</div>
+<h2 data-zh="Tn5 轉位酶：一步完成切割與接頭嵌入" data-en="Tn5 Transposase: Cut and Ligate in One Step">Tn5 轉位酶機制</h2>
+<div data-lang="zh">
+<p><span class="term">Tn5<span class="term-tip">最初來自 E. coli 細菌轉位元 IS50，1990 年代由 Reznikoff 與 Goryshin 工程化為「hyperactive」變體，效率提升 1000 倍。</span></span> 是來自細菌的轉位酶。工程化版本（含突變 E54K、M56A、L372P）對 DNA 有極高親和力，且攜帶 <strong>Illumina 接頭預載序列</strong>。它以<strong>二聚體</strong>形式工作：兩個 Tn5 monomer 各抓一條 DNA 鏈，同時完成：</p>
+<ol style="margin-left:24px;line-height:1.85;color:var(--c-ink-light);">
+<li><strong>切割</strong>：在兩條 DNA 上錯位切出 9 bp 「staggered cut」（forward 切位比 reverse 早 9 bp）。</li>
+<li><strong>嵌入接頭</strong>：把預載的 Read1 + Read2 adapter 兩端嵌入切口——這個動作叫 <span class="term">tagmentation<span class="term-tip">tag + fragmentation。一步完成片段化+接頭嵌入，跳過傳統 ChIP-seq 的 sonication + ligation。</span></span>（tag + fragmentation）。</li>
+</ol>
+<p><strong>關鍵點：</strong>Tn5 對 <strong>沒被核小體蓋住</strong> 的 DNA 親和力高出 10–100 倍。這是 ATAC 訊號的物理來源——不是 Tn5「主動避開」核小體，而是核小體在物理上擋住了它。</p>
+</div>
+<div data-lang="en">
+<p><span class="term">Tn5<span class="term-tip">Originally from E. coli IS50 transposon; engineered to "hyperactive" by Reznikoff &amp; Goryshin in the 1990s — efficiency boost ~1000×.</span></span> is a bacterial transposase. The engineered version (mutations E54K, M56A, L372P) has high DNA affinity and carries <strong>preloaded Illumina adapters</strong>. It works as a <strong>dimer</strong>: two Tn5 monomers grab the two strands and simultaneously:</p>
+<ol style="margin-left:24px;line-height:1.85;color:var(--c-ink-light);">
+<li><strong>Cut</strong>: staggered 9-bp cut on the two strands (forward cut 9 bp upstream of reverse cut).</li>
+<li><strong>Insert adapters</strong>: preloaded Read1 + Read2 adapters insert into the gap — <span class="term">tagmentation<span class="term-tip">tag + fragmentation — fragmentation and adapter ligation in one enzymatic step, skipping sonication + ligation used in classical ChIP-seq.</span></span> (tag + fragmentation).</li>
+</ol>
+<p><strong>Key:</strong> Tn5 affinity is 10–100× higher for DNA <strong>not occluded by nucleosomes</strong>. This is the physical origin of ATAC signal — Tn5 doesn't "avoid" nucleosomes actively; nucleosomes physically block it.</p>
+</div>
+
+<div class="analogy"><strong data-zh="比喻：" data-en="Analogy:">比喻：</strong>
+<span data-lang="zh">想像 Tn5 是一對拿著膠帶的「雙人舞者」——他們手牽手跳上 DNA 雙螺旋，同時切下兩條鏈、把膠帶（adapter）貼上去。只有 DNA 雙螺旋「空著」（沒被核小體裹住）他們才跳得進去。</span>
+<span data-lang="en">Picture Tn5 as a "tandem dancer pair" carrying tape — they jump onto the DNA helix, cut both strands together, and stick the tape (adapter) on. They can only land where the helix is "empty" (not wrapped around a histone).</span>
+</div>
+
+<div class="formula-box"><span class="fb-title" data-zh="切割幾何（9-bp staggered cut）" data-en="Cut geometry (9-bp staggered cut)">切割幾何</span>
+<pre style="margin:0;color:inherit">
+                  ↓ Tn5 cuts here (forward strand)
+5'──N N N N N N N N N─3'
+3'──N N N N N N N N N─5'
+              ↑ Tn5 cuts here (reverse strand, 9 bp upstream)
+
+After tagmentation:
+5'──N N N N───Read1 adapter──    (forward read starts at +4 bp from true open edge)
+       ───Read2 adapter───N N N─5'    (reverse read ends at -5 bp from true open edge)
+</pre>
+<span class="fb-note" data-zh="這 9 bp 差距是為什麼 forward reads 必須 +4 bp、reverse reads 必須 -5 bp 才回到真正的 Tn5 切位中心。" data-en="This 9-bp offset is why forward reads need +4 bp and reverse reads need -5 bp to return to the true Tn5 cut centre.">9-bp offset → +4 / -5 shift</span>
+</div>
+
+<div class="pitfall">
+<span data-lang="zh"><strong>常被誤解：</strong>+4/-5 shift 不是要修正 PCR bias 或定序誤差，而是修正 <strong>Tn5 兩條切位之間的 9-bp 物理偏移</strong>。沒做 shift，footprinting 的 bp 級解析度就會錯位。對 peak calling 影響小（區域層級），但對 motif footprint 影響大。</span>
+<span data-lang="en"><strong>Common misconception:</strong> +4/-5 shift is <em>not</em> a PCR-bias or sequencing-error correction — it corrects the <strong>9-bp physical offset between the two Tn5 cut sites</strong>. Without it, footprinting loses bp-level resolution. Peak calling is barely affected (region-level), but motif footprints are.</span>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="片段大小" data-en="FRAGMENT SIZE">片段大小</div>
+<h2 data-zh="為什麼直方圖長得像「鋸齒山脈」？" data-en="Why Does the Histogram Look Like a Sawtooth Mountain?">片段大小分佈：鋸齒山脈</h2>
+<div data-lang="zh">
+<p>ATAC paired-end reads 還原出每個 fragment 的長度後，畫成直方圖，會出現經典的「四疊紀」結構：</p>
+<ul style="margin-left:20px;line-height:1.85;color:var(--c-ink-light);">
+<li><strong>&lt;100 bp</strong>：<span class="term">NFR<span class="term-tip">Nucleosome-Free Region — Tn5 切在兩個相鄰核小體之間或進入 NDR 內。</span></span> 片段——兩個 Tn5 落點都在<strong>同一個 NFR</strong> 內。最豐富。</li>
+<li><strong>~180 bp</strong>：mono-nucleosome 片段——兩個 Tn5 落點各在<strong>一個核小體兩側</strong>（包住整個 ~147 bp 核小體 + linker）。</li>
+<li><strong>~360 bp</strong>：di-nucleosome 片段——夾住兩個核小體。</li>
+<li><strong>~540 bp / ~720 bp</strong>：tri-、tetra-nucleosome（罕見）。</li>
+</ul>
+<p><strong>10.5-bp ripple</strong>：放大來看，&lt;200 bp 區段會出現 ~10.5 bp 週期的小波動——這是 DNA 雙螺旋每圈 10.5 bp 的痕跡（DNA 接觸核小體表面的旋轉相位）。</p>
+</div>
+<div data-lang="en">
+<p>After reconstructing fragment lengths from paired-end reads, the histogram shows a classic 4-tier structure:</p>
+<ul style="margin-left:20px;line-height:1.85;color:var(--c-ink-light);">
+<li><strong>&lt;100 bp</strong>: <span class="term">NFR<span class="term-tip">Nucleosome-Free Region — both Tn5 sites land in a single nucleosome-depleted region.</span></span> fragments — both Tn5 cuts within <strong>one NFR</strong>. Most abundant.</li>
+<li><strong>~180 bp</strong>: mono-nucleosomal — Tn5 cuts on <strong>either side of one nucleosome</strong> (~147 bp + linker).</li>
+<li><strong>~360 bp</strong>: di-nucleosomal — spans two nucleosomes.</li>
+<li><strong>~540 bp / ~720 bp</strong>: tri-, tetra-nucleosomal (rare).</li>
+</ul>
+<p><strong>10.5-bp ripple</strong>: zoom into &lt;200 bp and a ~10.5-bp periodicity appears — the helical pitch of DNA wrapping the nucleosome surface.</p>
+</div>
+
+<div class="analogy"><strong data-zh="比喻：" data-en="Analogy:">比喻：</strong>
+<span data-lang="zh">想像染色質是一串「珠子（核小體）+ 線（linker DNA）」。Tn5 只能切「線」，不能切「珠子」。隨機落兩刀：兩刀都落在同一段線 → 短片段 (NFR)；分別落在一個珠子的兩側 → ~180 bp；兩個珠子兩側 → ~360 bp。直方圖的階梯，就是這串珠子的指紋。</span>
+<span data-lang="en">Chromatin is "beads (nucleosomes) on a string (linker DNA)." Tn5 can only cut string, not beads. Random pairs of cuts: both on same string → short (NFR); flanking one bead → ~180 bp; flanking two beads → ~360 bp. The histogram ladder is the fingerprint of that necklace.</span>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="互動模擬 1" data-en="INTERACTIVE 1">互動模擬 1</div>
+<h2 data-zh="片段大小分佈：四種樣本品質" data-en="Fragment-Size Distribution: Four Quality Profiles">片段大小分佈模擬器</h2>
+<div data-lang="zh"><p>點擊不同樣本品質，看 fragment-size 直方圖如何變化：</p></div>
+<div data-lang="en"><p>Click each quality preset; watch how the fragment-size histogram changes:</p></div>
 <div class="interactive-panel">
 <div class="toggle-row">
-<button class="toggle-btn active" data-key="good">優質樣本</button>
-<button class="toggle-btn" data-key="over">過度 Tn5</button>
-<button class="toggle-btn" data-key="under">Tn5 不足</button>
-<button class="toggle-btn" data-key="dead">死細胞汙染</button>
+<button class="toggle-btn active" data-key="good" data-zh="優質樣本" data-en="Healthy">優質樣本</button>
+<button class="toggle-btn" data-key="over" data-zh="過度 Tn5" data-en="Over-tagmented">過度 Tn5</button>
+<button class="toggle-btn" data-key="under" data-zh="Tn5 不足" data-en="Under-tagmented">Tn5 不足</button>
+<button class="toggle-btn" data-key="dead" data-zh="死細胞汙染" data-en="Dead-cell contamination">死細胞汙染</button>
+<button class="toggle-btn" data-key="chrm" data-zh="chrM 主導" data-en="chrM dominant">chrM 主導</button>
 </div>
-<div class="chart-container" style="height:300px;"><canvas id="fragChart"></canvas></div>
-<div id="fragTip" style="font-size:.9rem;color:var(--c-ink-light);"></div>
+<div class="chart-container" style="height:320px;"><canvas id="fragChart"></canvas></div>
+<div id="fragTip" style="font-size:.9rem;color:var(--c-ink-light);margin-top:8px;"></div>
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="重要修正" data-en="CORRECTIONS">重要修正</div>
-<h2 data-zh="必做的後處理" data-en="Mandatory Post-Processing">必做的後處理</h2>
-<div class="card-grid cols-2">
-<div class="card"><h4>+4 / -5 shift</h4><p data-lang="zh">Tn5 接合的 9 bp 橋讓 forward read 應 <code>+4</code>、reverse read 應 <code>-5</code>。常用工具：<code>alignmentSieve --ATACshift</code>（deepTools）。</p><p data-lang="en">The 9-bp Tn5 bridge means forward reads shift <code>+4</code> and reverse <code>-5</code>. Tool: <code>alignmentSieve --ATACshift</code> (deepTools).</p></div>
-<div class="card"><h4 data-zh="移除 chrM (粒線體)" data-en="Remove chrM">移除 chrM</h4><p data-lang="zh">粒線體 DNA 完全開放，可佔 30-50% 的 reads。<code>samtools view -F 4 ... grep -v chrM</code> 或專用流程。</p><p data-lang="en">Mitochondrial DNA is fully open and can be 30-50% of reads. Use <code>samtools view ... | grep -v chrM</code> or a dedicated pipeline.</p></div>
-<div class="card"><h4 data-zh="移除黑名單區" data-en="Blacklist removal">移除 blacklist</h4><p data-lang="zh">ENCODE 黑名單包含重複序列與已知偽訊號區。<code>bedtools intersect -v -a ... -b blacklist.bed</code>。</p><p data-lang="en">ENCODE blacklist marks repeat/artifact regions. Filter with <code>bedtools intersect -v</code>.</p></div>
-<div class="card"><h4 data-zh="去重 duplicates" data-en="Mark duplicates">去重</h4><p data-lang="zh">PCR + optical 重複用 <code>picard MarkDuplicates</code> 或 <code>samtools markdup</code> 標記後 <code>-F 1024</code> 過濾。</p><p data-lang="en">Mark PCR + optical dups with <code>picard MarkDuplicates</code> or <code>samtools markdup</code>; filter with <code>-F 1024</code>.</p></div>
+<section class="section"><div class="section-label" data-zh="互動模擬 2" data-en="INTERACTIVE 2">互動模擬 2</div>
+<h2 data-zh="Tn5 切位密度沿 NFR 邊緣" data-en="Tn5 Cut-Site Density Across NFR Edges">Tn5 切位密度模擬</h2>
+<div data-lang="zh"><p>調整核小體相位（NFR 寬度），看 Tn5 切位密度沿 NFR 邊緣的分佈如何形成 "phasing" 訊號：</p></div>
+<div data-lang="en"><p>Tune nucleosome phasing (NFR width) and see how Tn5 cut density along NFR edges forms a "phased" signal:</p></div>
+<div class="interactive-panel">
+<div class="slider-group"><label data-lang="zh">NFR 寬度 (bp)<span id="valNfr">160</span></label><label data-lang="en">NFR width (bp)<span id="valNfrEn">160</span></label><input type="range" id="sliderNfr" min="60" max="400" value="160" step="10"></div>
+<div class="chart-container" style="height:280px;"><canvas id="cutChart"></canvas></div>
+<div id="cutTip" style="font-size:.9rem;color:var(--c-ink-light);margin-top:8px;"></div>
 </div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="必做後處理" data-en="POST-PROCESSING">必做後處理</div>
+<h2 data-zh="ATAC 比對後的 5 個必做步驟" data-en="5 Mandatory Post-Alignment Steps">ATAC 比對後的 5 個必做步驟</h2>
+<div class="steps-vertical">
+<div class="step-item" data-num="1"><h4 data-zh="+4 / -5 shift" data-en="+4 / -5 shift">+4 / -5 shift</h4>
+<p data-lang="zh">forward read 起點 <code>+4</code>，reverse read 起點 <code>-5</code>。<code>alignmentSieve --ATACshift</code>（deepTools）或 <code>samtools view + awk</code> 自己刻。對 peak calling 影響小，對 footprint 影響大。</p>
+<p data-lang="en">Forward read start <code>+4</code>, reverse start <code>-5</code>. Use <code>alignmentSieve --ATACshift</code> (deepTools). Negligible for peaks, critical for footprints.</p></div>
+<div class="step-item" data-num="2"><h4 data-zh="移除 chrM（粒線體）" data-en="Remove chrM (mitochondrial)">移除 chrM</h4>
+<p data-lang="zh">粒線體 DNA 完全開放、無核小體 → Tn5 大量切 → 經典 30–80% reads 浪費在 chrM 上。<code>samtools view ... | grep -v chrM</code> 或 omni-ATAC 在實驗端用 DNase 預處理。</p>
+<p data-lang="en">Mitochondrial DNA is fully open, nucleosome-free → Tn5 cuts everywhere → 30–80% of reads classically wasted on chrM. Filter: <code>samtools view | grep -v chrM</code>, or omni-ATAC pretreats with DNase.</p></div>
+<div class="step-item" data-num="3"><h4 data-zh="移除 ENCODE 黑名單" data-en="Remove ENCODE blacklist">移除黑名單</h4>
+<p data-lang="zh">ENCODE blacklist 含已知 mapping-artifact 區（repeats、衛星 DNA、低映射性）。<code>bedtools intersect -v -a bam -b hg38.blacklist.bed</code>。</p>
+<p data-lang="en">ENCODE blacklist marks mapping-artifact regions (repeats, satellites, low-mappability). <code>bedtools intersect -v -a bam -b hg38.blacklist.bed</code>.</p></div>
+<div class="step-item" data-num="4"><h4 data-zh="去 PCR 重複" data-en="Deduplicate PCR duplicates">去 PCR 重複</h4>
+<p data-lang="zh"><code>picard MarkDuplicates</code> 或 <code>samtools markdup</code>，再用 <code>-F 1024</code> 過濾。記錄 PBC1（Library complexity）作為 QC。</p>
+<p data-lang="en"><code>picard MarkDuplicates</code> or <code>samtools markdup</code>, then filter with <code>-F 1024</code>. Track PBC1 (library complexity) as QC.</p></div>
+<div class="step-item" data-num="5"><h4 data-zh="MAPQ + properly paired 過濾" data-en="MAPQ + properly paired filter">品質過濾</h4>
+<p data-lang="zh"><code>samtools view -q 30 -f 2 -F 1804</code>：保留 MAPQ≥30、properly paired、移除 unmapped/secondary/dup。</p>
+<p data-lang="en"><code>samtools view -q 30 -f 2 -F 1804</code>: keep MAPQ≥30, properly paired; remove unmapped/secondary/dup.</p></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="協議演化" data-en="PROTOCOL EVOLUTION">協議演化</div>
+<h2 data-zh="2013 原版 → 2017 omni-ATAC → scATAC" data-en="2013 Original → 2017 omni-ATAC → scATAC">協議演化</h2>
+<table class="comp-table"><thead><tr><th data-zh="版本" data-en="Version">版本</th><th data-zh="關鍵改良" data-en="Key improvement">關鍵改良</th><th>chrM%</th><th data-zh="細胞需求" data-en="Cell input">細胞需求</th></tr></thead><tbody>
+<tr><td><strong>Standard ATAC (Buenrostro 2013)</strong></td><td data-zh="原始版本，IGEPAL CA-630 裂解" data-en="Original, IGEPAL CA-630 lysis">原始版本</td><td>30–80%</td><td>50,000</td></tr>
+<tr><td><strong>Fast-ATAC (Corces 2016)</strong></td><td data-zh="加 digitonin，適合血細胞" data-en="Adds digitonin, blood-cell friendly">+digitonin</td><td>~30%</td><td>5,000–50,000</td></tr>
+<tr><td><strong>Omni-ATAC (Corces 2017)</strong></td><td data-zh="digitonin + Tween + DNase 預處理 → 大幅去 chrM" data-en="digitonin + Tween + DNase pre-treatment → chrM purge">三重組合</td><td><strong>&lt;10%</strong></td><td>500–50,000</td></tr>
+<tr><td><strong>scATAC (microfluidic C1)</strong></td><td data-zh="單細胞，Buenrostro 2015" data-en="Single-cell, Buenrostro 2015">單細胞</td><td data-zh="高（每細胞）" data-en="High (per cell)">高</td><td>1 cell</td></tr>
+<tr><td><strong>sci-ATAC-seq3 (Cusanovich 2018)</strong></td><td data-zh="組合條碼 → 萬細胞" data-en="Combinatorial barcoding → 10k cells">組合條碼</td><td data-zh="中" data-en="Med">中</td><td>10k+ cells</td></tr>
+<tr><td><strong>10x scATAC / Multiome (2019+)</strong></td><td data-zh="droplet-based，與 scRNA 整合" data-en="Droplet-based, integrates with scRNA">droplet</td><td data-zh="低（&lt;15%）" data-en="Low (&lt;15%)">低</td><td>1k–100k cells</td></tr>
+</tbody></table>
+<div class="protip">
+<span data-lang="zh"><strong>2024 推薦：</strong>bulk → omni-ATAC；single-cell → 10x Multiome（同細胞測 RNA+ATAC）或純 10x scATAC（如預算有限）。</span>
+<span data-lang="en"><strong>2024 recommendation:</strong> bulk → omni-ATAC; single-cell → 10x Multiome (RNA+ATAC same cell) or 10x scATAC alone (budget-limited).</span>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="vs 其他方法" data-en="VS OTHER METHODS">vs 其他方法</div>
+<h2 data-zh="ATAC vs ChIP：解析度與訊號意義不同" data-en="ATAC vs ChIP: Resolution and Signal Meaning Differ">ATAC vs ChIP-seq</h2>
+<div class="vs-grid">
+<div class="vs-side left"><h5>ATAC-seq</h5><ul>
+<li data-lang="zh"><strong>全染色質地圖</strong>：一次拿到所有 OCR</li>
+<li data-lang="en"><strong>Whole-chromatin map</strong>: all OCRs in one shot</li>
+<li data-lang="zh">不需要抗體</li><li data-lang="en">No antibody needed</li>
+<li data-lang="zh">500 顆細胞即可</li><li data-lang="en">Down to 500 cells</li>
+<li data-lang="zh">解析度 bp 級（footprintable）</li><li data-lang="en">Bp-level resolution (footprintable)</li>
+<li data-lang="zh">弱點：不直接告訴你是哪個 TF</li><li data-lang="en">Limitation: doesn't directly identify TF</li>
+</ul></div>
+<div class="vs-mid">VS</div>
+<div class="vs-side right"><h5>ChIP-seq</h5><ul>
+<li data-lang="zh"><strong>特定蛋白地圖</strong>：你選一個 TF / 修飾</li>
+<li data-lang="en"><strong>Specific-protein map</strong>: you pick one TF / mark</li>
+<li data-lang="zh">需要好抗體（成敗關鍵）</li><li data-lang="en">Needs a good antibody (make-or-break)</li>
+<li data-lang="zh">~10⁶ 細胞起跳</li><li data-lang="en">Starts at ~10⁶ cells</li>
+<li data-lang="zh">解析度 ~100 bp（peak）</li><li data-lang="en">~100 bp resolution (peak)</li>
+<li data-lang="zh">弱點：每跑一個 TF 都要重來</li><li data-lang="en">Limitation: one TF at a time</li>
+</ul></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="真實案例" data-en="CASE STUDY">真實案例</div>
+<h2 data-zh="案例：Buenrostro 2013 GM12878" data-en="Case: Buenrostro 2013 GM12878">真實案例：Buenrostro 2013</h2>
+<div class="case-study">
+<h4>🧪 <span data-zh="ATAC-seq 誕生的那一篇" data-en="The Paper That Born ATAC-seq">ATAC-seq 誕生的那一篇</span></h4>
+<div class="case-meta">Buenrostro JD, Giresi PG, Zaba LC, Chang HY, Greenleaf WJ. <em>Nat Methods</em> 2013, 10:1213–8. SRA: SRR891268. ENCODE: ENCSR000EMT</div>
+<div data-lang="zh">
+<p><strong>背景：</strong>2013 之前，研究染色質開放性需要 ~10⁶ 細胞做 DNase-seq 或 FAIRE-seq，且實驗複雜。Stanford 的 Howard Chang &amp; Will Greenleaf 實驗室問：能否用單一酵素一步搞定？</p>
+<p><strong>實驗：</strong>50,000 顆 GM12878（B 細胞淋巴瘤系），加入工程化 Tn5、tagmentation 30 分鐘、PCR 11 cycles，總共 ~半天。</p>
+<p><strong>關鍵發現：</strong></p>
+<ul style="margin-left:20px;color:var(--c-ink-light);line-height:1.85;">
+<li>50k 顆細胞的 ATAC-seq 結果與 ~10⁷ 細胞的 DNase-seq <strong>峰位重合度 &gt; 0.9</strong>。</li>
+<li>第一次清楚看到 NFR + 180 bp + 360 bp <strong>核小體 ladder</strong>。</li>
+<li>透過 motif 富集，重現 GM12878 知名 TF（PU.1、IRF、CTCF）。</li>
+<li>同篇示範首個「footprint 分析」：CTCF motif 周圍清楚看到 cut-site 凹陷。</li>
+</ul>
+<p><strong>影響：</strong>論文發表後 4 年內被引用 &gt;2000 次，把染色質景觀帶入「少細胞、快實驗」時代。為 scATAC、空間 ATAC、TCGA 410 樣本研究等鋪路。</p>
+</div>
+<div data-lang="en">
+<p><strong>Background:</strong> Before 2013, studying chromatin accessibility required ~10⁶ cells with DNase-seq or FAIRE-seq, with complex protocols. Stanford's Chang &amp; Greenleaf labs asked: can a single enzyme do it in one step?</p>
+<p><strong>Experiment:</strong> 50,000 GM12878 cells (B-cell lymphoma line), engineered Tn5, 30-min tagmentation, 11-cycle PCR — about half a day total.</p>
+<p><strong>Key findings:</strong></p>
+<ul style="margin-left:20px;color:var(--c-ink-light);line-height:1.85;">
+<li>50k-cell ATAC peaks <strong>overlap &gt; 0.9</strong> with 10⁷-cell DNase-seq peaks.</li>
+<li>First clear visualisation of the NFR + 180 bp + 360 bp <strong>nucleosomal ladder</strong>.</li>
+<li>Motif enrichment recovered classical GM12878 TFs (PU.1, IRF, CTCF).</li>
+<li>Same paper demonstrated the first ATAC footprint: clear dip in cut signal around the CTCF motif.</li>
+</ul>
+<p><strong>Impact:</strong> Cited &gt;2,000 times within 4 years; brought chromatin profiling into the "few-cells, fast-protocol" era. Paved the way for scATAC, spatial ATAC, and TCGA's 410-sample atlas.</p>
+</div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="陷阱" data-en="PITFALLS">陷阱</div>
+<h2 data-zh="這一步最常犯的 5 個錯" data-en="5 Most Common Mistakes at This Stage">5 個最常犯的錯</h2>
+<div class="pitfall"><span data-lang="zh"><strong>沒做 +4/-5 shift 就跑 footprinting：</strong>footprint 的 dip 中心會偏移 4–5 bp，導致與 motif 不對齊。對 peak calling 影響不大，但 footprinting 必做。</span><span data-lang="en"><strong>Skipping +4/-5 shift before footprinting:</strong> the footprint dip shifts by 4–5 bp and won't align to the motif. Mostly harmless for peak calling, but mandatory for footprinting.</span></div>
+<div class="pitfall"><span data-lang="zh"><strong>chrM% 過高未排除就 normalize：</strong>若 60% reads 在 chrM，扣掉後 effective depth 大降。應 <em>先</em> 移除 chrM，再用剩下的 reads 計算 depth/normalize。</span><span data-lang="en"><strong>Normalising without removing chrM first:</strong> if 60% of reads are chrM, effective depth plummets. Remove chrM <em>first</em>, then compute depth / normalize.</span></div>
+<div class="pitfall"><span data-lang="zh"><strong>用 single-end 跑 ATAC：</strong>無法重建 fragment-size，無法做 NFR/nucleosomal 分離。永遠 paired-end。</span><span data-lang="en"><strong>Running single-end ATAC:</strong> you cannot reconstruct fragment sizes — no NFR / nucleosomal separation. Always paired-end.</span></div>
+<div class="pitfall"><span data-lang="zh"><strong>過度 PCR 循環：</strong>建議 ≤ 12 cycles（omni-ATAC 用 qPCR 監控前段，找 ⅓ 飽和點停手）。過頭會導致 PBC1 暴跌、library 多樣性差。</span><span data-lang="en"><strong>Too many PCR cycles:</strong> stay ≤ 12 (omni-ATAC monitors with qPCR and stops at ⅓ saturation). Overshoot tanks PBC1 / library complexity.</span></div>
+<div class="pitfall"><span data-lang="zh"><strong>冷凍細胞當新鮮細胞跑：</strong>冷凍融解會增加細胞破裂與 chrM 釋放；應用 omni-ATAC 並提高 DNase 預處理比例。</span><span data-lang="en"><strong>Treating frozen cells like fresh:</strong> freeze-thaw raises cell rupture and chrM release. Use omni-ATAC with stronger DNase pretreatment.</span></div>
 </section>
 
 <section class="section"><div class="section-label" data-zh="程式碼" data-en="CODE">程式碼</div>
 <h2 data-zh="實作範例" data-en="Code Examples">實作範例</h2>
-<div class="code-tabs"><div class="code-tab-btns"><button class="code-tab-btn active" onclick="switchTab(this,'shell')">shell</button></div>
-<div class="code-tab-content active" id="shell"><pre><span class="comment"># 1. 比對 (Bowtie2)</span>
-bowtie2 --very-sensitive -X <span class="num">2000</span> -p <span class="num">12</span> \
-  -x bowtie2_idx -<span class="num">1</span> R1.fq.gz -<span class="num">2</span> R2.fq.gz \
-  | samtools view -bS - | samtools sort -o raw.bam
+<div class="code-tabs"><div class="code-tab-btns">
+<button class="code-tab-btn active" onclick="switchTab(this,'shell1')">shell (alignment + post-processing)</button>
+<button class="code-tab-btn" onclick="switchTab(this,'shell2')">shell (Tn5 shift + fragment-size)</button>
+<button class="code-tab-btn" onclick="switchTab(this,'py1')">Python (frag-size plot)</button>
+</div>
+<div class="code-tab-content active" id="shell1"><pre><span class="comment"># 1. Adapter trimming (Trim Galore or fastp)</span>
+fastp -i R1.fq.gz -I R2.fq.gz \
+  -o R1.tr.fq.gz -O R2.tr.fq.gz \
+  --detect_adapter_for_pe --thread <span class="num">8</span>
 
-<span class="comment"># 2. MarkDuplicates + 過濾 chrM、blacklist、unmapped</span>
-samtools markdup -r raw.bam dedup.bam
+<span class="comment"># 2. Alignment with Bowtie2 (ENCODE ATAC standard)</span>
+bowtie2 --very-sensitive -X <span class="num">2000</span> --dovetail -p <span class="num">12</span> \
+  -x bowtie2_idx -<span class="num">1</span> R1.tr.fq.gz -<span class="num">2</span> R2.tr.fq.gz \
+  | samtools sort -@ <span class="num">8</span> -o raw.bam -
+
+<span class="comment"># 3. Mark + remove PCR duplicates</span>
+picard MarkDuplicates I=raw.bam O=dedup.bam M=dup.txt REMOVE_DUPLICATES=<span class="kw">true</span>
+
+<span class="comment"># 4. Filter: MAPQ ≥ 30, properly paired, no chrM, no unmapped/secondary</span>
 samtools view -h -b -q <span class="num">30</span> -F <span class="num">1804</span> -f <span class="num">2</span> dedup.bam \
-  | grep -v -P <span class="str">'chrM|chrUn|random'</span> &gt; filt.bam
+  | grep -v -P <span class="str">'chrM|chrUn|random|chrEBV'</span> &gt; filt.bam
+samtools index filt.bam
 
-bedtools intersect -v -a filt.bam \
-  -b hg38_blacklist.bed &gt; clean.bam
+<span class="comment"># 5. Remove ENCODE blacklist (hg38)</span>
+bedtools intersect -v -abam filt.bam \
+  -b ENCFF356LFX_hg38_blacklist.bed &gt; clean.bam
+samtools index clean.bam</pre></div>
+<div class="code-tab-content" id="shell2"><pre><span class="comment"># 6. Tn5 +4/-5 shift (deepTools alignmentSieve)</span>
+alignmentSieve --bam clean.bam -o shifted.bam --ATACshift \
+  --filterMetrics filt.log
+samtools sort -@ <span class="num">8</span> -o shifted.sorted.bam shifted.bam
+samtools index shifted.sorted.bam
 
-<span class="comment"># 3. Tn5 shift (+4/-5)</span>
-alignmentSieve --bam clean.bam -o shifted.bam --ATACshift</pre></div>
+<span class="comment"># 7. Fragment-size histogram (deepTools)</span>
+bamPEFragmentSize -b shifted.sorted.bam \
+  --histogram fragSize.png --plotTitle <span class="str">"ATAC fragment-size"</span> \
+  --maxFragmentLength <span class="num">1000</span>
+
+<span class="comment"># 8. Coverage track (bigWig, CPM-normalized)</span>
+bamCoverage -b shifted.sorted.bam -o sample.bw \
+  --binSize <span class="num">10</span> --normalizeUsing CPM \
+  --effectiveGenomeSize <span class="num">2913022398</span> -p <span class="num">8</span> --extendReads</pre></div>
+<div class="code-tab-content" id="py1"><pre><span class="kw">import</span> pysam
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="comment"># 取得 fragment-size 分佈</span>
+sizes = []
+<span class="kw">with</span> pysam.AlignmentFile(<span class="str">"shifted.sorted.bam"</span>, <span class="str">"rb"</span>) <span class="kw">as</span> bam:
+    <span class="kw">for</span> r <span class="kw">in</span> bam:
+        <span class="kw">if</span> r.is_proper_pair <span class="kw">and</span> r.is_read1 <span class="kw">and</span> <span class="num">0</span> &lt; r.template_length &lt; <span class="num">1000</span>:
+            sizes.append(<span class="func">abs</span>(r.template_length))
+
+plt.figure(figsize=(<span class="num">8</span>, <span class="num">4</span>))
+plt.hist(sizes, bins=<span class="num">200</span>, color=<span class="str">"#c66a1e"</span>, alpha=<span class="num">0.85</span>)
+plt.axvline(<span class="num">147</span>, color=<span class="str">"gray"</span>, ls=<span class="str">"--"</span>, label=<span class="str">"mono-nucleosome (147 bp)"</span>)
+plt.axvline(<span class="num">320</span>, color=<span class="str">"gray"</span>, ls=<span class="str">":"</span>, label=<span class="str">"di-nucleosome (~320 bp)"</span>)
+plt.xlabel(<span class="str">"Fragment size (bp)"</span>); plt.ylabel(<span class="str">"count"</span>)
+plt.legend(); plt.tight_layout(); plt.savefig(<span class="str">"fragSize.png"</span>, dpi=<span class="num">150</span>)</pre></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="多層次解釋" data-en="MULTI-LEVEL">多層次解釋</div>
+<h2 data-zh="同一概念，三個深度" data-en="Same Concept, Three Depths">為什麼要 +4/-5 shift？三種深度</h2>
+<div class="level-tabs">
+<button class="level-tab active" data-tab="beg">🟢 Beginner</button>
+<button class="level-tab" data-tab="int">🟡 Intermediate</button>
+<button class="level-tab" data-tab="adv">🔴 Advanced</button>
+</div>
+<div class="level-pane active" data-pane="beg">
+<p data-lang="zh"><strong>一句話：</strong>Tn5 切了 9 bp 錯位的雙股切口，所以 read 起點不是真正的「中心」——往內挪 4 或 5 bp 才對。</p>
+<p data-lang="en"><strong>One sentence:</strong> Tn5 makes a 9-bp staggered cut, so the read start isn't the true "centre" — nudge inward by 4 or 5 bp to fix.</p>
+</div>
+<div class="level-pane" data-pane="int">
+<p data-lang="zh">Tn5 二聚體在 DNA 上下兩條鏈分別切開——上鏈切位比下鏈切位前移 9 bp。Illumina 接頭嵌入後，定序得到的 forward read 起點 = 上鏈切位，reverse read 結束 = 下鏈切位。要讓兩條 read 都對齊到「真正的 Tn5 中心位置」（兩切位中點），forward +4 bp、reverse -5 bp（4+5=9）。對 peak calling 影響很小（區域層級），但對 motif 中心 footprint 解析至關重要。</p>
+<p data-lang="en">The Tn5 dimer cuts the two strands at offset positions — top-strand cut is 9 bp upstream of bottom-strand cut. After adapter insertion, sequenced forward-read start = top-strand cut; reverse-read end = bottom-strand cut. To align both to the "true Tn5 centre" (midpoint), shift forward +4 and reverse -5 (4+5=9). Tiny effect on peak calling, huge effect on bp-level footprint resolution.</p>
+</div>
+<div class="level-pane" data-pane="adv">
+<p data-lang="zh">從生物物理：Tn5 的二聚體結構決定了兩個活性位點之間的距離 ≈ 9 bp，這在 Davies et al. (2000) 的 Tn5 晶體結構就已揭示。實務上 ENCODE 的標準是 forward +4、reverse -5（Adey et al. 2010 提出的修正）。也有人用 +5/-4 或對稱 +4.5（不切實際因 BAM 為整數座標）。理論上完美 shift 應依 Tn5 catalytic site offset 的 9 bp 來決定，但生物變異性下 +4/-5 是 community 共識。對於 TF footprint 而言，若不做 shift，cut-site profile 的最大值會錯置於 motif 中心 ±4 bp，導致 TOBIAS / HINT-ATAC 對 motif 對齊失敗——這是為什麼 footprinting 必做 shift 的最終原因。</p>
+<p data-lang="en">From biophysics: the Tn5 dimer's two catalytic sites are ~9 bp apart, as resolved in Davies et al. (2000) Tn5 crystal structure. ENCODE standard: forward +4, reverse -5 (Adey et al. 2010). Some use +5/-4 or symmetric +4.5 (impractical with integer BAM coords). The 9-bp catalytic offset is the theoretical basis; +4/-5 is community consensus. Without shift, the cut-site density maxima sit ±4 bp off motif centre, disrupting TOBIAS / HINT-ATAC motif alignment — the final reason footprinting <em>must</em> shift.</p>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="關鍵公式" data-en="FORMULAS">關鍵公式</div>
+<h2 data-zh="本章關鍵公式" data-en="Key Formulas">本章關鍵公式</h2>
+<div class="formula-box"><span class="fb-title" data-zh="片段大小分佈（混合高斯）" data-en="Fragment-size distribution (Gaussian mixture)">片段分佈</span>
+<em>P(s)</em> = w<sub>NFR</sub>·𝒩(s; 50, 30²) + w<sub>1</sub>·𝒩(s; 180, 40²) + w<sub>2</sub>·𝒩(s; 360, 55²) + w<sub>3</sub>·𝒩(s; 540, 80²) + …
+<span class="fb-note" data-zh="健康樣本：w_NFR &gt; w_1 &gt; w_2，且 w_NFR / w_1 約 2:1。" data-en="Healthy: w_NFR > w_1 > w_2, ratio ~2:1.">健康樣本：w<sub>NFR</sub> &gt; w<sub>1</sub> &gt; w<sub>2</sub></span>
+</div>
+<div class="formula-box"><span class="fb-title" data-zh="Tn5 切位中心" data-en="Tn5 cut centre">切位校正</span>
+<em>cut<sub>+</sub></em> = read<sub>start, fwd</sub> + 4 ; &nbsp; <em>cut<sub>-</sub></em> = read<sub>end, rev</sub> - 5
+<span class="fb-note" data-zh="cut+ 與 cut- 對齊到同一個 Tn5 catalytic centre。" data-en="cut+ and cut- align to the same Tn5 catalytic centre.">forward +4，reverse -5</span>
 </div>
 </section>
 
 <section class="quiz-section"><h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
-<div class="quiz-q" data-answer="0"><p data-lang="zh">下列何者最能解釋 ATAC-seq fragment 直方圖出現 ~180 / ~360 bp 的峰？</p><p data-lang="en">What best explains the ~180 / ~360 bp peaks in ATAC-seq fragment histogram?</p><div class="quiz-options">
-<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. Tn5 不能切核小體保護的 DNA，片段大小反映被核小體保護的長度</span><span data-lang="en">A. Tn5 cannot cut nucleosome-protected DNA; sizes reflect protected lengths</span></div>
-<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. PCR 偏好 ~180 bp</span><span data-lang="en">B. PCR prefers ~180 bp</span></div>
-<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 接頭設計為 180 bp</span><span data-lang="en">C. Adapter is 180 bp</span></div>
-<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 是 PCR 重複</span><span data-lang="en">D. PCR duplicates</span></div>
+<div class="quiz-q" data-answer="0"><p data-lang="zh">1. 最能解釋 ATAC fragment 直方圖 ~180 / ~360 bp 峰的是？</p><p data-lang="en">1. What best explains the ~180 / ~360 bp peaks in the ATAC fragment histogram?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. Tn5 不能切核小體保護的 DNA，片段反映核小體間距</span><span data-lang="en">A. Tn5 cannot cut nucleosome-protected DNA; sizes reflect nucleosome spacing</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. PCR 偏好 180 bp</span><span data-lang="en">B. PCR prefers 180 bp</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. Illumina 接頭設計成 180 bp</span><span data-lang="en">C. Illumina adapters are 180 bp</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 是 PCR duplicate</span><span data-lang="en">D. PCR duplicates</span></div>
 </div><div class="quiz-feedback" id="fb1"></div></div>
+
+<div class="quiz-q" data-answer="2"><p data-lang="zh">2. 為什麼 ATAC reads 要做 +4 / -5 shift？</p><p data-lang="en">2. Why do ATAC reads need +4 / -5 shift?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 修正 PCR bias</span><span data-lang="en">A. Correct PCR bias</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 修正定序錯誤</span><span data-lang="en">B. Correct sequencing errors</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 修正 Tn5 二聚體 9-bp 切位錯位</span><span data-lang="en">C. Correct the 9-bp stagger of Tn5 dimer cuts</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 修正 reference genome 版本</span><span data-lang="en">D. Correct reference genome version</span></div>
+</div><div class="quiz-feedback" id="fb2"></div></div>
+
+<div class="quiz-q" data-answer="1"><p data-lang="zh">3. 你的 ATAC 樣本 chrM% 達 65%，最可能的解決方法？</p><p data-lang="en">3. Your ATAC sample is 65% chrM. Most likely fix?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 用 single-end 測序</span><span data-lang="en">A. Switch to single-end sequencing</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 採用 omni-ATAC（含 digitonin + DNase 預處理）</span><span data-lang="en">B. Switch to omni-ATAC (digitonin + DNase pretreatment)</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 增加 PCR 循環數</span><span data-lang="en">C. Add more PCR cycles</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 用 BWA 取代 Bowtie2</span><span data-lang="en">D. Replace Bowtie2 with BWA</span></div>
+</div><div class="quiz-feedback" id="fb3"></div></div>
+
+<div class="quiz-q" data-answer="2"><p data-lang="zh">4. 為什麼 ATAC-seq 必須 paired-end？</p><p data-lang="en">4. Why must ATAC-seq be paired-end?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 否則無法 mapping</span><span data-lang="en">A. Otherwise mapping fails</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 為了去除 chrM</span><span data-lang="en">B. To remove chrM</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 需要兩端定位才能重建 fragment-size 分佈</span><span data-lang="en">C. Both ends needed to reconstruct fragment-size distribution</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 否則 PCR 失敗</span><span data-lang="en">D. Otherwise PCR fails</span></div>
+</div><div class="quiz-feedback" id="fb4"></div></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="討論題" data-en="DISCUSSION">討論題</div>
+<div class="discussion"><h4 data-zh="開放式討論" data-en="Open-ended discussion">🤔 開放式討論</h4>
+<ol data-lang="zh">
+<li>如果你的 fragment-size 直方圖完全沒有 ~180 bp 與 ~360 bp 峰，僅有單一 ~50 bp 峰，可能原因是什麼？如何補救？</li>
+<li>為什麼 omni-ATAC 用 DNase 預處理可以降 chrM%？這是否會誤切染色質？（提示：細胞核膜的物理屏障）</li>
+<li>scATAC 每細胞只有 ~5,000 fragments，為什麼還是能群聚出 cell type？（提示：peaks 是稀疏 binary 特徵）</li>
+</ol>
+<ol data-lang="en">
+<li>If your fragment-size histogram has no ~180 / ~360 bp peaks — just a single ~50 bp spike — what's the cause and how would you fix it?</li>
+<li>Why does omni-ATAC's DNase pretreatment lower chrM%? Doesn't it also chew up chromatin? (Hint: the nuclear envelope as physical barrier.)</li>
+<li>scATAC averages only ~5,000 fragments per cell. How can cell types still cluster well? (Hint: peaks as sparse binary features.)</li>
+</ol>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="FAQ" data-en="FAQ">FAQ</div>
+<h2 data-zh="本章 FAQ" data-en="Chapter FAQ">本章 FAQ</h2>
+<div class="faq-list">
+<div class="faq-item"><button class="faq-q" data-zh="可以混合 omni-ATAC 與標準 ATAC 樣本一起分析嗎？" data-en="Can I mix omni-ATAC and standard ATAC samples in one analysis?">可以混合 omni-ATAC 與標準 ATAC 樣本一起分析嗎？</button><div class="faq-a"><span data-lang="zh">技術上可以，但不建議：兩者 chrM% 差異大→ effective depth 不同→批次效應強。建議用 DiffBind / csaw 的 normalize step、並把 protocol 當共變量。</span><span data-lang="en">Technically yes, but discouraged: chrM% differs hugely → different effective depths → strong batch effect. Use DiffBind / csaw normalisation and include protocol as a covariate.</span></div></div>
+<div class="faq-item"><button class="faq-q" data-zh="ATAC 也適用於植物 / 真菌 / 細菌嗎？" data-en="Does ATAC work on plants / fungi / bacteria?">ATAC 也適用於植物嗎？</button><div class="faq-a"><span data-lang="zh">植物（Bajic et al. 2018）、酵母（Schep et al. 2015）有專用版本。細菌染色質結構不同（無核小體），不適用。</span><span data-lang="en">Plant ATAC (Bajic et al. 2018) and yeast ATAC (Schep et al. 2015) have dedicated protocols. Bacteria (no nucleosomes) don't fit the assay logic.</span></div></div>
+<div class="faq-item"><button class="faq-q" data-zh="一個樣本要測多少 reads？" data-en="How many reads per sample?">一個樣本要測多少 reads？</button><div class="faq-a"><span data-lang="zh">ENCODE 建議：bulk ATAC 25–50M non-mitochondrial paired-end reads。低於 25M 會錯失稀有 enhancer；高於 100M 邊際效益低。</span><span data-lang="en">ENCODE recommends 25–50M non-mitochondrial paired-end reads per bulk sample. Below 25M misses rare enhancers; above 100M gives diminishing returns.</span></div></div>
+<div class="faq-item"><button class="faq-q" data-zh="為什麼 NFR 峰會出現 10.5-bp 漣漪？" data-en="Why a 10.5-bp ripple in NFR peak?">為什麼 NFR 峰有 10.5-bp 漣漪？</button><div class="faq-a"><span data-lang="zh">DNA 雙螺旋每圈約 10.5 bp。當 Tn5 切短片段時，它對「DNA 凸出的小溝面」(minor groove out) 有偏好，這個旋轉相位產生週期性。</span><span data-lang="en">DNA's helix has a ~10.5 bp pitch. When Tn5 cuts short fragments, it slightly prefers positions where the minor groove faces outward, producing the periodic ripple.</span></div></div>
+<div class="faq-item"><button class="faq-q" data-zh="是否該對 ATAC reads 去除 GC bias？" data-en="Should I remove GC bias from ATAC reads?">是否該對 ATAC 去 GC bias？</button><div class="faq-a"><span data-lang="zh">Tn5 對某些 GC-rich motif 有 ±1.5× 偏好。footprinting 階段必須校正（TOBIAS ATACorrect、HINT-ATAC bias correction）。peak calling 階段影響較小。</span><span data-lang="en">Tn5 has ±1.5× bias for some GC-rich motifs. Correct it at the footprinting stage (TOBIAS ATACorrect, HINT-ATAC). Less critical for peak calling.</span></div></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="延伸閱讀" data-en="FURTHER READING">延伸閱讀</div>
+<h2 data-zh="想深入研究？" data-en="Want to dig deeper?">延伸閱讀</h2>
+<ul style="margin-left:20px;line-height:1.9;color:var(--c-ink-light);">
+<li>📄 Buenrostro JD et al. (2013) <em>Nat Methods</em> 10:1213. — <strong>ATAC-seq 原始論文</strong></li>
+<li>📄 Corces MR et al. (2017) <em>Nat Methods</em> 14:959. — <strong>Omni-ATAC</strong></li>
+<li>📄 Adey A et al. (2010) <em>Genome Biol</em> 11:R119. — Tn5 +4/-5 shift 來源</li>
+<li>📄 Davies DR et al. (2000) <em>Science</em> 289:77. — Tn5 晶體結構</li>
+<li>📄 Schep AN et al. (2015) <em>Genome Res</em> 25:1757. — Nucleosomal ATAC + chromVAR 雛形</li>
+<li>📘 ENCODE ATAC-seq pipeline: <code>github.com/ENCODE-DCC/atac-seq-pipeline</code></li>
+<li>📘 nf-core/atacseq: <code>nf-co.re/atacseq</code></li>
+</ul>
 </section>
 
 <nav class="page-nav"><a href="index.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="ATAC 總覽" data-en="ATAC Overview">ATAC 總覽</span></a><a href="alignment-peaks.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 2：Peaks" data-en="Step 2: Peaks">Step 2：Peaks</span></a></nav>
@@ -85,31 +404,39 @@ alignmentSieve --bam clean.bam -o shifted.bam --ATACshift</pre></div>
 window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
 function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
 function gauss(x,mu,sig){return Math.exp(-((x-mu)**2)/(2*sig**2));}
-const sizes=Array.from({length:80},(_,i)=>i*10);  // 0-790
+const sizes=Array.from({length:80},(_,i)=>i*10);
 function genHist(profile){
-  return sizes.map(s=>{
-    let v=0;
-    if(profile==='good'){
-      v=2*gauss(s,50,30)+gauss(s,180,40)+0.4*gauss(s,360,55)+0.15*gauss(s,540,80);
-    }else if(profile==='over'){
-      v=4*gauss(s,40,25)+0.2*gauss(s,180,40);
-    }else if(profile==='under'){
-      v=0.4*gauss(s,80,30)+1.2*gauss(s,200,45)+0.8*gauss(s,380,65)+0.4*gauss(s,560,85);
-    }else if(profile==='dead'){
-      v=2*gauss(s,50,30)+gauss(s,180,40)+0.4*gauss(s,360,55)+0.15*gauss(s,540,80)+0.5*gauss(s,150,200);
-    }
-    return v;
-  });
+  return sizes.map(s=>{let v=0;
+    if(profile==='good'){v=2*gauss(s,50,30)+gauss(s,180,40)+0.4*gauss(s,360,55)+0.15*gauss(s,540,80);}
+    else if(profile==='over'){v=4*gauss(s,40,25)+0.2*gauss(s,180,40);}
+    else if(profile==='under'){v=0.4*gauss(s,80,30)+1.2*gauss(s,200,45)+0.8*gauss(s,380,65)+0.4*gauss(s,560,85);}
+    else if(profile==='dead'){v=2*gauss(s,50,30)+gauss(s,180,40)+0.4*gauss(s,360,55)+0.15*gauss(s,540,80)+0.6*gauss(s,150,200);}
+    else if(profile==='chrm'){v=5*gauss(s,40,18)+0.3*gauss(s,180,40)+0.08*gauss(s,360,55);}
+    return v;});
 }
 const ch=new Chart(document.getElementById('fragChart'),{type:'line',data:{labels:sizes,datasets:[{label:'fragments',data:[],borderColor:'#c66a1e',backgroundColor:'rgba(198,106,30,0.22)',borderWidth:2,fill:true,tension:0.3,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{title:{display:true,text:'Fragment size (bp)'}},y:{title:{display:true,text:'density'}}},plugins:{legend:{display:false}}}});
 const tips={
-  good:{zh:'NFR (&lt;100 bp) 高峰 + ~180 / ~360 bp 核小體峰，呈典型「梯度衰減」。',en:'High NFR (&lt;100 bp) + ~180 / ~360 bp nucleosomal peaks — classic decaying ladder.'},
-  over:{zh:'過度 Tn5 → 多數片段過短、核小體峰消失，下游 peak 訊號可能扭曲。',en:'Over-tagmentation → tiny fragments dominate; nucleosome peaks vanish; downstream peaks may distort.'},
-  under:{zh:'Tn5 不足 → 大片段過多，NFR 弱；訊號雜訊比下降。',en:'Under-tagmentation → large fragments dominate; NFR weak; SNR drops.'},
-  dead:{zh:'死細胞汙染：背景訊號上升，所有 size 都有 reads，profile 變鈍。',en:'Dead-cell contamination: elevated background across all sizes; the profile blunts.'}
+  good:{zh:'NFR (<100 bp) 高峰 + ~180 / ~360 bp 核小體峰，呈典型「梯度衰減」。',en:'High NFR (<100 bp) + ~180 / ~360 bp nucleosomal peaks — classic decaying ladder.'},
+  over:{zh:'過度 Tn5 → 多數片段過短、核小體峰消失，下游 peak 訊號會扭曲。',en:'Over-tagmentation → tiny fragments dominate; nucleosome peaks vanish; peaks distort.'},
+  under:{zh:'Tn5 不足 → 大片段過多，NFR 弱；訊號雜訊比下降。',en:'Under-tagmentation → large fragments dominate; weak NFR; SNR drops.'},
+  dead:{zh:'死細胞汙染：背景訊號全段升高，profile 變鈍。',en:'Dead-cell contamination: elevated background everywhere; profile blunts.'},
+  chrm:{zh:'chrM 主導：短片段（~40 bp）過多——線粒體無核小體保護。建議 omni-ATAC。',en:'chrM dominant: excess short fragments (~40 bp) — no nucleosomes. Switch to omni-ATAC.'}
 };
 function setK(k){document.querySelectorAll('.toggle-btn').forEach(b=>b.classList.toggle('active',b.dataset.key===k));ch.data.datasets[0].data=genHist(k);ch.update('none');const L=I18n.get();document.getElementById('fragTip').textContent=tips[k][L];}
 document.querySelectorAll('.toggle-btn').forEach(b=>b.addEventListener('click',()=>setK(b.dataset.key)));document.addEventListener('langchange',()=>{const k=document.querySelector('.toggle-btn.active').dataset.key;setK(k);});setK('good');
-window._QF={zh:{q1_y:'180 bp ≈ 一個 nucleosome (147 bp + linker)；360 bp ≈ 兩個。',q1_n:'答案是 A：片段大小反映核小體保護長度。'},en:{q1_y:'180 bp ≈ one nucleosome (147 bp + linker); 360 bp ≈ two.',q1_n:'Answer is A: sizes mirror nucleosome-protected lengths.'}};
+
+const cutXs=Array.from({length:201},(_,i)=>i-100);
+const cutCh=new Chart(document.getElementById('cutChart'),{type:'line',data:{labels:cutXs,datasets:[{label:'cuts',data:[],borderColor:'#143852',backgroundColor:'rgba(20,56,82,0.15)',fill:true,borderWidth:2,pointRadius:0,tension:0.25}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{title:{display:true,text:'distance from NFR centre (bp)'}},y:{title:{display:true,text:'Tn5 cut density'}}},plugins:{legend:{display:false}}}});
+function upCut(){const w=+document.getElementById('sliderNfr').value;document.getElementById('valNfr').textContent=w;document.getElementById('valNfrEn').textContent=w;
+  const half=w/2;const data=cutXs.map(x=>{const inNfr=Math.abs(x)<half?1.5:0;const nuc1=0.8*gauss(x,half+80,25)+0.8*gauss(x,-(half+80),25);const nuc2=0.4*gauss(x,half+260,35)+0.4*gauss(x,-(half+260),35);return inNfr+nuc1+nuc2+0.1;});
+  cutCh.data.datasets[0].data=data;cutCh.update('none');
+  const L=I18n.get();document.getElementById('cutTip').textContent=L==='zh'?'NFR 邊界外形成相位 ±'+(Math.round(half+80))+' bp、±'+(Math.round(half+260))+' bp 的核小體峰。':'Phased nucleosome peaks form at ±'+(Math.round(half+80))+' bp and ±'+(Math.round(half+260))+' bp outside the NFR edge.';
+}
+document.getElementById('sliderNfr').addEventListener('input',upCut);document.addEventListener('langchange',upCut);upCut();
+
+window._QF={zh:{q1_y:'180 bp ≈ 一個核小體 (147 bp + linker)；360 bp ≈ 兩個。',q1_n:'A 才對：片段大小反映核小體保護長度。',q2_y:'Tn5 二聚體切位錯位 9 bp，+4 與 -5 把兩條 read 對齊到同一中心。',q2_n:'C 才對：修正 Tn5 9-bp 切位錯位。',q3_y:'omni-ATAC 用 digitonin + DNase 預處理可降 chrM% 到 <10%。',q3_n:'B 才對：omni-ATAC。',q4_y:'fragment-size 分佈是 ATAC 核心 QC，必須兩端定位。',q4_n:'C 才對：paired-end 才能算 fragment size。'},en:{q1_y:'180 bp ≈ one nucleosome (147 bp + linker); 360 bp ≈ two.',q1_n:'Answer is A: sizes mirror nucleosome-protected lengths.',q2_y:'Tn5 dimer cuts are 9 bp offset; +4 and -5 align both reads to a common centre.',q2_n:'Answer is C: correct the 9-bp Tn5 stagger.',q3_y:'omni-ATAC (digitonin + DNase pretreatment) drops chrM% below 10%.',q3_n:'Answer is B: omni-ATAC.',q4_y:'Fragment-size distribution is a core ATAC QC and requires both ends.',q4_n:'Answer is C: paired-end is needed to compute fragment sizes.'}};
 const QF=window._QF||{};document.querySelectorAll(".quiz-q").forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll(".quiz-opt").forEach(o=>{o.addEventListener("click",()=>{if(q.classList.contains("answered"))return;q.classList.add("answered");const fb=document.getElementById("fb"+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?"correct":"wrong");if(!ok)q.querySelectorAll(".quiz-opt")[ans].classList.add("correct");const L=I18n.get();fb.className="quiz-feedback show "+(ok?"correct-fb":"wrong-fb");fb.textContent=(ok?"✅ ":"❌ ")+(QF[L]&&QF[L]["q"+(qi+1)+"_"+(ok?"y":"n")]||"");});});});
+
+document.querySelectorAll('.faq-q').forEach(b=>b.addEventListener('click',()=>{b.classList.toggle('open');b.nextElementSibling.classList.toggle('open');}));
+document.querySelectorAll('.level-tabs').forEach(tabs=>{tabs.querySelectorAll('.level-tab').forEach(t=>t.addEventListener('click',()=>{const tgt=t.dataset.tab;tabs.querySelectorAll('.level-tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===tgt));tabs.parentElement.querySelectorAll('.level-pane').forEach(p=>p.classList.toggle('active',p.dataset.pane===tgt));}));});
 </script></body></html>

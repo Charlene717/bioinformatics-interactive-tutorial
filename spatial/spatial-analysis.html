@@ -8,89 +8,470 @@
   </ul>
 </div></nav>
 <div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
-<header class="page-hero"><div class="step-badge">STEP 3 / 5</div><h1 data-zh="空間聚類與 SVG" data-en="Spatial Clustering & SVGs">空間聚類與 SVG</h1><p class="subtitle" data-lang="zh">在「不只看表達、也看位置」的前提下，找出組織區域與空間變異基因。</p><p class="subtitle" data-lang="en">Find tissue domains and spatially variable genes — by leveraging position, not just expression.</p></header><main class="content-wrap">
+<header class="page-hero"><div class="step-badge">STEP 3 / 5</div>
+<h1 data-zh="空間聚類與空間變異基因" data-en="Spatial Clustering & SVGs">空間聚類與 SVG</h1>
+<p class="subtitle" data-lang="zh">在「不只看表達、也看位置」的前提下，找出組織區域與空間變異基因——這是空間分析的核心。</p>
+<p class="subtitle" data-lang="en">Find tissue domains and spatially variable genes by leveraging position, not just expression — the core of spatial analysis.</p>
+<div class="diff-chips" style="justify-content:center;margin-top:18px">
+  <span class="diff-chip beg">🟢 <span data-zh="入門：HVG vs SVG" data-en="Beginner: HVG vs SVG">入門</span></span>
+  <span class="diff-chip int">🟡 <span data-zh="進階：BayesSpace、Banksy" data-en="Intermediate: BayesSpace, Banksy">進階</span></span>
+  <span class="diff-chip adv">🔴 <span data-zh="高階：Moran's I、GP 模型" data-en="Advanced: Moran's I, GP">高階</span></span>
+</div>
+</header><main class="content-wrap">
 
-<section class="section"><div class="section-label" data-zh="核心概念" data-en="CONCEPT">核心概念</div>
-<h2 data-zh="為何需要 spatial-aware？" data-en="Why Spatial-aware?">為何需要 spatial-aware？</h2>
-<div data-lang="zh"><p>標準 Seurat / Scanpy cluster（Louvain on PCA）只看表達相似度。對組織切片來說，這會出現「明明在大腦不同層、表達相似但功能不同」的兩 cluster 混在一起；或同一層被切成多個 cluster。<br><strong>Spatial-aware clustering</strong> 在 cluster 過程同時考量空間鄰近資訊，讓結果更貼近組織形態學。</p></div>
-<div data-lang="en"><p>Standard Seurat / Scanpy clustering (Louvain on PCA) uses expression similarity only. In tissue, that can merge functionally distinct layers with similar profiles, or split one layer into many tiny clusters. <strong>Spatial-aware clustering</strong> incorporates neighbor information, yielding clusters that match morphology.</p></div>
+<!-- Why -->
+<section class="section"><div class="section-label" data-zh="為什麼重要" data-en="WHY IT MATTERS">為什麼重要</div>
+<h2 data-zh="為什麼標準 Louvain 會「切碎」組織？" data-en="Why does standard Louvain shred tissue?">為什麼 Louvain 會切碎組織？</h2>
+<div data-lang="zh">
+<p>scRNA-seq 的 cluster 邏輯：「<strong>表達相似 = 同一 cluster</strong>」——對懸浮細胞合理。但移到組織切片就出問題：</p>
+<ul style="margin:8px 0 14px 24px;color:var(--c-ink-light)">
+<li><strong>同層的 spot 表達差異大</strong>：大腦皮層第 II 層內也有 ~20 種不同神經元亞型 → Louvain 把同一層切成 5 個 mini-cluster。</li>
+<li><strong>不同層的 spot 表達可能相似</strong>：兩個 layer 都有 GFAP+ 星形膠細胞 → Louvain 把它們合併，組織學上明顯不同的層被混了。</li>
+<li><strong>邊界 spot 被孤立</strong>：層之間過渡 spot 訊號混雜，Louvain 常把它們塞到一個小「過渡 cluster」，難以解釋。</li>
+</ul>
+<p><strong>解方：</strong> spatial-aware clustering 在做 cluster 時<strong>同時看表達與鄰居</strong>，讓結果更貼近組織學分層。</p>
+</div>
+<div data-lang="en">
+<p>scRNA-seq clustering logic: "<strong>similar expression = same cluster</strong>" — fine for suspensions. Tissue sections break this:</p>
+<ul style="margin:8px 0 14px 24px;color:var(--c-ink-light)">
+<li><strong>Same-layer spots vary a lot</strong>: cortical layer II contains ~20 neuronal subtypes → Louvain shreds one layer into 5 mini-clusters.</li>
+<li><strong>Different layers may look similar</strong>: both have GFAP+ astrocytes → Louvain merges histologically distinct layers.</li>
+<li><strong>Boundary spots get orphaned</strong>: transition spots are signal-mixed → end up in a tiny "transition cluster" that's hard to interpret.</li>
+</ul>
+<p><strong>Fix:</strong> spatial-aware clustering <strong>uses both expression and neighbors</strong>, so output matches histology.</p>
+</div>
+
+<div class="analogy">
+<div class="an-title" data-zh="比喻：地圖找朋友 vs 通訊錄找朋友" data-en="Analogy: friends on a map vs in a contact list">比喻：地圖找朋友 vs 通訊錄找朋友</div>
+<p data-lang="zh">假設你要「把朋友分群」。<strong>scRNA-seq Louvain</strong> 像只看大家的興趣愛好分群——但有兩個都愛吃辣的朋友一個在北京、一個在台南。<strong>Spatial-aware clustering</strong> 同時看興趣與住所——同樣愛吃辣的朋友若住同社區，更可能屬於同一群（畢竟可能一起吃過火鍋）。對組織來說，鄰居 spot 共享微環境、訊號傳遞，把它們納入考慮才是「對的分群」。</p>
+<p data-lang="en">Imagine grouping friends. <strong>scRNA-seq Louvain</strong> groups only by hobbies — but two spicy-food lovers might live in Beijing and Tainan. <strong>Spatial-aware clustering</strong> uses hobbies <strong>and</strong> address — spicy-loving neighbors are more likely "one group" (they probably eat hotpot together). For tissue, neighbor spots share microenvironment and signals — incorporating them is the "correct" grouping.</p>
+</div>
 </section>
 
+<!-- Core concepts: HVG vs SVG -->
+<section class="section"><div class="section-label" data-zh="核心概念" data-en="CORE CONCEPT">核心概念</div>
+<h2 data-zh="HVG vs SVG 的關鍵差別" data-en="HVG vs SVG: the key difference">HVG vs SVG</h2>
+<div class="vs-grid">
+<div class="vs-side left">
+<h4>📊 <span data-zh="HVG (Highly Variable Genes)" data-en="HVG (Highly Variable Genes)">HVG</span></h4>
+<ul>
+<li data-lang="zh">統計：每基因的「方差 / 平均」高</li>
+<li data-lang="zh">本質：<strong>整體</strong>表達變異大</li>
+<li data-lang="zh">缺點：不知道變異從哪來——可能是兩個 cluster，也可能是隨機高低</li>
+<li data-lang="zh">用途：標準 scRNA 流程的<strong>降維 input</strong></li>
+<li data-lang="en">Stat: high variance / mean per gene</li>
+<li data-lang="en">Essence: high <strong>overall</strong> variance</li>
+<li data-lang="en">Downside: doesn't say where variance comes from — could be 2 clusters, could be random</li>
+<li data-lang="en">Use: standard scRNA <strong>dim-reduction input</strong></li>
+</ul>
+</div>
+<div class="vs-mid">⚡</div>
+<div class="vs-side right">
+<h4>🗺️ <span data-zh="SVG (Spatially Variable Genes)" data-en="SVG (Spatially Variable Genes)">SVG</span></h4>
+<ul>
+<li data-lang="zh">統計：表達 vs 座標的<strong>結構性</strong>檢定（Moran's I、GP）</li>
+<li data-lang="zh">本質：表達<strong>跟著位置走</strong></li>
+<li data-lang="zh">優點：找到「區域 marker」、「梯度」、「點狀熱區」</li>
+<li data-lang="zh">用途：空間區域辨識、deconvolution signature、ligand-receptor 篩選</li>
+<li data-lang="en">Stat: <strong>structured</strong> test of expression vs coords (Moran's I, GP)</li>
+<li data-lang="en">Essence: expression <strong>tracks position</strong></li>
+<li data-lang="en">Pro: finds "region markers", "gradients", "hotspot patches"</li>
+<li data-lang="en">Use: spatial domain ID, deconvolution signatures, LR pre-screen</li>
+</ul>
+</div>
+</div>
+
+<div class="protip">
+<div class="pt-title" data-zh="關鍵：HVG ⊃ SVG，但 SVG 更貼近空間問題" data-en="Key: HVG ⊃ SVG but SVG fits the question">關鍵：HVG ⊃ SVG</div>
+<p data-lang="zh">所有 SVG 通常都是 HVG（沒變異就沒空間結構），但反之不然。HVG 集合裡有大量「<strong>沒空間結構但表達變異大</strong>」的基因（如 ribosomal、stress response 隨機高低）。<strong>做空間分析時，用 SVG 來挑特徵比 HVG 更聚焦。</strong></p>
+<p data-lang="en">All SVGs are usually HVGs (no variance = no spatial structure), but not vice versa. HVGs include many <strong>no-spatial-structure but high-variance</strong> genes (ribosomal, stress response). <strong>For spatial analyses, picking features from SVGs focuses better than HVGs.</strong></p>
+</div>
+</section>
+
+<!-- Clustering tools comparison -->
 <section class="section"><div class="section-label" data-zh="聚類工具" data-en="CLUSTERING">聚類工具</div>
-<h2 data-zh="主流空間聚類" data-en="Mainstream Spatial Clustering">主流空間聚類</h2>
-<table class="comp-table"><thead><tr><th>Tool</th><th data-zh="原理" data-en="Approach">原理</th><th data-zh="特色" data-en="Notes">特色</th></tr></thead><tbody>
-<tr><td><strong>BayesSpace</strong></td><td>Hidden Markov + MCMC</td><td data-zh="保留組織連續性；可做 sub-spot enhancement" data-en="Preserves continuity; sub-spot enhancement">連續性強</td></tr>
-<tr><td><strong>Banksy</strong></td><td data-zh="表達 + 鄰居「微環境平均」" data-en="Expression + neighbor-averaged microenv.">表達＋微環境特徵</td><td data-zh="速度快、支援大資料" data-en="Fast, scales to large data">快速</td></tr>
-<tr><td><strong>SpaGCN</strong></td><td>Graph Convolutional Network</td><td data-zh="同時利用表達、空間與 H&E 影像" data-en="Uses expression, space, and H&E image">含影像</td></tr>
-<tr><td><strong>STAGATE</strong></td><td>Graph attention auto-encoder</td><td data-zh="自適應鄰居權重" data-en="Adaptive neighbor weighting">學習權重</td></tr>
-<tr><td>標準 Seurat / Scanpy</td><td>Louvain / Leiden on PCA</td><td data-zh="作為基準對照" data-en="As baseline comparison">基準</td></tr>
+<h2 data-zh="主流空間聚類工具" data-en="Mainstream spatial clustering">主流空間聚類</h2>
+<table class="comp-table"><thead><tr>
+<th>Tool</th>
+<th data-zh="原理" data-en="Approach">原理</th>
+<th data-zh="是否用 H&E" data-en="Uses H&E?">含影像</th>
+<th data-zh="速度" data-en="Speed">速度</th>
+<th data-zh="特色" data-en="Notes">特色</th>
+</tr></thead><tbody>
+<tr><td><strong>BayesSpace</strong></td><td data-zh="Hidden Markov + MCMC" data-en="HMM + MCMC">HMM + MCMC</td><td>❌</td><td data-zh="慢 (hours)" data-en="Slow (hours)">慢</td><td data-zh="保留連續性；可做 sub-spot enhancement" data-en="Preserves continuity; sub-spot enhancement">連續性強</td></tr>
+<tr><td><strong>Banksy</strong></td><td data-zh="表達 + neighbor-averaged feature" data-en="Expression + neighbor-averaged features">表達 + 鄰居均值</td><td>❌</td><td data-zh="快 (min)" data-en="Fast (min)">快</td><td data-zh="可調 λ 控制鄰居權重" data-en="Tunable λ for neighbor weight">超快</td></tr>
+<tr><td><strong>SpaGCN</strong></td><td>Graph Convolutional Network</td><td>✅</td><td data-zh="中等" data-en="Medium">中</td><td data-zh="同時用表達 / 空間 / H&E" data-en="Uses expression / space / H&E">三模態</td></tr>
+<tr><td><strong>STAGATE</strong></td><td>Graph attention auto-encoder</td><td>❌</td><td data-zh="中等" data-en="Medium">中</td><td data-zh="自適應鄰居權重 (attention)" data-en="Adaptive neighbor weights (attention)">attention</td></tr>
+<tr><td><strong>GraphST</strong></td><td>Contrastive learning + GCN</td><td>❌</td><td data-zh="中等" data-en="Medium">中</td><td data-zh="多切片 alignment 與 cluster 一起做" data-en="Joint multi-section alignment + cluster">含 alignment</td></tr>
+<tr><td><strong>SEDR</strong></td><td>Deep auto-encoder + DEC</td><td>❌</td><td data-zh="中等" data-en="Medium">中</td><td data-zh="latent 表徵清晰，下游可重用" data-en="Clean latent, reusable downstream">表徵清晰</td></tr>
+<tr><td>Seurat / Scanpy Louvain</td><td>PCA → Louvain / Leiden</td><td>❌</td><td data-zh="極快" data-en="Very fast">極快</td><td data-zh="基準對照" data-en="Baseline">基準</td></tr>
 </tbody></table>
 </section>
 
-<section class="section"><div class="section-label" data-zh="SVG" data-en="SVG">SVG</div>
-<h2 data-zh="Spatially Variable Genes (SVG)" data-en="Spatially Variable Genes (SVG)">Spatially Variable Genes</h2>
-<div data-lang="zh"><p>SVG 是「表達量隨空間位置有結構性變化」的基因——區隔 HVG（單純表達變異大但無位置模式）。SVG 是空間轉錄組學最關鍵的特徵，下游應用包括：(1) 找組織區域 marker，(2) 找空間 gradient，(3) deconvolution 的訊號基因。</p></div>
-<div data-lang="en"><p>SVGs are genes whose expression varies systematically with location — distinct from HVGs (high variance but no spatial pattern). SVGs are the most important features in spatial data: (1) domain markers, (2) spatial gradients, (3) deconvolution signatures.</p></div>
-<table class="comp-table"><thead><tr><th>Tool</th><th data-zh="統計" data-en="Statistic">統計</th><th data-zh="特色" data-en="Notes">特色</th></tr></thead><tbody>
-<tr><td><strong>SpatialDE</strong></td><td data-zh="Gaussian Process" data-en="Gaussian Process">Gaussian Process</td><td data-zh="最早；速度中等" data-en="Original; moderate speed">經典</td></tr>
-<tr><td><strong>SPARK / SPARK-X</strong></td><td data-zh="非參數空間檢定" data-en="Non-parametric spatial test">非參數</td><td data-zh="SPARK-X 為大資料優化" data-en="SPARK-X scales to large data">大資料</td></tr>
-<tr><td><strong>Moran's I</strong></td><td data-zh="空間自相關係數" data-en="Spatial autocorrelation">自相關</td><td data-zh="解釋直觀；I &gt; 0 → 鄰近相似" data-en="Intuitive; I &gt; 0 → similar neighbors">直觀</td></tr>
-<tr><td><strong>nnSVG</strong></td><td data-zh="GP + 最近鄰近似" data-en="GP + nearest-neighbor approx.">GP-NN</td><td data-zh="Bioconductor 友好" data-en="Bioconductor-friendly">R 生態</td></tr>
+<!-- BayesSpace deep dive -->
+<section class="section"><div class="section-label" data-zh="深入：BayesSpace" data-en="DEEP DIVE: BayesSpace">深入：BayesSpace</h2>
+<h2 data-zh="BayesSpace 的數學直覺" data-en="BayesSpace math intuition">BayesSpace 的直覺</h2>
+<div data-lang="zh">
+<p>BayesSpace（Zhao et al. 2021 Nat Biotech）把<strong>每個 spot 的 cluster 標籤當隱變量</strong>，假設「<strong>鄰居傾向同 cluster</strong>」。模型結構：</p>
+</div>
+<div data-lang="en">
+<p>BayesSpace (Zhao et al. 2021 Nat Biotech) treats <strong>each spot's cluster label as a hidden variable</strong> with the prior "<strong>neighbors tend to share clusters</strong>". Model:</p>
+</div>
+
+<div class="formula-box">
+<div class="fm-title">BayesSpace generative model</div>
+<div class="fm-line">y_i | z_i = k  ~  MVN(μ_k, Σ_k)    <em>// spot i 的 PCA score 由 cluster mean 加噪音生成</em></div>
+<div class="fm-line">z_i  ~  Potts(γ, N(i))         <em>// cluster label 受鄰居 N(i) 影響，γ 控制 smoothing 強度</em></div>
+<div class="fm-line">P(z_i = k | z_{-i}) ∝ exp(γ · |{j ∈ N(i) : z_j = k}|)</div>
+<div class="fm-note">γ 大 → cluster 邊界平滑；γ 小 → 退化為非空間 GMM。實作用 Markov Chain Monte Carlo（MCMC）做推斷。</div>
+</div>
+
+<div data-lang="zh"><p>關鍵超參：<strong>q (cluster 數)</strong>——用 <code>qTune()</code> 看 log-likelihood elbow 選擇。<strong>γ</strong>——預設 2-3 通常合適。<strong>nrep</strong>——MCMC 反覆數，至少 10,000，否則 chain 未收斂。</p></div>
+<div data-lang="en"><p>Key hyper-params: <strong>q (#clusters)</strong> — use <code>qTune()</code> for log-likelihood elbow. <strong>γ</strong> — default 2-3 usually fine. <strong>nrep</strong> — MCMC iterations, ≥ 10,000 or chain won't converge.</p></div>
+</section>
+
+<!-- Moran's I formula and explanation -->
+<section class="section"><div class="section-label" data-zh="空間統計" data-en="SPATIAL STATS">空間統計</div>
+<h2 data-zh="空間自相關：Moran's I" data-en="Spatial autocorrelation: Moran's I">空間自相關：Moran's I</h2>
+<div data-lang="zh"><p><strong>Moran's I</strong>（1950）是衡量「<strong>表達值是否與鄰居相似</strong>」的最經典指標。值的意義：</p>
+<ul style="margin:8px 0 14px 24px;color:var(--c-ink-light)">
+<li><strong>I ≈ 1</strong>：強空間結構——「鄰居相似」（如皮層分層、肝臟分區）</li>
+<li><strong>I ≈ 0</strong>：隨機分佈，無空間結構（如 housekeeping 基因）</li>
+<li><strong>I &lt; 0</strong>：棋盤式分散——「鄰居相反」（罕見於生物，常為人造模式）</li>
+</ul>
+</div>
+<div data-lang="en"><p><strong>Moran's I</strong> (1950) is the classic measure of "are expression values similar to neighbors?". Meaning:</p>
+<ul style="margin:8px 0 14px 24px;color:var(--c-ink-light)">
+<li><strong>I ≈ 1</strong>: strong spatial structure — "similar neighbors" (cortical layers, liver zonation)</li>
+<li><strong>I ≈ 0</strong>: random — no spatial structure (housekeeping)</li>
+<li><strong>I &lt; 0</strong>: checkerboard — "different neighbors" (rare in biology, usually artifact)</li>
+</ul>
+</div>
+
+<div class="formula-box">
+<div class="fm-title">Moran's I formula</div>
+<div class="fm-line">         N · Σ_i Σ_j w_ij (x_i − x̄)(x_j − x̄)</div>
+<div class="fm-line">  I  =  ────────────────────────────────────────</div>
+<div class="fm-line">           (Σ_i Σ_j w_ij) · Σ_i (x_i − x̄)²</div>
+<div class="fm-note">N = #spots, x_i = 第 i spot 的表達值, x̄ = 平均, w_ij = spot i 與 j 的空間權重（如「相鄰 = 1, 否則 = 0」）。</div>
+</div>
+
+<div data-lang="zh"><p>顯著性檢定：用<strong>排列檢定（permutation test）</strong>——隨機打亂 spot 位置，重算 I 數千次，看真實 I 在分布中的位置。實務上 squidpy 與 spdep 都有實作。</p></div>
+<div data-lang="en"><p>Significance: <strong>permutation test</strong> — shuffle spot positions, recompute I thousands of times, locate real I in the null distribution. squidpy and spdep implement this.</p></div>
+</section>
+
+<!-- SVG tools table -->
+<section class="section"><div class="section-label" data-zh="SVG 工具" data-en="SVG TOOLS">SVG 工具</div>
+<h2 data-zh="SVG 工具完整比較" data-en="Full SVG-tool comparison">SVG 工具比較</h2>
+<table class="comp-table"><thead><tr><th>Tool</th><th data-zh="統計模型" data-en="Statistic">統計</th><th data-zh="速度" data-en="Speed">速度</th><th data-zh="可擴展性" data-en="Scalability">擴展</th><th data-zh="特色" data-en="Notes">特色</th></tr></thead><tbody>
+<tr><td><strong>SpatialDE</strong></td><td data-zh="Gaussian Process" data-en="Gaussian Process">GP</td><td data-zh="中" data-en="medium">中</td><td>≤ 10k spots</td><td data-zh="最早的 SVG 工具，2018" data-en="Original SVG tool, 2018">經典</td></tr>
+<tr><td><strong>SPARK</strong></td><td data-zh="GP-NB 混合" data-en="GP-NB mixed">GP-NB</td><td data-zh="慢" data-en="slow">慢</td><td>≤ 5k spots</td><td data-zh="多核 + 多 kernel 模型" data-en="Multi-core + multi-kernel">多 kernel</td></tr>
+<tr><td><strong>SPARK-X</strong></td><td data-zh="非參數 covariance" data-en="Non-parametric covariance">非參數</td><td data-zh="極快" data-en="very fast">極快</td><td>≤ 1M spots</td><td data-zh="2021 推出，大資料友好" data-en="2021, big-data friendly">大資料</td></tr>
+<tr><td><strong>nnSVG</strong></td><td data-zh="GP + 最近鄰近似" data-en="GP + NN approx">GP-NN</td><td data-zh="中" data-en="medium">中</td><td>≤ 50k spots</td><td data-zh="Bioconductor 生態" data-en="Bioconductor-friendly">R 生態</td></tr>
+<tr><td><strong>Moran's I</strong></td><td data-zh="空間自相關" data-en="Spatial autocorr">自相關</td><td data-zh="極快" data-en="very fast">極快</td><td data-zh="任意" data-en="any">任意</td><td data-zh="解釋直觀；squidpy / spdep" data-en="Intuitive; squidpy / spdep">直觀</td></tr>
+<tr><td><strong>Geary's C</strong></td><td data-zh="距離型自相關" data-en="Distance-based autocorr">差異</td><td data-zh="極快" data-en="very fast">極快</td><td data-zh="任意" data-en="any">任意</td><td data-zh="對局部變化更敏感" data-en="More sensitive to local changes">局部敏感</td></tr>
+<tr><td><strong>SOMDE</strong></td><td>SOM + GP</td><td data-zh="快" data-en="fast">快</td><td>≤ 100k spots</td><td data-zh="先用 SOM 降維再 GP" data-en="SOM compress then GP">壓縮</td></tr>
 </tbody></table>
 </section>
 
-<section class="section"><div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
+<!-- Interactive I: Moran's I -->
+<section class="section"><div class="section-label" data-zh="互動模擬 I" data-en="INTERACTIVE I">互動模擬 I</div>
 <h2 data-zh="Moran's I 直覺" data-en="Intuition for Moran's I">Moran's I 直覺</h2>
-<div data-lang="zh"><p>調整空間結構強度，看 Moran's I 變化。I 接近 1 = 強空間結構；接近 0 = 隨機；負值 = 棋盤式分散。</p></div>
-<div data-lang="en"><p>Tune spatial-structure strength; see Moran's I. I ~ 1 = strong structure; ~ 0 = random; negative = checkerboard.</p></div>
+<div data-lang="zh"><p>調整空間結構強度 s。I 接近 1 = 強空間結構；接近 0 = 隨機；負值 = 棋盤式分散。觀察熱圖如何變化：</p></div>
+<div data-lang="en"><p>Tune structure strength s. I ≈ 1 = strong; ≈ 0 = random; negative = checkerboard. Watch the heatmap:</p></div>
 <div class="interactive-panel">
-<div class="slider-group"><label data-lang="zh">空間結構強度<span id="valS">0.7</span></label><label data-lang="en">Structure strength<span id="valSEn">0.7</span></label><input type="range" id="sliderS" min="0" max="1" value="0.7" step="0.05"></div>
+<div class="slider-group"><label data-lang="zh">空間結構強度<span id="valS">0.7</span></label><label data-lang="en">Structure strength<span id="valSEn">0.7</span></label><input type="range" id="sliderS" min="-0.5" max="1" value="0.7" step="0.05"></div>
 <div class="stat-row">
 <div class="stat-box"><div class="sb-num" id="moranI">--</div><div class="sb-lbl">Moran's I</div></div>
 <div class="stat-box"><div class="sb-num" id="svgCalled">--</div><div class="sb-lbl">SVG?</div></div>
+<div class="stat-box"><div class="sb-num" id="pattern">--</div><div class="sb-lbl" data-zh="模式" data-en="Pattern">模式</div></div>
 </div>
 <div class="chart-container" style="height:330px;"><canvas id="spatial2d"></canvas></div>
 </div>
 </section>
 
+<!-- Interactive II: clustering comparison -->
+<section class="section"><div class="section-label" data-zh="互動模擬 II" data-en="INTERACTIVE II">互動模擬 II</div>
+<h2 data-zh="標準 Louvain vs Spatial-aware 分群比較" data-en="Standard Louvain vs spatial-aware">兩種分群比較</h2>
+<p data-lang="zh">下圖模擬一個 4 層組織（如皮層）。切換按鈕，看兩種分群的差異：</p>
+<p data-lang="en">A simulated 4-layer tissue (like cortex). Toggle to compare:</p>
+<div class="interactive-panel">
+<div class="toggle-row">
+<button class="toggle-btn active" data-mode="truth" data-zh="真實分層" data-en="Ground truth">真實</button>
+<button class="toggle-btn" data-mode="louvain" data-zh="標準 Louvain" data-en="Standard Louvain">Louvain</button>
+<button class="toggle-btn" data-mode="bayes" data-zh="BayesSpace-like" data-en="BayesSpace-like">BayesSpace</button>
+</div>
+<div class="chart-container" style="height:340px;"><canvas id="cluCompare"></canvas></div>
+<div id="cluMsg" style="font-size:.9rem;color:var(--c-ink-light);margin-top:8px;"></div>
+</div>
+</section>
+
+<!-- Code examples -->
 <section class="section"><div class="section-label" data-zh="程式碼" data-en="CODE">程式碼</div>
-<h2 data-zh="實作範例" data-en="Code Examples">實作範例</h2>
+<h2 data-zh="完整實作範例" data-en="Complete code examples">實作範例</h2>
 <div class="code-tabs"><div class="code-tab-btns">
-<button class="code-tab-btn active" onclick="switchTab(this,'bs')">BayesSpace</button>
-<button class="code-tab-btn" onclick="switchTab(this,'sde')">SpatialDE</button>
-<button class="code-tab-btn" onclick="switchTab(this,'sq')">squidpy</button>
+<button class="code-tab-btn active" onclick="switchTab(this,'bs')">BayesSpace (R)</button>
+<button class="code-tab-btn" onclick="switchTab(this,'bk')">Banksy (R/Py)</button>
+<button class="code-tab-btn" onclick="switchTab(this,'sde')">SpatialDE (Py)</button>
+<button class="code-tab-btn" onclick="switchTab(this,'sq')">squidpy Moran</button>
+<button class="code-tab-btn" onclick="switchTab(this,'gcn')">SpaGCN (Py)</button>
 </div>
 <div class="code-tab-content active" id="bs"><pre><span class="kw">library</span>(BayesSpace); <span class="kw">library</span>(SpatialExperiment)
 sce &lt;- <span class="func">readVisium</span>(<span class="str">"sample_outs/"</span>)
-sce &lt;- <span class="func">spatialPreprocess</span>(sce, n.PCs = <span class="num">15</span>, n.HVGs = <span class="num">2000</span>)
-sce &lt;- <span class="func">qTune</span>(sce, qs = <span class="num">3</span>:<span class="num">10</span>)
-<span class="func">qPlot</span>(sce)
-sce &lt;- <span class="func">spatialCluster</span>(sce, q = <span class="num">7</span>, nrep = <span class="num">10000</span>, burn.in = <span class="num">1000</span>)
-<span class="func">clusterPlot</span>(sce)</pre></div>
-<div class="code-tab-content" id="sde"><pre><span class="kw">import</span> NaiveDE, SpatialDE
+
+<span class="comment"># 1. spatialPreprocess: PCA on top HVGs</span>
+sce &lt;- <span class="func">spatialPreprocess</span>(sce, n.PCs = <span class="num">15</span>, n.HVGs = <span class="num">2000</span>, log.normalize = <span class="kw">TRUE</span>)
+
+<span class="comment"># 2. 選 q (cluster 數)：看 log-likelihood elbow</span>
+sce &lt;- <span class="func">qTune</span>(sce, qs = <span class="num">3</span>:<span class="num">10</span>, burn.in = <span class="num">100</span>, nrep = <span class="num">1000</span>)
+<span class="func">qPlot</span>(sce)   <span class="comment"># 找轉折點</span>
+
+<span class="comment"># 3. 正式聚類（nrep ≥ 10000 才會 converge）</span>
+sce &lt;- <span class="func">spatialCluster</span>(sce, q = <span class="num">7</span>,
+                     gamma = <span class="num">3</span>,        <span class="comment"># smoothing strength</span>
+                     nrep  = <span class="num">10000</span>,
+                     burn.in = <span class="num">1000</span>)
+<span class="func">clusterPlot</span>(sce)
+
+<span class="comment"># 4. (Optional) sub-spot enhancement: 把 55 μm spot 細化到 ~14 μm</span>
+sce.enhanced &lt;- <span class="func">spatialEnhance</span>(sce, q = <span class="num">7</span>, nrep = <span class="num">10000</span>)
+<span class="func">clusterPlot</span>(sce.enhanced)</pre></div>
+<div class="code-tab-content" id="bk"><pre><span class="kw">library</span>(Banksy); <span class="kw">library</span>(SpatialExperiment)
+spe &lt;- <span class="func">readVisium</span>(<span class="str">"sample_outs/"</span>)
+
+<span class="comment"># 1. Banksy 的核心：λ 控制「鄰居特徵」的權重</span>
+<span class="comment">#    λ=0 → 純表達聚類；λ=1 → 純鄰居特徵；常用 0.2-0.5</span>
+spe &lt;- <span class="func">computeBanksy</span>(spe, assay_name = <span class="str">"logcounts"</span>,
+                     compute_agf = <span class="kw">TRUE</span>,         <span class="comment"># 鄰居 azimuthal Gabor filter</span>
+                     k_geom = <span class="num">6</span>)                <span class="comment"># 6 個最近鄰</span>
+spe &lt;- <span class="func">runBanksyPCA</span>(spe, lambda = <span class="num">0.2</span>, npcs = <span class="num">20</span>)
+spe &lt;- <span class="func">clusterBanksy</span>(spe, lambda = <span class="num">0.2</span>, npcs = <span class="num">20</span>, resolution = <span class="num">1.0</span>)
+<span class="comment"># clusters 存在 colData(spe)$clust_M0_lam0.2_k50_res1</span></pre></div>
+<div class="code-tab-content" id="sde"><pre><span class="kw">import</span> NaiveDE, SpatialDE, pandas <span class="kw">as</span> pd
+<span class="comment"># SpatialDE 需要 gene × spot 矩陣</span>
 counts = adata.to_df().T   <span class="comment"># gene × spot</span>
-norm_expr = NaiveDE.stabilize(counts).T
+<span class="comment"># 1. 變異穩定（VST 風格）</span>
+norm_expr = NaiveDE.stabilize(counts)
+<span class="comment"># 2. regress out 測序深度</span>
 resid_expr = NaiveDE.regress_out(adata.obs, norm_expr.T, <span class="str">"np.log(total_counts)"</span>).T
+<span class="comment"># 3. SVG 偵測（用 GP）</span>
 results = SpatialDE.run(adata.obsm[<span class="str">"spatial"</span>], resid_expr)
-results.sort_values(<span class="str">"qval"</span>).head(<span class="num">20</span>)</pre></div>
-<div class="code-tab-content" id="sq"><pre><span class="kw">import</span> squidpy <span class="kw">as</span> sq
-<span class="comment"># Moran's I 計算前需先建立鄰接圖</span>
-sq.gr.spatial_neighbors(adata, coord_type=<span class="str">"generic"</span>)
-sq.gr.spatial_autocorr(adata, mode=<span class="str">"moran"</span>, n_perms=<span class="num">100</span>)
-adata.uns[<span class="str">"moranI"</span>].head(<span class="num">20</span>)</pre></div>
+sig = results.sort_values(<span class="str">"qval"</span>).head(<span class="num">50</span>)
+<span class="comment"># 4. （可選）分類 SVG：linear / periodic / general</span>
+ms_results = SpatialDE.model_search(adata.obsm[<span class="str">"spatial"</span>], resid_expr, results)</pre></div>
+<div class="code-tab-content" id="sq"><pre><span class="kw">import</span> squidpy <span class="kw">as</span> sq, scanpy <span class="kw">as</span> sc
+<span class="comment"># 1. 建立鄰接圖</span>
+sq.gr.spatial_neighbors(adata, coord_type=<span class="str">"generic"</span>, n_neighs=<span class="num">6</span>)
+<span class="comment"># 2. Moran's I (適合 SVG quick scan)</span>
+sq.gr.spatial_autocorr(adata, mode=<span class="str">"moran"</span>, n_perms=<span class="num">1000</span>, n_jobs=<span class="num">8</span>)
+top = adata.uns[<span class="str">"moranI"</span>].head(<span class="num">20</span>)   <span class="comment"># 已按 I 排序</span>
+<span class="comment"># 3. 視覺化前 6 名</span>
+sc.pl.spatial(adata, color=top.index[:<span class="num">6</span>], ncols=<span class="num">3</span>)
+<span class="comment"># 4. （進階）Geary's C</span>
+sq.gr.spatial_autocorr(adata, mode=<span class="str">"geary"</span>, n_perms=<span class="num">1000</span>)</pre></div>
+<div class="code-tab-content" id="gcn"><pre><span class="kw">import</span> SpaGCN <span class="kw">as</span> spg, scanpy <span class="kw">as</span> sc, torch
+<span class="comment"># 1. 整合表達 + 空間 + H&E 像素到 adjacency matrix</span>
+adj = spg.calculate_adj_matrix(x=adata.obs[<span class="str">"x_pixel"</span>], y=adata.obs[<span class="str">"y_pixel"</span>],
+                                x_pixel=adata.obs[<span class="str">"x_pixel"</span>], y_pixel=adata.obs[<span class="str">"y_pixel"</span>],
+                                image=adata.uns[<span class="str">"image"</span>],
+                                beta=<span class="num">49</span>, alpha=<span class="num">1</span>, histology=<span class="kw">True</span>)
+<span class="comment"># 2. 自動找 cluster 數</span>
+n_clusters = <span class="num">7</span>
+l = spg.search_l(<span class="num">0.5</span>, adj)
+<span class="comment"># 3. 跑 GCN 聚類</span>
+clf = spg.SpaGCN()
+clf.set_l(l)
+clf.train(adata, adj, init_spa=<span class="kw">True</span>, init=<span class="str">"louvain"</span>, n_clusters=n_clusters,
+          tol=<span class="num">5e-3</span>, lr=<span class="num">0.05</span>, max_epochs=<span class="num">200</span>)
+y_pred, prob = clf.predict()</pre></div>
 </div>
 </section>
 
-<section class="quiz-section"><h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
-<div class="quiz-q" data-answer="2"><p data-lang="zh">SVG 與 HVG 最大差別是？</p><p data-lang="en">What primarily distinguishes SVG from HVG?</p><div class="quiz-options">
-<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. SVG 一定在 cluster 中顯著</span><span data-lang="en">A. SVG is always significant in a cluster</span></div>
-<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. SVG 表達量必定較高</span><span data-lang="en">B. SVG must have higher expression</span></div>
-<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. SVG 變異具有空間結構，HVG 只看整體變異</span><span data-lang="en">C. SVG variance has spatial structure; HVG looks at overall variance only</span></div>
-<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. SVG 用 t-test 找</span><span data-lang="en">D. SVG is found via t-test</span></div>
-</div><div class="quiz-feedback" id="fb1"></div></div>
+<!-- Real case -->
+<section class="section"><div class="section-label" data-zh="真實案例" data-en="CASE STUDY">真實案例</div>
+<h2 data-zh="案例：DLPFC 大腦皮層分層 (10x Visium benchmark)" data-en="Case: DLPFC cortical layers (10x Visium benchmark)">案例：DLPFC 皮層</h2>
+<div class="case-study">
+<div class="cs-title" data-zh="Maynard et al. 2021 Nat Neurosci — 10x Visium 在人類前額葉的應用" data-en="Maynard et al. 2021 Nat Neurosci — Visium on human DLPFC">Maynard et al. 2021 Nat Neurosci</div>
+<div class="cs-meta" data-zh="樣本：12 個人類 DLPFC (dorsolateral prefrontal cortex) 切片" data-en="Sample: 12 human DLPFC sections">12 DLPFC 切片 · 業界 benchmark</div>
+<div data-lang="zh">
+<p><strong>背景：</strong>人類前額葉皮層有經典 6 層結構（L1-L6 + WM）。Maynard 等用 Visium 跑了 12 個切片，並由神經病理學家手動標註每個 spot 的層別——成為空間聚類演算法的 <strong>gold-standard benchmark</strong>。</p>
+<p><strong>關鍵發現：</strong></p>
+<ul style="margin:8px 0 8px 24px;color:var(--c-ink-light)">
+<li><strong>標準 Seurat clustering 失敗：</strong>L2/L3 被合併，L6 被切成兩塊。ARI（與手標比）≈ 0.30。</li>
+<li><strong>BayesSpace 大幅改進：</strong>正確找出 7 個分層，ARI ≈ 0.55-0.62。</li>
+<li><strong>SpaGCN 利用 H&E：</strong>ARI ≈ 0.60+，且在切片邊緣表現最好（H&E 幫忙判斷組織界線）。</li>
+<li><strong>STAGATE（attention）：</strong>後來在同一 benchmark 上超越 BayesSpace。</li>
+</ul>
+<p><strong>關鍵 SVG：</strong> <em>MOBP, MBP</em>（WM marker）、<em>RORB</em>（L4 marker）、<em>NEFH</em>（L5 marker），這些 SVG 都能被任一空間聚類捕捉，而標準 PCA + Louvain 會「平均掉」它們。</p>
+<p><strong>教訓：</strong>遇到層狀組織（皮層、視網膜、肝小葉、小腸 villus），<strong>必須</strong>用空間聚類；不能依賴 Seurat / Scanpy 預設。</p>
+</div>
+<div data-lang="en">
+<p><strong>Background:</strong> human DLPFC has a classic 6-layer structure (L1-L6 + WM). Maynard et al. ran Visium on 12 sections with neuropathologist-annotated layers per spot — the <strong>gold-standard benchmark</strong> for spatial clustering.</p>
+<p><strong>Key findings:</strong></p>
+<ul style="margin:8px 0 8px 24px;color:var(--c-ink-light)">
+<li><strong>Standard Seurat failed:</strong> L2/L3 merged, L6 split. ARI vs hand annotation ≈ 0.30.</li>
+<li><strong>BayesSpace big jump:</strong> recovered 7 layers correctly, ARI ≈ 0.55-0.62.</li>
+<li><strong>SpaGCN (uses H&E):</strong> ARI ≈ 0.60+; best at section edges (H&E helps tissue boundary).</li>
+<li><strong>STAGATE (attention):</strong> later surpassed BayesSpace on this benchmark.</li>
+</ul>
+<p><strong>Key SVGs:</strong> <em>MOBP, MBP</em> (WM markers), <em>RORB</em> (L4 marker), <em>NEFH</em> (L5 marker) — captured by any spatial clustering, but standard PCA + Louvain "averages them away".</p>
+<p><strong>Lesson:</strong> for layered tissues (cortex, retina, liver lobules, intestinal villi), spatial clustering is <strong>required</strong>; Seurat/Scanpy defaults don't suffice.</p>
+</div>
+</div>
 </section>
 
-<nav class="page-nav"><a href="preprocessing.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 2：Preprocessing" data-en="Step 2: Preprocessing">Step 2：Preprocessing</span></a><a href="deconvolution.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 4：Deconvolution" data-en="Step 4: Deconvolution">Step 4：Deconvolution</span></a></nav>
+<!-- Pitfalls -->
+<section class="section"><div class="section-label" data-zh="新手陷阱" data-en="PITFALLS">新手陷阱</div>
+<h2 data-zh="三個必避免的錯誤" data-en="Three mistakes to avoid">三個必避免的錯誤</h2>
+
+<div class="pitfall">
+<div class="pf-title" data-zh="陷阱 1：把 SVG 與 cluster marker 混為一談" data-en="Pitfall 1: confusing SVGs with cluster markers">陷阱 1：SVG ≠ cluster marker</div>
+<p data-lang="zh">SVG 是「跟著位置走」的基因；cluster marker 是「某個 cluster 比其他高」的基因。兩者高度相關但<strong>不等價</strong>。<strong>梯度型 SVG</strong>（如肝小葉內 GS → CYP1A2 漸變）不會被 cluster marker 找到，因為它跨越多個 cluster；<strong>cluster marker</strong> 可能只是表達差異大但無空間結構（如 ribosomal）。</p>
+<p data-lang="en">SVGs follow position; cluster markers are "higher in one cluster vs others". Highly related but <strong>not the same</strong>. <strong>Gradient SVGs</strong> (e.g., GS→CYP1A2 across liver lobule) are missed by cluster markers because they cross multiple clusters. <strong>Cluster markers</strong> may have high variance but no spatial structure (ribosomal).</p>
+</div>
+
+<div class="pitfall">
+<div class="pf-title" data-zh="陷阱 2：γ / λ 超參數沒調" data-en="Pitfall 2: not tuning γ / λ">陷阱 2：超參數沒調</div>
+<p data-lang="zh">BayesSpace γ 太大 → cluster 邊界太平滑，丟細節；γ 太小 → 退化為非空間 GMM。Banksy λ 同理。<strong>建議：</strong>用 ARI / silhouette 在 2-3 個 γ 值（如 1, 2, 3）試比，選對組織學最合理。</p>
+<p data-lang="en">BayesSpace γ too high → over-smoothed boundaries; γ too low → degenerates to non-spatial GMM. Same for Banksy λ. <strong>Tip:</strong> sweep γ ∈ {1, 2, 3} comparing ARI / silhouette and pick what matches histology.</p>
+</div>
+
+<div class="pitfall">
+<div class="pf-title" data-zh="陷阱 3：用 SVG 直接做 DE" data-en="Pitfall 3: using SVG for DE">陷阱 3：SVG 直接做 DE</div>
+<p data-lang="zh">SVG 是「位置變異」基因，本身可能在每個 cluster 都有表達。直接把 SVG list 跟 cluster marker list 混用會誤導。<strong>正確流程：</strong>用 SVG 挑選特徵 → spatial clustering → 各 cluster 內 pseudobulk + DESeq2 找差異。</p>
+<p data-lang="en">SVGs are "position-varying" genes — they may be expressed in every cluster. Mixing SVG lists with cluster-marker lists misleads. <strong>Correct flow:</strong> use SVG to pick features → spatial clustering → pseudobulk DESeq2 within each cluster for DE.</p>
+</div>
+</section>
+
+<!-- Levels -->
+<section class="section"><div class="section-label" data-zh="分層理解" data-en="LEVELED VIEW">分層理解</div>
+<h2 data-zh="按程度理解「空間平滑」" data-en="Spatial smoothing by level">按程度認識空間平滑</h2>
+<div class="level-tabs">
+<div class="level-tab-btns">
+<button class="level-tab active" data-pane="lv1">🟢 <span data-zh="入門" data-en="Beginner">入門</span></button>
+<button class="level-tab" data-pane="lv2">🟡 <span data-zh="進階" data-en="Intermediate">進階</span></button>
+<button class="level-tab" data-pane="lv3">🔴 <span data-zh="高階" data-en="Advanced">高階</span></button>
+</div>
+<div class="level-pane active" id="lv1">
+<div data-lang="zh"><p>空間平滑就是「<strong>讓鄰居的訊號互相幫忙</strong>」。實作上最簡單版本是「每個 spot 的表達值 = 自己 × 0.5 + 鄰居平均 × 0.5」。這樣可以降低稀疏 Visium spot 的隨機 noise，讓 cluster 邊界更清晰。</p></div>
+<div data-lang="en"><p>Spatial smoothing means "<strong>neighbors help each other</strong>". The simplest version: "each spot's value = self × 0.5 + neighbor average × 0.5". This reduces random noise in sparse Visium and sharpens cluster boundaries.</p></div>
+</div>
+<div class="level-pane" id="lv2">
+<div data-lang="zh"><p>進階做法：</p>
+<ul style="margin:8px 0 0 20px;color:var(--c-ink-light)">
+<li><strong>Banksy 的 λ 機制：</strong>把表達向量 [x_self] 與鄰居平均向量 [x_neigh] 拼成 [x_self, λ·x_neigh] 再做 PCA → Leiden。λ 直接控制鄰居權重。</li>
+<li><strong>GraphConv：</strong>GCN 的一層就是「鄰接矩陣 A × X × W」——數學上等同於加權鄰居平均。</li>
+<li><strong>Markov Random Field：</strong>BayesSpace 的 Potts prior 就是 MRF——cluster 標籤的鄰居共有率作為 prior。</li>
+</ul>
+</div>
+<div data-lang="en"><p>Advanced versions:</p>
+<ul style="margin:8px 0 0 20px;color:var(--c-ink-light)">
+<li><strong>Banksy λ:</strong> concatenate [x_self, λ·x_neigh] → PCA → Leiden. λ directly tunes neighbor weight.</li>
+<li><strong>GraphConv:</strong> a GCN layer is "adjacency A × X × W" — mathematically a weighted neighbor average.</li>
+<li><strong>Markov Random Field:</strong> BayesSpace's Potts prior is an MRF — neighbor label co-occurrence as prior.</li>
+</ul>
+</div>
+</div>
+<div class="level-pane" id="lv3">
+<div data-lang="zh">
+<p><strong>Gaussian Process 觀點：</strong>SVG 偵測（SpatialDE / SPARK / nnSVG）本質上是把表達看成 <strong>GP 樣本</strong>：</p>
+<div class="formula-box" style="margin:10px 0">
+<div class="fm-line">y(s) ~ GP(μ(s), K(s, s'; θ))</div>
+<div class="fm-line">K(s, s') = σ² exp(−‖s − s'‖² / 2ℓ²)   <em>// RBF kernel</em></div>
+<div class="fm-note">θ = {σ², ℓ}：用最大 likelihood 估參數，看 likelihood ratio 是否顯著 (vs 純隨機 model)。</div>
+</div>
+<p><strong>SPARK 的進階：</strong>不只 RBF，還用多個 kernel（linear、periodic、Matérn）→ 同時找梯度、振盪、局部熱區三類 SVG。</p>
+<p><strong>SPARK-X 的把戲：</strong>跳過 GP，直接計算 <strong>covariance 矩陣與 location 矩陣的 trace inner product</strong>——避免 O(N³) cholesky，跑 1M spots 也快。</p>
+</div>
+<div data-lang="en">
+<p><strong>Gaussian Process view:</strong> SVG detection (SpatialDE / SPARK / nnSVG) treats expression as <strong>GP samples</strong>:</p>
+<div class="formula-box" style="margin:10px 0">
+<div class="fm-line">y(s) ~ GP(μ(s), K(s, s'; θ))</div>
+<div class="fm-line">K(s, s') = σ² exp(−‖s − s'‖² / 2ℓ²)   <em>// RBF kernel</em></div>
+<div class="fm-note">θ = {σ², ℓ}: MLE-fit; LR test vs null (random) model.</div>
+</div>
+<p><strong>SPARK extension:</strong> beyond RBF, uses multiple kernels (linear, periodic, Matérn) → catches gradient, oscillatory, and local-hotspot SVGs simultaneously.</p>
+<p><strong>SPARK-X trick:</strong> skip GP, directly compute the <strong>trace inner product of covariance & location matrices</strong> — avoids O(N³) cholesky, scales to 1M spots.</p>
+</div>
+</div>
+</div>
+</section>
+
+<!-- FAQ -->
+<section class="section"><div class="section-label" data-zh="常見問題" data-en="FAQ">常見問題</div>
+<h2 data-zh="空間分析 FAQ" data-en="Spatial analysis FAQ">FAQ</h2>
+<div class="faq-list">
+<div class="faq-item"><button class="faq-q"><span data-zh="Q1：我該選 BayesSpace 還是 Banksy？" data-en="Q1: BayesSpace or Banksy?">Q1：BayesSpace vs Banksy？</span></button>
+<div class="faq-a"><p data-lang="zh">看資料大小與品質。BayesSpace 慢但保留連續性最好，適合 ≤ 10k spots 的 Visium；Banksy 比 BayesSpace 快 ~10×，適合 Visium HD / Stereo-seq 大資料。在 DLPFC benchmark 上兩者表現接近，BayesSpace 略勝（ARI 高 0.02-0.05）。</p><p data-lang="en">Depends on data size/quality. BayesSpace is slow but best at continuity, ideal for ≤ 10k-spot Visium; Banksy is ~10× faster — better for Visium HD / Stereo-seq. On DLPFC benchmark they're close, BayesSpace edges by ~0.02-0.05 ARI.</p></div></div>
+<div class="faq-item"><button class="faq-q"><span data-zh="Q2：SVG 要選幾個下游用？" data-en="Q2: how many SVGs to keep?">Q2：SVG 選幾個？</span></button>
+<div class="faq-a"><p data-lang="zh">通常選 q &lt; 0.05 的前 2000-3000 個——和 HVG 數量級相當。太少 → cluster 結果不穩定；太多 → 引入 noise。多平台研究有共識：前 2000 是 sweet spot。</p><p data-lang="en">Usually keep top 2000-3000 at q &lt; 0.05 — comparable to HVG counts. Too few → unstable clusters; too many → noise. Cross-platform consensus: top 2000 is the sweet spot.</p></div></div>
+<div class="faq-item"><button class="faq-q"><span data-zh="Q3：Moran's I 多少算「顯著有空間結構」？" data-en="Q3: what Moran's I is significant?">Q3：Moran's I 多少算顯著？</span></button>
+<div class="faq-a"><p data-lang="zh">沒有絕對門檻——必須看 permutation p-value。但<strong>實務經驗</strong>：I &gt; 0.1 通常已有可見空間結構，I &gt; 0.3 是強空間結構。Housekeeping 基因 (ACTB, GAPDH) 通常 I &lt; 0.05。</p><p data-lang="en">No absolute threshold — must check permutation p-value. <strong>Rule of thumb:</strong> I &gt; 0.1 usually shows visible structure; I &gt; 0.3 is strong. Housekeeping (ACTB, GAPDH) typically I &lt; 0.05.</p></div></div>
+<div class="faq-item"><button class="faq-q"><span data-zh="Q4：我有 H&E 影像，該用 SpaGCN 嗎？" data-en="Q4: I have H&E — should I use SpaGCN?">Q4：要用 SpaGCN 嗎？</span></button>
+<div class="faq-a"><p data-lang="zh">看你的組織。<strong>有清楚組織學界線</strong>（皮層、肝小葉、腸絨毛）→ SpaGCN 大幅改善邊界辨識。<strong>沒明顯影像結構</strong>（如均質腫瘤核心）→ H&E 不會帶來增益，用 BayesSpace 即可。</p><p data-lang="en">Depends on tissue. <strong>Clear histological boundaries</strong> (cortex, liver lobules, intestinal villi) → SpaGCN shines at boundary detection. <strong>No obvious image structure</strong> (e.g., homogeneous tumor core) → H&E adds nothing; use BayesSpace.</p></div></div>
+<div class="faq-item"><button class="faq-q"><span data-zh="Q5：cluster 找完接著做什麼？" data-en="Q5: what to do after clustering?">Q5：cluster 後續？</span></button>
+<div class="faq-a"><p data-lang="zh">標準流程：(1) 找 cluster marker（FindAllMarkers）；(2) GO/KEGG enrichment；(3) 與已知 atlas 比對（如 Allen Brain Atlas）；(4) 若要看 cell type composition → deconvolution（Step 4）；(5) 若要看 ligand-receptor → spatial CCC（Step 5）。</p><p data-lang="en">Standard flow: (1) cluster markers (FindAllMarkers); (2) GO/KEGG enrichment; (3) compare with known atlases (Allen Brain Atlas); (4) cell-type composition → deconvolution (Step 4); (5) ligand-receptor → spatial CCC (Step 5).</p></div></div>
+<div class="faq-item"><button class="faq-q"><span data-zh="Q6：sub-spot enhancement 真的可靠嗎？" data-en="Q6: is sub-spot enhancement reliable?">Q6：sub-spot enhancement 可靠？</span></button>
+<div class="faq-a"><p data-lang="zh">BayesSpace 的 spatialEnhance 是<strong>後驗推斷</strong>——不是真的有更多 reads，是用 MCMC 推估「若 spot 切成 6 個 sub-spot 各 cluster 機率為何」。對<strong>已知有層狀結構</strong>的組織（如皮層）合理；對均質區域不能憑空生資料。<strong>不要</strong>把 enhance 後的結果當作真實亞細胞解析。</p><p data-lang="en">BayesSpace's spatialEnhance is <strong>posterior inference</strong> — not new reads. MCMC estimates "if spot split into 6 sub-spots, what's each one's cluster probability". Reasonable for <strong>known layered</strong> tissue (cortex); cannot manufacture data on homogeneous regions. <strong>Don't</strong> treat enhanced output as true sub-cellular resolution.</p></div></div>
+</div>
+</section>
+
+<!-- Discussion -->
+<section class="section"><div class="section-label" data-zh="思考題" data-en="DISCUSSION">思考題</div>
+<h2 data-zh="深度思考" data-en="Deeper thinking">深度思考</h2>
+<div class="discussion">
+<div class="disc-title" data-zh="開放問題" data-en="Open questions">開放問題</div>
+<ol>
+<li data-lang="zh">為什麼說「ribosomal 基因的 Moran's I 通常接近 0」？這對挑 SVG 有何含義？</li>
+<li data-lang="zh">假設你的 GBM Visium 樣本，BayesSpace q=7 與 q=10 給出截然不同的 cluster。要怎麼決定？</li>
+<li data-lang="zh">SpatialDE 與 SPARK-X 都做 SVG 偵測，但前者用 GP 後者用 covariance trace。何時應該偏好哪一種？</li>
+<li data-lang="zh">如果一個基因的 Moran's I 顯著但 q-value 在 SpatialDE 不顯著，你會相信哪個結果？為什麼？</li>
+<li data-lang="en">Why does "ribosomal genes' Moran's I usually ≈ 0"? Implication for SVG selection?</li>
+<li data-lang="en">Your GBM Visium: BayesSpace q=7 and q=10 give very different clusters. How to decide?</li>
+<li data-lang="en">SpatialDE uses GP; SPARK-X uses covariance trace. When to prefer which?</li>
+<li data-lang="en">If a gene's Moran's I is significant but SpatialDE q-value isn't, which do you trust?</li>
+</ol>
+</div>
+</section>
+
+<!-- Quiz -->
+<section class="quiz-section"><h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
+<div class="quiz-q" data-answer="2"><p data-lang="zh">SVG 與 HVG 最大差別是？</p><p data-lang="en">What primarily distinguishes SVG from HVG?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. SVG 一定在 cluster 中顯著</span><span data-lang="en">A. SVG is always cluster-significant</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. SVG 表達量必定較高</span><span data-lang="en">B. SVG must have higher expression</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. SVG 變異具有空間結構，HVG 只看整體變異</span><span data-lang="en">C. SVG variance has spatial structure; HVG = overall variance</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. SVG 用 t-test 找</span><span data-lang="en">D. SVG is found via t-test</span></div>
+</div><div class="quiz-feedback" id="fb1"></div></div>
+<div class="quiz-q" data-answer="0"><p data-lang="zh">Moran's I = 0.6 代表什麼？</p><p data-lang="en">Moran's I = 0.6 means?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 強空間結構（鄰居相似）</span><span data-lang="en">A. Strong spatial structure (similar neighbors)</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 隨機分布</span><span data-lang="en">B. Random distribution</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 棋盤式分散</span><span data-lang="en">C. Checkerboard pattern</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 表達量為 0.6</span><span data-lang="en">D. Expression = 0.6</span></div>
+</div><div class="quiz-feedback" id="fb2"></div></div>
+<div class="quiz-q" data-answer="2"><p data-lang="zh">DLPFC 皮層分層研究中，下列何種工具表現最差？</p><p data-lang="en">In DLPFC cortical-layer benchmarking, which tool performs worst?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. BayesSpace</span><span data-lang="en">A. BayesSpace</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. SpaGCN</span><span data-lang="en">B. SpaGCN</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 標準 Seurat Louvain（無空間資訊）</span><span data-lang="en">C. Standard Seurat Louvain (no spatial)</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. STAGATE</span><span data-lang="en">D. STAGATE</span></div>
+</div><div class="quiz-feedback" id="fb3"></div></div>
+<div class="quiz-q" data-answer="1"><p data-lang="zh">BayesSpace 的 γ 參數作用是？</p><p data-lang="en">BayesSpace's γ parameter does what?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 控制 cluster 數量</span><span data-lang="en">A. Controls number of clusters</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 控制鄰居 smoothing 強度</span><span data-lang="en">B. Controls neighbor smoothing strength</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 設定 MCMC 步數</span><span data-lang="en">C. Sets MCMC iterations</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 表達 threshold</span><span data-lang="en">D. Expression threshold</span></div>
+</div><div class="quiz-feedback" id="fb4"></div></div>
+<div class="quiz-q" data-answer="2"><p data-lang="zh">下列何者最適合在 1M+ spots 的 Stereo-seq 上找 SVG？</p><p data-lang="en">Best SVG tool for 1M+ spots Stereo-seq?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. SpatialDE</span><span data-lang="en">A. SpatialDE</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. SPARK</span><span data-lang="en">B. SPARK</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. SPARK-X</span><span data-lang="en">C. SPARK-X</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. nnSVG</span><span data-lang="en">D. nnSVG</span></div>
+</div><div class="quiz-feedback" id="fb5"></div></div>
+</section>
+
+<nav class="page-nav">
+<a href="preprocessing.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 2：Preprocessing" data-en="Step 2: Preprocessing">Step 2：Preprocessing</span></a>
+<a href="deconvolution.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 4：Deconvolution" data-en="Step 4: Deconvolution">Step 4：Deconvolution</span></a>
+</nav>
 </main>
 <footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
@@ -98,28 +479,53 @@ adata.uns[<span class="str">"moranI"</span>].head(<span class="num">20</span>)</
 <script>
 window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
 function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
-// 2D heatmap with sliders
+
+// 2D heatmap with slider
 const grid=20;const pts=[];for(let i=0;i<grid;i++){for(let j=0;j<grid;j++){pts.push({x:i,y:j,v:0});}}
 const ctx=document.getElementById('spatial2d');
 const ch=new Chart(ctx,{type:'scatter',data:{datasets:[{label:'expression',data:[],pointRadius:7,pointStyle:'rect'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:false,min:-1,max:grid},y:{display:false,min:-1,max:grid}}}});
-function color(v){const r=Math.round(255*v);const b=Math.round(150*(1-v));return 'rgba('+r+',60,'+b+',0.8)';}
+function color(v){const r=Math.round(255*Math.max(0,Math.min(1,v)));const b=Math.round(150*(1-Math.max(0,Math.min(1,v))));return 'rgba('+r+',60,'+b+',0.85)';}
 function upS(){
   const s=+document.getElementById('sliderS').value;
   document.getElementById('valS').textContent=s.toFixed(2);document.getElementById('valSEn').textContent=s.toFixed(2);
-  pts.forEach(p=>{const struct=Math.sin(p.x*0.4)*Math.cos(p.y*0.4)*0.5+0.5;const rand=Math.random();p.v=s*struct+(1-s)*rand;});
-  ch.data.datasets[0].data=pts.map(p=>({x:p.x,y:p.y,backgroundColor:color(p.v)}));
-  // hacky: per-point bg
-  ch.data.datasets[0].backgroundColor=pts.map(p=>color(p.v));
-  ch.update('none');
-  // approximate Moran's I (1D shift)
+  pts.forEach(p=>{let v;if(s>=0){const struct=Math.sin(p.x*0.4)*Math.cos(p.y*0.4)*0.5+0.5;const rand=Math.random();v=s*struct+(1-s)*rand;}else{const checker=((p.x+p.y)%2)*0.8+0.1;const rand=Math.random();v=Math.abs(s)*checker+(1-Math.abs(s))*rand;}p.v=v;});
+  ch.data.datasets[0].data=pts.map(p=>({x:p.x,y:p.y}));ch.data.datasets[0].backgroundColor=pts.map(p=>color(p.v));ch.update('none');
   let num=0,denom=0,w=0;const mean=pts.reduce((s,p)=>s+p.v,0)/pts.length;
   pts.forEach(p=>{denom+=(p.v-mean)**2;});
   pts.forEach(p=>{const nb=[{x:p.x+1,y:p.y},{x:p.x-1,y:p.y},{x:p.x,y:p.y+1},{x:p.x,y:p.y-1}];nb.forEach(n=>{const t=pts.find(q=>q.x===n.x&&q.y===n.y);if(t){num+=(p.v-mean)*(t.v-mean);w+=1;}});});
   const I=pts.length/w*num/denom;
   document.getElementById('moranI').textContent=I.toFixed(2);
-  const L=I18n.get();document.getElementById('svgCalled').textContent=I>0.2?(L==='zh'?'是 ✓':'Yes ✓'):(L==='zh'?'否':'No');
+  const L=I18n.get();
+  document.getElementById('svgCalled').textContent=Math.abs(I)>0.2?(L==='zh'?'是 ✓':'Yes ✓'):(L==='zh'?'否':'No');
+  let pattern;if(I>0.3)pattern=L==='zh'?'強空間結構':'Strong structure';else if(I>0.05)pattern=L==='zh'?'弱結構':'Weak structure';else if(I>-0.1)pattern=L==='zh'?'隨機':'Random';else pattern=L==='zh'?'棋盤式':'Checkerboard';
+  document.getElementById('pattern').textContent=pattern;
 }
 document.getElementById('sliderS').addEventListener('input',upS);document.addEventListener('langchange',upS);upS();
-window._QF={zh:{q1_y:'SVG 是空間結構性變異；HVG 是表達層級的整體變異。',q1_n:'答案是 C：SVG 強調空間結構。'},en:{q1_y:'SVG = spatially structured variance; HVG = overall expression variance.',q1_n:'Answer is C: SVG emphasizes spatial structure.'}};
+
+// Clustering compare: 4 layers (truth) vs naive Louvain (shuffled) vs BayesSpace-like (clean)
+const NL=20;const layer=[];for(let i=0;i<NL;i++){for(let j=0;j<NL;j++){const truth=Math.floor(j/5);layer.push({x:i,y:j,truth});}}
+const palLay=['#2C7BB6','#5AAE61','#d4a03c','#a33c34','#7a4eb5'];
+const cluCtx=document.getElementById('cluCompare').getContext('2d');
+const cluCh=new Chart(cluCtx,{type:'scatter',data:{datasets:[{label:'cluster',data:[],pointStyle:'rect',pointRadius:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:false,min:-1,max:NL},y:{display:false,min:-1,max:NL}}}});
+function setCluMode(m){
+  document.querySelectorAll('.toggle-row .toggle-btn[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
+  const L=I18n.get();let assign;let msg;
+  if(m==='truth'){assign=l=>l.truth;msg=L==='zh'?'這是真實的 4 層組織（如皮層 L2-L5）。':'Ground truth: 4-layer tissue (like cortex L2-L5).';}
+  else if(m==='louvain'){assign=l=>{const noise=Math.random()<0.35;return noise?Math.floor(Math.random()*5):l.truth+(Math.random()<0.2?1:0);};msg=L==='zh'?'標準 Louvain：邊界破碎，某些層被混合或切碎。':'Standard Louvain: boundaries broken; layers merged or shredded.';}
+  else{assign=l=>{const noise=Math.random()<0.08;return noise?(l.truth+(Math.random()<0.5?1:-1)+4)%4:l.truth;};msg=L==='zh'?'BayesSpace-like：邊界乾淨、保留分層連續性。':'BayesSpace-like: clean boundaries, preserved layer continuity.';}
+  cluCh.data.datasets[0].data=layer.map(l=>({x:l.x,y:l.y}));cluCh.data.datasets[0].backgroundColor=layer.map(l=>palLay[assign(l)%palLay.length]);cluCh.update('none');document.getElementById('cluMsg').textContent=msg;
+}
+document.querySelectorAll('.toggle-row .toggle-btn[data-mode]').forEach(b=>b.addEventListener('click',()=>setCluMode(b.dataset.mode)));
+document.addEventListener('langchange',()=>{const m=document.querySelector('.toggle-row .toggle-btn[data-mode].active').dataset.mode;setCluMode(m);});
+setCluMode('truth');
+
+// Level tabs
+document.querySelectorAll('.level-tab').forEach(t=>t.addEventListener('click',()=>{const par=t.closest('.level-tabs');par.querySelectorAll('.level-tab').forEach(x=>x.classList.remove('active'));par.querySelectorAll('.level-pane').forEach(x=>x.classList.remove('active'));t.classList.add('active');document.getElementById(t.dataset.pane).classList.add('active');}));
+
+// FAQ
+document.querySelectorAll('.faq-q').forEach(b=>b.addEventListener('click',()=>{b.classList.toggle('open');b.nextElementSibling.classList.toggle('open');}));
+
+// Quiz
+window._QF={zh:{q1_y:'SVG 是空間結構性變異；HVG 是表達層級的整體變異。',q1_n:'答案是 C：SVG 強調空間結構。',q2_y:'I 接近 1 = 鄰居相似，強空間結構。',q2_n:'答案是 A：強空間結構（鄰居相似）。',q3_y:'Maynard 2021 顯示標準 Louvain ARI ≈ 0.30，遠低於空間方法。',q3_n:'答案是 C：標準 Louvain 因為沒空間資訊。',q4_y:'γ 控制 Potts prior 鄰居共有率 → smoothing 強度。',q4_n:'答案是 B：γ 控制 smoothing 強度。',q5_y:'SPARK-X 用 covariance trace 跳過 O(N³)，可跑 1M+ spots。',q5_n:'答案是 C：SPARK-X 對大資料最佳。'},en:{q1_y:'SVG = spatially structured variance; HVG = overall expression variance.',q1_n:'Answer is C: SVG emphasizes spatial structure.',q2_y:'I close to 1 = similar neighbors, strong spatial structure.',q2_n:'Answer is A: strong spatial structure.',q3_y:'Maynard 2021 reported standard Louvain ARI ≈ 0.30 — much worse than spatial methods.',q3_n:'Answer is C: standard Louvain has no spatial info.',q4_y:'γ controls the Potts-prior neighbor-coherence weight → smoothing.',q4_n:'Answer is B: γ controls smoothing strength.',q5_y:'SPARK-X uses covariance trace, skips O(N³), runs 1M+ spots.',q5_n:'Answer is C: SPARK-X is best for big data.'}};
 const QF=window._QF||{};document.querySelectorAll(".quiz-q").forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll(".quiz-opt").forEach(o=>{o.addEventListener("click",()=>{if(q.classList.contains("answered"))return;q.classList.add("answered");const fb=document.getElementById("fb"+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?"correct":"wrong");if(!ok)q.querySelectorAll(".quiz-opt")[ans].classList.add("correct");const L=I18n.get();fb.className="quiz-feedback show "+(ok?"correct-fb":"wrong-fb");fb.textContent=(ok?"✅ ":"❌ ")+(QF[L]&&QF[L]["q"+(qi+1)+"_"+(ok?"y":"n")]||"");});});});
 </script></body></html>

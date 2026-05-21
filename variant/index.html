@@ -1,59 +1,213 @@
 <!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Variant Calling — Bioinformatics Tutorial</title>
-<link rel="stylesheet" href="../styles.css"></head><body class="theme-variant">
+<link rel="stylesheet" href="../styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+</head><body class="theme-variant">
 <nav class="top-nav"><div class="top-nav-inner">
   <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
   <ul class="top-nav-links">
-    <li><a href="../index.html">Hub</a></li><li><a href="index.html" class="active">Variant</a></li><li><a href="preprocessing.html">Preproc</a></li><li><a href="calling.html">Calling</a></li><li><a href="filtering.html">Filter</a></li><li><a href="annotation.html">Annot</a></li>
+    <li><a href="../index.html">Hub</a></li><li><a href="index.html" class="active">Variant</a></li><li><a href="preprocessing.html">Preproc</a></li><li><a href="calling.html">Calling</a></li><li><a href="filtering.html">Filter</a></li><li><a href="annotation.html">Annot</a></li><li><a href="sv-cnv.html">SV/CNV</a></li>
   </ul>
 </div></nav>
-<header class="page-hero"><div class="step-badge">TRACK 4 · VARIANT CALLING</div><h1 data-zh="變異偵測 (WGS / WES)" data-en="Variant Calling (WGS / WES)">變異偵測 (WGS / WES)</h1><p class="subtitle" data-lang="zh">從 FASTQ 到可信變異——GATK Best Practice 帶你走完每個步驟。</p><p class="subtitle" data-lang="en">From FASTQ to trusted variants — GATK Best Practice, step by step.</p></header><main class="content-wrap">
+
+<header class="page-hero"><div class="step-badge">TRACK 4 · VARIANT CALLING</div>
+<h1 data-zh="變異偵測 (WGS / WES)" data-en="Variant Calling (WGS / WES)">變異偵測 (WGS / WES)</h1>
+<p class="subtitle" data-lang="zh">從 FASTQ 到可信變異——GATK Best Practice 帶你走完每個步驟，並理解每個決策背後的統計、生物與臨床意涵。</p>
+<p class="subtitle" data-lang="en">From FASTQ to trusted variants — walk through GATK Best Practice while understanding the statistics, biology, and clinical reasoning behind every decision.</p>
+<div style="margin-top:14px">
+<span class="diff-chip beg">🟢 Beginner</span>
+<span class="diff-chip int">🟡 Intermediate</span>
+<span class="diff-chip adv">🔴 Advanced</span>
+<span class="diff-chip expert">🔵 Clinical</span>
+</div>
+</header>
+
+<main class="content-wrap">
+
+<section class="section"><div class="section-label" data-zh="為什麼重要" data-en="WHY THIS MATTERS">為什麼重要</div>
+<h2 data-zh="從一個鹼基，到一條人命" data-en="From a single base — to a human life">從一個鹼基，到一條人命</h2>
+<div data-lang="zh">
+<p>一個 <span class="term">SNV<span class="tip">single-nucleotide variant；單核苷酸變異，最常見的變異形式，全人類基因組約有 4–5 百萬個。</span></span>就足以決定一個 4 歲孩子是健康成長還是飽受 <em>cystic fibrosis</em> 折磨；一個 BRCA1 移碼突變就能改變一名 30 歲女性是否要做預防性乳房切除術；一個 <em>BRAF</em> p.V600E 體細胞突變就能決定黑色素瘤病人能否獲得 vemurafenib 的續命機會。</p>
+<p>變異偵測 (Variant Calling) 是整個臨床基因組學、藥物基因組學、群體遺傳學、癌症精準醫療的<strong>共同入口</strong>。做錯了，下游的所有結論都是空談；做對了，一份 VCF 檔可以延長壽命、避免錯誤手術、解開家族 30 年的謎團。</p>
+<p>本軌的目標是幫助你：<strong>(1)</strong> 看懂每個 GATK Best Practice 步驟為什麼存在；<strong>(2)</strong> 理解 germline vs somatic 流程的統計差異；<strong>(3)</strong> 培養出 <em>看一份 VCF 就能挑出毛病</em> 的眼力；<strong>(4)</strong> 學會臨床等級的 ACMG 變異分類思維。</p>
+</div>
+<div data-lang="en">
+<p>One <span class="term">SNV<span class="tip">single-nucleotide variant — the most common form of variation, about 4–5 million per human genome.</span></span> can decide whether a 4-year-old grows up healthy or suffers cystic fibrosis. One BRCA1 frameshift can decide whether a 30-year-old woman has prophylactic mastectomy. One somatic <em>BRAF</em> p.V600E can decide whether a melanoma patient gets life-extending vemurafenib.</p>
+<p>Variant calling is the <strong>shared entry point</strong> for clinical genomics, pharmacogenomics, population genetics, and precision oncology. Do it wrong and every downstream conclusion is hollow; do it right and a single VCF can extend lives, avert wrong surgeries, and solve 30-year family mysteries.</p>
+<p>This track aims to help you: <strong>(1)</strong> understand <em>why</em> every GATK Best Practice step exists; <strong>(2)</strong> grasp the statistical differences between germline and somatic pipelines; <strong>(3)</strong> develop the eye to spot problems just by reading a VCF; <strong>(4)</strong> reach clinical-level ACMG variant-classification thinking.</p>
+</div>
+</section>
 
 <section class="section"><div class="section-label" data-zh="總覽" data-en="OVERVIEW">總覽</div>
-<h2 data-zh="變異偵測流程" data-en="Variant Calling Workflow">流程概覽</h2>
+<h2 data-zh="GATK Best Practice 流程" data-en="GATK Best Practice Workflow">流程概覽</h2>
 <div class="flow-chain">
   <span class="fc-step">FASTQ</span><span class="fc-arrow">→</span>
   <span class="fc-step">BWA-MEM</span><span class="fc-arrow">→</span>
   <span class="fc-step">MarkDup + BQSR</span><span class="fc-arrow">→</span>
-  <span class="fc-step">HaplotypeCaller</span><span class="fc-arrow">→</span>
+  <span class="fc-step">HaplotypeCaller / Mutect2</span><span class="fc-arrow">→</span>
   <span class="fc-step">GenotypeGVCFs</span><span class="fc-arrow">→</span>
-  <span class="fc-step">Filter</span><span class="fc-arrow">→</span>
-  <span class="fc-step">VEP</span>
+  <span class="fc-step">VQSR / Hard Filter</span><span class="fc-arrow">→</span>
+  <span class="fc-step">VEP / ANNOVAR</span><span class="fc-arrow">→</span>
+  <span class="fc-step">ACMG · Report</span>
 </div>
-<div data-lang="zh"><p>變異偵測 (variant calling) 從定序 reads 推斷個體基因組中與參考序列不同的位點。GATK Best Practice 是 Broad Institute 制定的業界標準流程，涵蓋 germline (生殖系)、somatic (體細胞) 兩條路線。</p></div>
-<div data-lang="en"><p>Variant calling infers genomic positions that differ from the reference from sequencing reads. GATK Best Practice is Broad Institute's industry-standard workflow covering germline and somatic paths.</p></div>
+<div data-lang="zh"><p>變異偵測從定序 reads 推斷個體基因組中與 <span class="term">參考序列<span class="tip">人類 reference 從 GRCh37 (hg19) → GRCh38 (hg38) → CHM13 (T2T)。GRCh38 是目前的臨床標準；T2T-CHM13 為首個完全無缺口的人類基因組。</span></span>不同的位點。<span class="term">GATK Best Practice<span class="tip">Broad Institute 制定的業界標準工作流程，每 1–2 年更新一次。涵蓋 germline、somatic、CNV、SV 等多條 pipeline。</span></span>是 Broad Institute 制定的事實標準。整體流程橫跨：原始 reads 清理 → 比對 → 鹼基品質校正 → 變異呼叫 → 過濾 → 註釋 → 臨床解讀。</p></div>
+<div data-lang="en"><p>Variant calling infers genomic positions that differ from the <span class="term">reference<span class="tip">Human reference progression: GRCh37 (hg19) → GRCh38 (hg38) → CHM13 (T2T). GRCh38 is today's clinical standard; T2T-CHM13 is the first gap-free human genome.</span></span> from sequencing reads. <span class="term">GATK Best Practice<span class="tip">An industry-standard workflow from the Broad Institute, refreshed every 1–2 years. Covers germline, somatic, CNV, SV pipelines.</span></span> is the Broad Institute's de facto standard. The pipeline spans: raw-read cleaning → alignment → base-quality recalibration → variant calling → filtering → annotation → clinical interpretation.</p></div>
+
+<div class="concept-map">
+<div class="cm-root" data-zh="變異偵測核心概念地圖" data-en="Variant Calling Concept Map">變異偵測核心概念地圖</div>
+<div class="cm-branches">
+<div class="cm-branch"><h5 data-zh="📐 信號" data-en="📐 Signal">📐 信號</h5><p data-lang="zh">read alignment、base quality、allele depth、strand bias、mapping quality</p><p data-lang="en">read alignment, base quality, allele depth, strand bias, mapping quality</p></div>
+<div class="cm-branch"><h5 data-zh="🧮 模型" data-en="🧮 Model">🧮 模型</h5><p data-lang="zh">PairHMM、Bayesian genotype prior、Gaussian mixture (VQSR)、CNN (DeepVariant)</p><p data-lang="en">PairHMM, Bayesian genotype prior, Gaussian mixture (VQSR), CNN (DeepVariant)</p></div>
+<div class="cm-branch"><h5 data-zh="🧬 變異類型" data-en="🧬 Variant types">🧬 變異類型</h5><p data-lang="zh">SNV、Indel、MNV、SV、CNV、STR repeat expansion</p><p data-lang="en">SNV, indel, MNV, SV, CNV, STR repeat expansion</p></div>
+<div class="cm-branch"><h5 data-zh="🩸 情境" data-en="🩸 Context">🩸 情境</h5><p data-lang="zh">germline (生殖系)、somatic (體細胞)、de novo、mosaic、germline-somatic mix</p><p data-lang="en">germline, somatic, de novo, mosaic, germline–somatic mix</p></div>
+<div class="cm-branch"><h5 data-zh="🏷️ 註釋" data-en="🏷️ Annotation">🏷️ 註釋</h5><p data-lang="zh">consequence、impact、AF、CADD、SpliceAI、ACMG criteria</p><p data-lang="en">consequence, impact, AF, CADD, SpliceAI, ACMG criteria</p></div>
+<div class="cm-branch"><h5 data-zh="⚖️ 評估" data-en="⚖️ Evaluation">⚖️ 評估</h5><p data-lang="zh">precision、recall、F1、Mendelian violation、Ti/Tv ratio</p><p data-lang="en">precision, recall, F1, Mendelian violation, Ti/Tv ratio</p></div>
+</div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="類比" data-en="ANALOGIES">類比</div>
+<h2 data-zh="把流程想像成..." data-en="Picture the pipeline as...">把流程想像成...</h2>
+<div class="analogy"><div data-lang="zh"><strong>偵探重建犯罪現場：</strong>每條 read 是一個目擊者，<em>有些目擊者近視 (low BQ)，有些位置不對 (misaligned)，有些重複作證 (PCR duplicates)</em>。一個好的 variant caller 像優秀法醫：聽完所有目擊者後，用機率學重建犯罪 (variant)，並對不可靠的目擊者打折扣 (down-weight)。</div>
+<div data-lang="en"><strong>A detective reconstructing a crime scene:</strong> each read is a witness — some near-sighted (low BQ), some misaligned, some repeating the same story (PCR duplicates). A good variant caller is a skilled forensic scientist: probabilistically reconstructs the event (variant) after hearing all witnesses, discounting the unreliable ones.</div></div>
+<div class="analogy"><div data-lang="zh"><strong>BQSR 像校正一把雜訊很大的尺：</strong>儀器標的「10 cm」其實在不同溫度、不同位置量出來的真實長度有偏差。BQSR 用「已知量好的物體 (dbSNP)」反推每種情境的偏差，再把尺重新刻度。</div>
+<div data-lang="en"><strong>BQSR is like calibrating a noisy ruler:</strong> the instrument's "10 cm" mark actually measures slightly different real lengths at different temperatures and positions. BQSR uses objects of known length (dbSNP) to back-infer the bias in each context, then re-engraves the ruler.</div></div>
 </section>
 
 <section class="section"><div class="section-label" data-zh="章節" data-en="CHAPTERS">章節</div>
 <h2 data-zh="五章節學習路徑" data-en="Five-chapter Path">五章節學習路徑</h2>
 <div class="hub-steps-grid">
-  <a href="preprocessing.html" class="hub-card"><div class="hub-emoji">🛠️</div><span class="step-num">Step 1</span><h3 data-zh="Read 預處理" data-en="Read Preprocessing">Read 預處理</h3><p data-lang="zh">BWA-MEM 比對、MarkDuplicates 標記重複、BQSR 校正鹼基品質。</p><p data-lang="en">BWA-MEM alignment, MarkDuplicates, BQSR base-quality recalibration.</p></a>
-  <a href="calling.html" class="hub-card"><div class="hub-emoji">🎯</div><span class="step-num">Step 2</span><h3 data-zh="Variant Calling" data-en="Variant Calling">變異偵測</h3><p data-lang="zh">HaplotypeCaller germline、Mutect2 somatic、DeepVariant CNN 方法。</p><p data-lang="en">HaplotypeCaller germline, Mutect2 somatic, DeepVariant CNN approach.</p></a>
-  <a href="filtering.html" class="hub-card"><div class="hub-emoji">🧹</div><span class="step-num">Step 3</span><h3 data-zh="變異過濾" data-en="Variant Filtering">變異過濾</h3><p data-lang="zh">VQSR 機器學習 vs hard filter、site-level vs sample-level filters。</p><p data-lang="en">VQSR machine learning vs hard filters; site- vs sample-level criteria.</p></a>
-  <a href="annotation.html" class="hub-card"><div class="hub-emoji">🏷️</div><span class="step-num">Step 4</span><h3 data-zh="功能註釋" data-en="Functional Annotation">功能註釋</h3><p data-lang="zh">VEP、ANNOVAR、SnpEff 加上臨床資料庫 (ClinVar、gnomAD、COSMIC)。</p><p data-lang="en">VEP, ANNOVAR, SnpEff plus clinical DBs (ClinVar, gnomAD, COSMIC).</p></a>
-  <a href="sv-cnv.html" class="hub-card"><div class="hub-emoji">🧩</div><span class="step-num">Step 5</span><h3 data-zh="SV / CNV 偵測" data-en="SV / CNV Detection">SV / CNV 偵測</h3><p data-lang="zh">結構變異 (Manta、Delly)、拷貝數變異 (GATK gCNV、CNVkit)。</p><p data-lang="en">Structural variants (Manta, Delly), copy-number variants (GATK gCNV, CNVkit).</p></a>
+  <a href="preprocessing.html" class="hub-card"><div class="hub-emoji">🛠️</div><span class="step-num">Step 1</span><h3 data-zh="Read 預處理" data-en="Read Preprocessing">Read 預處理</h3><p data-lang="zh">BWA-MEM 比對、ReadGroup 解剖學、MarkDuplicates、BQSR 校正、GIAB HG002 案例。</p><p data-lang="en">BWA-MEM alignment, ReadGroup anatomy, MarkDuplicates, BQSR, GIAB HG002 case study.</p></a>
+  <a href="calling.html" class="hub-card"><div class="hub-emoji">🎯</div><span class="step-num">Step 2</span><h3 data-zh="變異偵測" data-en="Variant Calling">變異偵測</h3><p data-lang="zh">HaplotypeCaller 本地重組裝、PairHMM、GVCF 機制、Mutect2 配對、DeepVariant CNN。</p><p data-lang="en">HaplotypeCaller local re-assembly, PairHMM, GVCF, Mutect2 paired, DeepVariant CNN.</p></a>
+  <a href="filtering.html" class="hub-card"><div class="hub-emoji">🧹</div><span class="step-num">Step 3</span><h3 data-zh="變異過濾" data-en="Variant Filtering">變異過濾</h3><p data-lang="zh">VQSR Gaussian mixture、tranches 解讀、hard filter 數值來源、CNNScoreVariants。</p><p data-lang="en">VQSR Gaussian mixture, tranches, origin of hard-filter thresholds, CNNScoreVariants.</p></a>
+  <a href="annotation.html" class="hub-card"><div class="hub-emoji">🏷️</div><span class="step-num">Step 4</span><h3 data-zh="功能註釋" data-en="Functional Annotation">功能註釋</h3><p data-lang="zh">VEP consequence taxonomy、HGVS、gnomAD popmax、CADD、LOFTEE、ACMG 5 級分類。</p><p data-lang="en">VEP consequence taxonomy, HGVS, gnomAD popmax, CADD, LOFTEE, ACMG 5-tier classification.</p></a>
+  <a href="sv-cnv.html" class="hub-card"><div class="hub-emoji">🧩</div><span class="step-num">Step 5</span><h3 data-zh="SV / CNV 偵測" data-en="SV / CNV Detection">SV / CNV 偵測</h3><p data-lang="zh">RP / SR / RD / assembly 四種訊號、長讀優勢、Manta / Delly / GRIDSS、22q11del 案例。</p><p data-lang="en">RP / SR / RD / assembly signals, long-read advantage, Manta / Delly / GRIDSS, 22q11del case.</p></a>
 </div>
 </section>
 
 <section class="section"><div class="section-label" data-zh="變異類型" data-en="VARIANT TYPES">變異類型</div>
-<h2 data-zh="五種主要變異" data-en="Five Main Variant Classes">五種主要變異</h2>
-<table class="comp-table"><thead><tr><th data-zh="類型" data-en="Type">類型</th><th data-zh="長度" data-en="Length">長度</th><th data-zh="工具" data-en="Tools">工具</th></tr></thead><tbody>
-<tr><td><strong>SNV</strong> (single-nucleotide variant)</td><td>1 bp</td><td>GATK HaplotypeCaller / DeepVariant</td></tr>
-<tr><td><strong>Indel</strong> (insertion/deletion)</td><td>1-50 bp</td><td>GATK HaplotypeCaller / DeepVariant</td></tr>
-<tr><td><strong>MNV</strong> (multi-nucleotide)</td><td>2-50 bp</td><td>GATK / Strelka2</td></tr>
-<tr><td><strong>SV</strong> (structural variant)</td><td>&gt; 50 bp</td><td>Manta / Delly / GRIDSS / pbsv</td></tr>
-<tr><td><strong>CNV</strong> (copy-number)</td><td data-zh="多 kb 到 Mb" data-en="kb to Mb">多 kb~Mb</td><td>GATK gCNV / CNVkit / Control-FREEC</td></tr>
+<h2 data-zh="人類基因組的六大變異類型" data-en="Six Variant Classes in the Human Genome">六大變異類型</h2>
+<table class="comp-table"><thead><tr><th data-zh="類型" data-en="Type">類型</th><th data-zh="長度" data-en="Length">長度</th><th data-zh="每基因組數目" data-en="Per genome">數目</th><th data-zh="主要工具" data-en="Tools">工具</th><th data-zh="代表疾病" data-en="Example disease">代表疾病</th></tr></thead><tbody>
+<tr><td><strong>SNV</strong> <span class="kw-inline">single-nucleotide</span></td><td>1 bp</td><td>~4–5 M</td><td>GATK HaplotypeCaller / DeepVariant</td><td data-zh="鐮刀型貧血 (HBB p.E6V)" data-en="Sickle-cell anemia (HBB p.E6V)">鐮刀型貧血</td></tr>
+<tr><td><strong>Indel</strong> <span class="kw-inline">small insertion/deletion</span></td><td>1–50 bp</td><td>~500 k</td><td>GATK / DeepVariant / Strelka2</td><td data-zh="ΔF508 (CFTR)" data-en="ΔF508 (CFTR)">囊狀纖維化 ΔF508</td></tr>
+<tr><td><strong>MNV</strong> <span class="kw-inline">multi-nucleotide</span></td><td>2–50 bp</td><td>~50 k</td><td>GATK / Strelka2</td><td data-zh="EGFR exon 19 dinucleotide" data-en="EGFR exon 19 dinucleotide">肺癌 EGFR</td></tr>
+<tr><td><strong>SV</strong> <span class="kw-inline">structural variant</span></td><td>&gt; 50 bp</td><td>~20 k</td><td>Manta / Delly / GRIDSS / pbsv</td><td data-zh="22q11.2 deletion syndrome" data-en="22q11.2 deletion syndrome">DiGeorge 症候群</td></tr>
+<tr><td><strong>CNV</strong> <span class="kw-inline">copy-number variant</span></td><td>kb – Mb</td><td>~1 k</td><td>GATK gCNV / CNVkit / Control-FREEC</td><td data-zh="BRCA1 exon deletion" data-en="BRCA1 exon deletion">遺傳性乳癌</td></tr>
+<tr><td><strong>STR</strong> <span class="kw-inline">short tandem repeat</span></td><td data-zh="CGG / CAG 重複" data-en="CGG / CAG repeats">CGG / CAG</td><td>~700 k loci</td><td>ExpansionHunter / STRetch</td><td data-zh="FMR1 CGG (脆性X)、HTT CAG (亨丁頓)" data-en="FMR1 CGG (Fragile X), HTT CAG (Huntington)">脆性 X／亨丁頓</td></tr>
 </tbody></table>
 </section>
 
+<section class="section"><div class="section-label" data-zh="兩條路線" data-en="TWO PIPELINES">兩條路線</div>
+<h2 data-zh="Germline vs Somatic 主軸對比" data-en="Germline vs Somatic at a Glance">Germline vs Somatic 主軸對比</h2>
+<div class="vs-grid">
+<div class="vs-side"><h4>🧬 Germline</h4>
+<div data-lang="zh"><ul style="margin-left:18px;color:var(--c-ink-light);"><li><strong>來源：</strong>遺傳自父母</li><li><strong>VAF：</strong>離散 0% / 50% / 100%</li><li><strong>樣本設計：</strong>單樣本或 trio / cohort</li><li><strong>代表工具：</strong>HaplotypeCaller、DeepVariant</li><li><strong>下游：</strong>聯合 genotyping → VQSR</li><li><strong>臨床用途：</strong>遺傳病診斷、ACMG 分類</li></ul></div>
+<div data-lang="en"><ul style="margin-left:18px;color:var(--c-ink-light);"><li><strong>Origin:</strong> inherited from parents</li><li><strong>VAF:</strong> discrete 0% / 50% / 100%</li><li><strong>Design:</strong> single, trio, or cohort</li><li><strong>Tools:</strong> HaplotypeCaller, DeepVariant</li><li><strong>Downstream:</strong> joint genotyping → VQSR</li><li><strong>Clinical use:</strong> Mendelian dx, ACMG</li></ul></div>
+</div>
+<div class="vs-mid">VS</div>
+<div class="vs-side"><h4>🦠 Somatic</h4>
+<div data-lang="zh"><ul style="margin-left:18px;color:var(--c-ink-light);"><li><strong>來源：</strong>後天突變 (癌症)</li><li><strong>VAF：</strong>連續 0–50%，常 &lt; 10%</li><li><strong>樣本設計：</strong>paired tumor-normal 或 tumor-only + PoN</li><li><strong>代表工具：</strong>Mutect2、Strelka2、VarScan2</li><li><strong>下游：</strong>FilterMutectCalls、driver mut 分析</li><li><strong>臨床用途：</strong>標靶治療配對、MRD 監測</li></ul></div>
+<div data-lang="en"><ul style="margin-left:18px;color:var(--c-ink-light);"><li><strong>Origin:</strong> acquired (cancer)</li><li><strong>VAF:</strong> continuous 0–50%, often &lt; 10%</li><li><strong>Design:</strong> paired tumor-normal or tumor-only + PoN</li><li><strong>Tools:</strong> Mutect2, Strelka2, VarScan2</li><li><strong>Downstream:</strong> FilterMutectCalls, driver analysis</li><li><strong>Clinical use:</strong> targeted therapy match, MRD</li></ul></div>
+</div>
+</div>
+</section>
+
 <section class="section"><div class="section-label" data-zh="範例資料" data-en="DATASETS">範例資料</div>
-<h2 data-zh="公開資料集" data-en="Public Datasets">公開資料集</h2>
-<div data-lang="zh"><ul style="margin-left:24px;color:var(--c-ink-light);"><li><strong>Genome in a Bottle (GIAB)</strong>：HG001-HG007 NIST 標準樣本，內附 truth set，是 benchmark 業界標配。</li><li><strong>1000 Genomes</strong>：2504 個個體的 WGS / WES，最大規模公開人類變異參考。</li><li><strong>gnomAD v4</strong>：730k+ exome + 76k+ genome 的群體頻率資料庫，註釋必備。</li><li><strong>TCGA / ICGC</strong>：癌症體細胞變異公開資源。</li><li><strong>ClinVar</strong>：人類臨床顯著變異註釋庫。</li></ul></div>
-<div data-lang="en"><ul style="margin-left:24px;color:var(--c-ink-light);"><li><strong>Genome in a Bottle (GIAB)</strong>: NIST reference samples HG001-HG007 with truth sets — the benchmark standard.</li><li><strong>1000 Genomes</strong>: WGS / WES of 2504 individuals — the largest public reference.</li><li><strong>gnomAD v4</strong>: 730k+ exomes + 76k+ genomes for population frequency — essential for annotation.</li><li><strong>TCGA / ICGC</strong>: cancer somatic variants.</li><li><strong>ClinVar</strong>: clinically significant human variant annotations.</li></ul></div>
+<h2 data-zh="教學與基準公開資料集" data-en="Teaching & Benchmark Datasets">教學與基準公開資料集</h2>
+<div class="card-grid cols-2">
+<div class="card"><h4>📦 <span data-zh="Genome in a Bottle (GIAB)" data-en="Genome in a Bottle (GIAB)">Genome in a Bottle</span> <span class="real-data">truth set</span></h4>
+<div data-lang="zh"><p>NIST 標準樣本 HG001–HG007；HG002 (Ashkenazi Jewish son) 是 benchmark 業界標配，附 high-confidence VCF + BED。所有 caller 的 precision / recall 都會跟 GIAB 比。</p></div>
+<div data-lang="en"><p>NIST reference samples HG001–HG007; HG002 (Ashkenazi Jewish son) is the industry benchmark with high-confidence VCF + BED. Every caller compares precision/recall against GIAB.</p></div>
+</div>
+<div class="card"><h4>🌍 <span data-zh="1000 Genomes Project" data-en="1000 Genomes Project">1000 Genomes</span></h4>
+<div data-lang="zh"><p>2504 個個體、26 個族群的 WGS；first proof that 92% of variants in any individual are common (AF &gt; 5%)。</p></div>
+<div data-lang="en"><p>2,504 individuals, 26 populations of WGS — first to show 92% of variants in any individual are common (AF &gt; 5%).</p></div>
+</div>
+<div class="card"><h4>📊 <span data-zh="gnomAD v4" data-en="gnomAD v4">gnomAD v4</span> <span class="real-data">730k exomes</span></h4>
+<div data-lang="zh"><p>730k+ exome + 76k+ genome 的群體頻率資料庫，註釋必備。分 popmax (任一族群最大頻率)、nfe (Non-Finnish European)、afr、eas 等子集。</p></div>
+<div data-lang="en"><p>730k+ exomes + 76k+ genomes for allele frequency — essential for annotation. Subdivided into popmax, nfe (Non-Finnish European), afr, eas, and more.</p></div>
+</div>
+<div class="card"><h4>🦠 <span data-zh="TCGA / ICGC" data-en="TCGA / ICGC">TCGA / ICGC</span></h4>
+<div data-lang="zh"><p>11k+ tumor-normal 配對，33 種癌症。所有公開癌症 driver 與 mutational signature 的源頭。</p></div>
+<div data-lang="en"><p>11k+ tumor-normal pairs across 33 cancers. The source of all public cancer drivers and mutational signatures.</p></div>
+</div>
+<div class="card"><h4>🏥 <span data-zh="ClinVar" data-en="ClinVar">ClinVar</span></h4>
+<div data-lang="zh"><p>NIH 維護的臨床顯著變異庫；每個變異有 P/LP/VUS/LB/B 五級分類 + review status (0–4 stars)。臨床判讀必查。</p></div>
+<div data-lang="en"><p>NIH-maintained clinical variant database; each variant gets a P/LP/VUS/LB/B class + review status (0–4 stars). Mandatory for clinical interpretation.</p></div>
+</div>
+<div class="card"><h4>💊 <span data-zh="COSMIC + Cancer Hotspots" data-en="COSMIC + Cancer Hotspots">COSMIC + Hotspots</span></h4>
+<div data-lang="zh"><p>癌症體細胞突變目錄；COSMIC ID、CGC、cancer hotspots 標記重要驅動基因突變。</p></div>
+<div data-lang="en"><p>Catalog of somatic mutations; COSMIC ID, CGC, and cancer hotspots flag key driver mutations.</p></div>
+</div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
+<h2 data-zh="變異組成模擬器" data-en="Variant Composition Simulator">變異組成模擬器</h2>
+<div data-lang="zh"><p>典型一份人類 WGS 變異集 (~4.5 M variants) 的組成分布。改變定序深度、移動滑桿，觀察變異總數與類型如何變化。</p></div>
+<div data-lang="en"><p>Composition of a typical human WGS variant set (~4.5 M variants). Adjust depth and watch total count and type breakdown change.</p></div>
+<div class="interactive-panel">
+<div class="slider-group"><label><span data-zh="定序深度 (X)" data-en="Sequencing depth (X)">定序深度</span> <span id="valDepth">30</span>×</label><input type="range" id="sliderDepth" min="5" max="80" value="30" step="1"></div>
+<div class="chart-container" style="height:300px"><canvas id="varTypeChart"></canvas></div>
+<div class="stat-row">
+<div class="stat-box"><div class="sb-num" id="totalVar">--</div><div class="sb-lbl" data-zh="預期變異總數" data-en="Expected variants">變異總數</div></div>
+<div class="stat-box"><div class="sb-num" id="ttiv">--</div><div class="sb-lbl" data-zh="Ti/Tv" data-en="Ti/Tv">Ti/Tv</div></div>
+<div class="stat-box"><div class="sb-num" id="qcVerdict">--</div><div class="sb-lbl" data-zh="QC 判讀" data-en="QC verdict">QC 判讀</div></div>
+</div>
+</div>
+<div class="callout tip"><span class="callout-icon">💡</span><div data-lang="zh"><strong>Ti/Tv ratio 是「免費的 QC」：</strong>正常 WGS Ti/Tv ≈ 2.0–2.1；WES ≈ 3.0–3.3 (CDS 富 CpG)。若 Ti/Tv &lt; 1.8 → 大量 FP。</div>
+<div data-lang="en"><strong>Ti/Tv ratio is "free QC":</strong> healthy WGS Ti/Tv ≈ 2.0–2.1; WES ≈ 3.0–3.3 (CDS enriched in CpG). Ti/Tv &lt; 1.8 → many FPs.</div></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="思考" data-en="DISCUSSION">思考</div>
+<h2 data-zh="開放性討論問題" data-en="Open Discussion Questions">開放性討論問題</h2>
+<div class="discussion">
+<div data-lang="zh">
+<p><span class="q-ico">Q1.</span> 為什麼一個健康人「相對於參考序列」會有 4 百萬個變異？這是否意味著參考基因組「不正常」？</p>
+<p><span class="q-ico">Q2.</span> 同一個檢體用兩個 caller (HaplotypeCaller vs DeepVariant) 跑，得到的 VCF 不完全一樣——你信哪一個？「真實」(ground truth) 該如何定義？</p>
+<p><span class="q-ico">Q3.</span> 在臨床基因檢測，VUS (Variant of Uncertain Significance) 約佔 30%。對病人與家屬，「不確定」造成的心理負擔可能比「確定致病」更大——基因組學該如何處理？</p>
+<p><span class="q-ico">Q4.</span> 罕見族群 (如台灣原住民) 在 gnomAD 中代表性不足，會造成「在白人不罕見的變異被誤判為原住民的致病變異」。我們該如何補救？</p>
+</div>
+<div data-lang="en">
+<p><span class="q-ico">Q1.</span> Why does a healthy person have 4 million variants "vs the reference"? Does this mean the reference genome is abnormal?</p>
+<p><span class="q-ico">Q2.</span> Running the same sample through two callers (HaplotypeCaller vs DeepVariant) gives slightly different VCFs — which do you trust? How do we define ground truth?</p>
+<p><span class="q-ico">Q3.</span> In clinical testing, VUS (Variants of Uncertain Significance) make up ~30%. The psychological burden of uncertainty is often worse than confirmed pathogenicity — how should genomics handle this?</p>
+<p><span class="q-ico">Q4.</span> Underrepresented populations (e.g., Taiwanese indigenous groups) in gnomAD can cause variants common in those populations to be misclassified as pathogenic — what is the remedy?</p>
+</div>
+</div>
 </section>
 
 <nav class="page-nav"><a href="../index.html"><span class="nav-dir" data-zh="← 返回" data-en="← Back">← 返回</span><span class="nav-title" data-zh="主頁" data-en="Hub">主頁</span></a><a href="preprocessing.html"><span class="nav-dir" data-zh="開始 →" data-en="Start →">開始 →</span><span class="nav-title" data-zh="Step 1：預處理" data-en="Step 1: Preprocessing">Step 1：預處理</span></a></nav>
 </main>
 <footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
 <script src="../i18n.js"></script>
+<script>
+const ctx=document.getElementById('varTypeChart');
+const varChart=new Chart(ctx,{type:'bar',data:{labels:['SNV','Indel','MNV','SV','CNV','STR'],datasets:[{label:'count',data:[4500000,500000,50000,20000,1000,700000],backgroundColor:['#2563eb','#10b981','#f59e0b','#ef4444','#a855f7','#06b6d4']}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{type:'logarithmic',title:{display:true,text:'count per genome (log)'}}},plugins:{legend:{display:false}}}});
+function upHub(){
+  const d=+document.getElementById('sliderDepth').value;
+  document.getElementById('valDepth').textContent=d;
+  const power=1-Math.exp(-d/15);
+  const snv=Math.round(4500000*power);
+  const indel=Math.round(500000*power*0.85);
+  const mnv=Math.round(50000*power*0.8);
+  const sv=Math.round(20000*Math.min(1,d/40));
+  const cnv=Math.round(1000*Math.min(1,d/30));
+  const str=Math.round(700000*Math.min(1,d/35));
+  varChart.data.datasets[0].data=[snv,indel,mnv,sv,cnv,str];
+  varChart.update('none');
+  const total=snv+indel+mnv+sv+cnv+str;
+  document.getElementById('totalVar').textContent=(total/1e6).toFixed(2)+' M';
+  const titv=(1.4+0.65*power).toFixed(2);
+  document.getElementById('ttiv').textContent=titv;
+  const L=I18n.get();let verdict;
+  if(d>=30)verdict=L==='zh'?'✓ 良好':'✓ Good';
+  else if(d>=20)verdict=L==='zh'?'△ 可用':'△ OK';
+  else verdict=L==='zh'?'✗ 過淺':'✗ Too shallow';
+  document.getElementById('qcVerdict').textContent=verdict;
+}
+document.getElementById('sliderDepth').addEventListener('input',upHub);
+document.addEventListener('langchange',upHub);
+upHub();
+</script>
 </body></html>

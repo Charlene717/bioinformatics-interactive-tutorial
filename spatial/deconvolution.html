@@ -1,54 +1,96 @@
 <!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Deconvolution — Spatial</title>
-<link rel="stylesheet" href="../styles.css"></head><body class="theme-spatial">
+<link rel="stylesheet" href="../styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+</head><body class="theme-spatial">
 <nav class="top-nav"><div class="top-nav-inner">
   <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
-  <ul class="top-nav-links">
-    <li><a href="index.html">Spatial</a></li><li><a href="platforms.html">Platforms</a></li><li><a href="preprocessing.html">Preproc</a></li><li><a href="spatial-analysis.html">Analysis</a></li><li><a href="deconvolution.html" class="active">Deconv</a></li><li><a href="interactions.html">Comms</a></li>
-  </ul>
+  <ul class="top-nav-links"><li><a href="index.html">Spatial</a></li><li><a href="platforms.html">Platforms</a></li><li><a href="preprocessing.html">Preproc</a></li><li><a href="spatial-analysis.html">Analysis</a></li><li><a href="deconvolution.html" class="active">Deconv</a></li><li><a href="interactions.html">Comms</a></li></ul>
 </div></nav>
 <div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
-<header class="page-hero"><div class="step-badge">STEP 4 / 5</div><h1 data-zh="細胞組成解構 (Deconvolution)" data-en="Cell-Type Deconvolution">Deconvolution</h1><p class="subtitle" data-lang="zh">把一個多細胞 spot 拆回各細胞類型的比例——讓低解析度平台也能看到細胞級的故事。</p><p class="subtitle" data-lang="en">Break a multi-cell spot into cell-type proportions — bringing cell-level stories to lower-resolution platforms.</p></header><main class="content-wrap">
 
-<section class="section"><div class="section-label" data-zh="為什麼需要" data-en="WHY">為什麼需要</div>
-<h2 data-zh="多細胞 spot 的挑戰" data-en="The Multi-cell Spot Challenge">多細胞 spot 的挑戰</h2>
-<div data-lang="zh"><p>一個 55 μm 的 Visium spot 通常包含 1-10 個細胞，混合多種細胞類型。若直接把 spot 當「一個細胞」處理，會混淆不同 cell type 的訊號。Deconvolution 用單細胞 reference (scRNA-seq) 推估每個 spot 的細胞類型比例。</p></div>
-<div data-lang="en"><p>A 55 μm Visium spot typically holds 1–10 cells of mixed types. Treating a spot as "one cell" mixes signals across types. Deconvolution uses a single-cell reference (scRNA-seq) to estimate the cell-type proportions in each spot.</p></div>
-<div class="flow-chain">
-  <span class="fc-step">scRNA reference</span><span class="fc-arrow">+</span>
-  <span class="fc-step">Visium spots</span><span class="fc-arrow">→</span>
-  <span class="fc-step">Deconvolution model</span><span class="fc-arrow">→</span>
-  <span class="fc-step">spot × celltype 比例</span>
+<header class="page-hero"><div class="step-badge">STEP 4 / 5 · SPATIAL</div>
+<h1 data-zh="細胞組成解構 (Deconvolution)" data-en="Cell-type Deconvolution">細胞組成解構</h1>
+<p class="subtitle" data-lang="zh">把一個多細胞 spot 拆回各細胞類型的比例——讓 Visium 也能講細胞級的故事。</p>
+<p class="subtitle" data-lang="en">Break a multi-cell spot into cell-type proportions — bring cell-level stories to Visium.</p>
+<div style="margin-top:18px"><span class="diff-chip beg">🟢 Beginner</span><span class="diff-chip int">🟡 Intermediate</span><span class="diff-chip adv">🔴 Advanced</span></div>
+</header>
+
+<main class="content-wrap">
+
+<section class="section">
+<div class="section-label" data-zh="開場故事" data-en="MOTIVATION">開場故事</div>
+<h2 data-zh="為什麼一個 spot 是「混合」？" data-en="Why is a spot a 'mixture'?">為什麼一個 spot 是「混合」？</h2>
+<div data-lang="zh">
+<p>想像你在拍一張人群的衛星空照：解析度只到 50 公尺。你能看到「人群密度」、「移動方向」，但<strong>看不到單一個人</strong>。Visium 的 spot（55 μm 直徑）就像這張衛星圖——每個點涵蓋 1–10 個細胞，是<strong>細胞類型的混合</strong>。直接拿來分析會被誤導：你以為某 spot 是「T cell」，其實是 3 個 T cell + 1 個 B cell + 2 個 macrophage 的平均訊號。</p>
+<p><strong>Deconvolution 的核心問題：</strong>給一個 spot 的表達矩陣，加上同組織的單細胞 reference，能不能反推出每個 spot 中各細胞類型的比例？這是 2020 年後 spatial 領域最熱的方法論競賽，目前主流方法已能達到 RMSE &lt; 10% 的精度。</p>
 </div>
+<div data-lang="en">
+<p>Imagine a satellite photo of a crowd with 50-m resolution. You see crowd density and movement, but <strong>not individual people</strong>. A Visium spot (55 μm) is like that satellite image — each covers 1–10 cells and is a <strong>mixture of cell types</strong>. Naïve analysis misleads: you think a spot is "T cell," but it's really 3 T + 1 B + 2 macrophages averaged.</p>
+<p><strong>Deconvolution's core question:</strong> given a spot's expression and a single-cell reference of the same tissue, can we recover the cell-type proportions per spot? This has been the hottest methodological race in spatial since 2020; leading tools now achieve RMSE &lt; 10%.</p>
+</div>
+
+<div class="analogy" data-lang="zh"><strong>類比：</strong>Deconvolution 像「從一杯混合果汁猜出原料比例」——只要你有純的蘋果汁、橘子汁、葡萄汁當參照（reference），就可以反推杯中的混合比例。spatial = 混合杯、scRNA reference = 純果汁庫。</div>
+<div class="analogy" data-lang="en"><strong>Analogy:</strong> Deconvolution is like guessing the proportions in a fruit-juice cocktail — given pure apple, orange, and grape juices as references. Spatial = cocktail; scRNA reference = pure juice library.</div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="主流工具" data-en="TOOLS">主流工具</div>
-<h2 data-zh="工具比較" data-en="Tool Comparison">工具比較</h2>
-<table class="comp-table"><thead><tr><th>Tool</th><th data-zh="模型" data-en="Model">模型</th><th data-zh="特色" data-en="Notes">特色</th></tr></thead><tbody>
-<tr><td><strong>cell2location</strong></td><td data-zh="貝氏 hierarchical Poisson" data-en="Bayesian hierarchical Poisson">貝氏</td><td data-zh="估計絕對細胞數；最準確的整合分析工具之一" data-en="Estimates absolute counts; among the most accurate">絕對數量</td></tr>
-<tr><td><strong>RCTD</strong></td><td data-zh="constrained max-likelihood" data-en="Constrained max-likelihood">受限最大似然</td><td data-zh="速度快、適合中等解析度資料" data-en="Fast; suits medium-resolution data">快速可靠</td></tr>
-<tr><td><strong>SPOTlight</strong></td><td>seeded NMF</td><td data-zh="可解釋的因子；不需大量 reference 訓練" data-en="Interpretable factors; minimal reference training">解釋性</td></tr>
-<tr><td><strong>CARD</strong></td><td data-zh="condition autoregressive 模型" data-en="Conditional autoregressive">CAR 模型</td><td data-zh="利用 spot 鄰近結構平滑結果" data-en="Uses neighbor structure to smooth proportions">含空間平滑</td></tr>
-<tr><td><strong>Tangram</strong></td><td data-zh="深度學習 mapping" data-en="Deep-learning mapping">深度學習</td><td data-zh="可同時用基因 panel 推 imputation" data-en="Joint imputation & mapping">影像友好</td></tr>
-<tr><td><strong>Stereoscope</strong></td><td>NB 機率模型</td><td data-zh="cell2location 的前身概念，較輕量" data-en="Predecessor of cell2location; lighter">輕量</td></tr>
+<section class="section">
+<div class="section-label" data-zh="工具" data-en="TOOLS">工具</div>
+<h2 data-zh="一、主流工具比較" data-en="I. Mainstream tools">一、主流工具比較</h2>
+
+<table class="comp-table"><thead><tr>
+<th>Tool</th><th data-zh="模型" data-en="Model">模型</th><th data-zh="特色" data-en="Notes">特色</th><th data-zh="推薦情境" data-en="Best for">最佳情境</th>
+</tr></thead><tbody>
+<tr><td><strong>cell2location</strong></td><td data-zh="貝氏 hierarchical Poisson" data-en="Bayesian hierarchical Poisson">貝氏</td><td data-zh="估計絕對細胞數；2022 年最準" data-en="Estimates absolute counts; most accurate 2022">絕對細胞數</td><td data-zh="高解析度需求" data-en="High resolution">高解析需求</td></tr>
+<tr><td><strong>RCTD</strong></td><td data-zh="constrained max-likelihood" data-en="Constrained max-likelihood">受限最大似然</td><td data-zh="速度快、可信度高" data-en="Fast, reliable">快速可靠</td><td data-zh="標準 Visium 流程" data-en="Standard Visium">標準流程</td></tr>
+<tr><td><strong>SPOTlight</strong></td><td>seeded NMF</td><td data-zh="可解釋因子；最早提出" data-en="Interpretable factors; pioneering">解釋性高</td><td data-zh="可解釋性需求" data-en="Interpretability">需可解釋</td></tr>
+<tr><td><strong>CARD</strong></td><td data-zh="CAR 模型" data-en="Conditional autoregressive">CAR 空間平滑</td><td data-zh="鄰近 spots 互相平滑" data-en="Neighbor smoothing">含空間平滑</td><td data-zh="連續組織" data-en="Continuous tissue">連續組織</td></tr>
+<tr><td><strong>Tangram</strong></td><td data-zh="深度學習 mapping" data-en="DL mapping">深度學習</td><td data-zh="可同時做 gene imputation" data-en="Joint imputation">影像友好</td><td data-zh="基因 imputation" data-en="Gene imputation">imputation 需求</td></tr>
+<tr><td><strong>Stereoscope</strong></td><td>NB 機率模型</td><td data-zh="cell2location 前身、輕量" data-en="Predecessor of cell2location; lighter">輕量</td><td data-zh="小規模試驗" data-en="Small-scale trials">小規模</td></tr>
 </tbody></table>
+
+<div class="protip"><strong data-zh="2024 共識" data-en="2024 consensus">2024 共識</strong><span data-zh="：Li et al. 2022 Nature Methods 對 16 個工具的 benchmark：cell2location 與 RCTD 在多數情境下是 top 2。cell2location 更精準但慢、需 GPU；RCTD 速度勝出、適合大規模分析。<strong>實務建議</strong>：跑 cell2location 為主，RCTD 為快速 sanity check。" data-en=": Li et al. (2022, Nature Methods) benchmarked 16 tools — cell2location and RCTD are top 2 across scenarios. cell2location is more accurate but slower and needs GPU; RCTD is faster, ideal for large-scale. <strong>Practice:</strong> cell2location as primary, RCTD as quick sanity check."></span></div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
-<h2 data-zh="模擬一個多細胞 spot" data-en="Simulate a Multi-cell Spot">模擬一個多細胞 spot</h2>
-<div data-lang="zh"><p>調整 3 種細胞類型在 spot 內的比例，看 deconvolution 推估結果的 RMSE：</p></div>
-<div data-lang="en"><p>Adjust the true proportions of 3 cell types in the spot, watch the deconvolution RMSE:</p></div>
+<section class="section">
+<div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
+<h2 data-zh="二、模擬一個多細胞 spot" data-en="II. Simulate a multi-cell spot">二、模擬一個多細胞 spot</h2>
+<div data-lang="zh"><p>調整 3 種細胞類型在 spot 內的真實比例，模擬 deconvolution 在不同雜訊水準下的 RMSE：</p></div>
+<div data-lang="en"><p>Adjust the 3 cell-type proportions; see deconvolution RMSE at different noise levels:</p></div>
+
 <div class="interactive-panel">
-<div class="slider-group"><label data-lang="zh">T 細胞比例<span id="valT">40</span>%</label><label data-lang="en">T cell proportion<span id="valTEn">40</span>%</label><input type="range" id="sliderT" min="0" max="100" value="40" step="1"></div>
-<div class="slider-group"><label data-lang="zh">B 細胞比例<span id="valB">30</span>%</label><label data-lang="en">B cell proportion<span id="valBEn">30</span>%</label><input type="range" id="sliderB" min="0" max="100" value="30" step="1"></div>
-<div class="slider-group"><label data-lang="zh">髓系細胞比例<span id="valM">30</span>%</label><label data-lang="en">Myeloid proportion<span id="valMEn">30</span>%</label><input type="range" id="sliderM" min="0" max="100" value="30" step="1"></div>
+<div class="slider-group"><label><span data-zh="T 細胞 (%)" data-en="T cell (%)">T 細胞</span> <span id="valT">40</span></label><input type="range" id="sliderT" min="0" max="100" value="40" step="1"></div>
+<div class="slider-group"><label><span data-zh="B 細胞 (%)" data-en="B cell (%)">B 細胞</span> <span id="valB">30</span></label><input type="range" id="sliderB" min="0" max="100" value="30" step="1"></div>
+<div class="slider-group"><label><span data-zh="髓系細胞 (%)" data-en="Myeloid (%)">髓系</span> <span id="valM">30</span></label><input type="range" id="sliderM" min="0" max="100" value="30" step="1"></div>
 <div class="chart-container" style="height:300px;"><canvas id="decBar"></canvas></div>
 <div id="rmseMsg" style="font-size:.9rem;color:var(--c-ink-light);margin-top:8px;"></div>
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="程式碼" data-en="CODE">程式碼</div>
-<h2 data-zh="實作範例" data-en="Code Examples">實作範例</h2>
+<section class="section">
+<div class="section-label" data-zh="案例研究" data-en="CASE STUDY">案例研究</div>
+<h2 data-zh="三、真實案例：人類腦皮層的 spatial deconvolution" data-en="III. Real case: human cortex spatial deconvolution">三、真實案例：人類腦皮層</h2>
+<div class="case-study">
+<div class="case-meta">Maynard et al. 2021 · Nature Neuroscience · GSE174746</div>
+<h4 data-zh="📂 從 Visium 重建 6 層皮層結構" data-en="📂 Reconstructing 6-layer cortex from Visium">📂 重建 6 層皮層結構</h4>
+<div data-lang="zh">
+<p><span class="real-data" data-zh="真實資料" data-en="Real Data">真實資料</span> Maynard 等人對 12 位健康成人的 dorsolateral prefrontal cortex (DLPFC) 做了 Visium 定序，目的：能否從空間表達<strong>無監督地</strong>重建大腦皮層的 6 層結構？這是 spatial transcriptomics 經典基準資料集。</p>
+<p><strong>方法：</strong>(1) 收集同部位 scRNA-seq reference（含 6 層特異的興奮性神經元 marker）；(2) 用 cell2location deconvolve 每個 spot；(3) 把預測比例 overlay 到 H&E 影像上。</p>
+<p><strong>結果：</strong>不同層別 (L1-L6) 的神經元在 deconv 結果中清楚分佈為平行條帶，與 Nissl 染色一致。<strong>白質 (WM) 區域被 oligodendrocyte 比例正確標識。</strong>這個資料集現在是 BayesSpace、SpaGCN、cell2location 等工具的「圖靈測試」基準。</p>
+<p><strong>啟示：</strong>選好 reference 是成功的關鍵——若用 hippocampus scRNA 對 DLPFC 做 deconvolution，這個結構就完全還原不出來。</p>
+</div>
+<div data-lang="en">
+<p><span class="real-data">Real Data</span> Maynard et al. profiled DLPFC (dorsolateral prefrontal cortex) from 12 healthy adults via Visium. Goal: can spatial expression <strong>unsupervisedly</strong> reconstruct the 6-layer cortical architecture? Now a classic spatial benchmark.</p>
+<p><strong>Approach:</strong> (1) collect matched scRNA-seq reference (containing layer-specific excitatory neuron markers); (2) deconvolve each spot with cell2location; (3) overlay predicted proportions onto H&E.</p>
+<p><strong>Result:</strong> L1–L6 neurons appear as clear parallel bands matching Nissl staining. <strong>White-matter regions are correctly tagged by high oligodendrocyte proportions.</strong> This dataset is now the "Turing test" benchmark for BayesSpace, SpaGCN, cell2location, etc.</p>
+<p><strong>Takeaway:</strong> reference selection is everything — using hippocampal scRNA on DLPFC would fail to recover this structure.</p>
+</div>
+</div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="程式碼" data-en="CODE">程式碼</div>
+<h2 data-zh="四、實作範例" data-en="IV. Code examples">四、實作範例</h2>
 <div class="code-tabs"><div class="code-tab-btns">
 <button class="code-tab-btn active" onclick="switchTab(this,'c2l')">cell2location</button>
 <button class="code-tab-btn" onclick="switchTab(this,'rctd')">RCTD</button>
@@ -71,53 +113,77 @@ ref &lt;- <span class="func">Reference</span>(sc_counts, sc_cell_types)
 puck &lt;- <span class="func">SpatialRNA</span>(coords, sp_counts)
 RCTD &lt;- <span class="func">create.RCTD</span>(puck, ref, max_cores = <span class="num">8</span>)
 RCTD &lt;- <span class="func">run.RCTD</span>(RCTD, doublet_mode = <span class="str">"full"</span>)
-weights &lt;- RCTD@results$weights   <span class="comment"># spot × celltype 比例</span></pre></div>
+weights &lt;- RCTD@results$weights</pre></div>
 <div class="code-tab-content" id="spot"><pre><span class="kw">library</span>(SPOTlight); <span class="kw">library</span>(Seurat)
 mks &lt;- <span class="func">FindAllMarkers</span>(sc, only.pos = <span class="kw">TRUE</span>, min.pct = <span class="num">0.25</span>)
 sp &lt;- <span class="func">SPOTlight</span>(x = sc, y = vis,
               groups = sc$celltype,
               mgs    = mks,
               hvg    = <span class="func">VariableFeatures</span>(sc))
-prop &lt;- sp$mat   <span class="comment"># 每 spot 的 celltype 比例</span></pre></div>
+prop &lt;- sp$mat</pre></div>
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="陷阱" data-en="PITFALLS">陷阱</div>
-<h2 data-zh="常見錯誤" data-en="Common Pitfalls">常見錯誤</h2>
-<div class="callout danger"><span class="callout-icon">🚫</span><div data-lang="zh"><strong>Reference 與 spatial 樣本來自不同組織：</strong>用人類肺 scRNA reference 去解構人類腦 spatial，會找不到對應 cell type。理想是同組織、同條件 (FFPE/fresh)、同物種。</div><div data-lang="en"><strong>Reference and spatial from different tissues:</strong> deconvolving brain spatial with lung scRNA fails. Ideal: same tissue, same prep (FFPE/fresh), same species.</div></div>
-<div class="callout danger"><span class="callout-icon">🚫</span><div data-lang="zh"><strong>Reference cell-type 註釋過粗：</strong>把 「T cell」當一種就無法區分 CD4 / CD8 / Treg。先用精細註釋的 reference。</div><div data-lang="en"><strong>Coarse reference annotations:</strong> labeling all as "T cell" loses CD4 / CD8 / Treg distinctions. Use finely annotated references.</div></div>
-<div class="callout danger"><span class="callout-icon">🚫</span><div data-lang="zh"><strong>把 proportions 當 raw counts 做下游 DE：</strong>proportions 是 softmax 輸出，不能 DESeq2。要做差異，應在 cluster / 區域層級。</div><div data-lang="en"><strong>Using proportions as counts for DE:</strong> they're softmax outputs — incompatible with DESeq2. Run DE at cluster / region level.</div></div>
+<section class="section">
+<div class="section-label" data-zh="陷阱" data-en="PITFALLS">陷阱</div>
+<h2 data-zh="五、五個 deconvolution 陷阱" data-en="V. Five deconvolution pitfalls">五、五個陷阱</h2>
+
+<div class="pitfall"><strong data-zh="陷阱 1：Reference 與 spatial 來自不同組織" data-en="Pitfall 1: Reference from different tissue">陷阱 1：跨組織 reference</strong><span data-zh="。用人類肺 scRNA reference 對腎 Visium 做 deconvolution，會找不到對應 cell type。理想：同組織、同條件（FFPE/fresh）、同物種。次優：用 cross-tissue reference + 限制 cell-type label 子集。" data-en=". Using lung scRNA reference on kidney Visium fails to match cell types. Ideal: same tissue, same prep, same species. Second-best: cross-tissue reference + restricted label subset."></span></div>
+
+<div class="pitfall"><strong data-zh="陷阱 2：Reference 註釋過粗" data-en="Pitfall 2: Coarse reference annotation">陷阱 2：註釋過粗</strong><span data-zh="。把所有 「T cell」歸為一類，deconv 結果就無法區分 CD4 / CD8 / Treg / γδT。先用精細註釋的 reference（如 Azimuth、CellTypist），對應你的研究問題。" data-en=". Labeling all as 'T cell' loses CD4 / CD8 / Treg / γδT distinctions. Use finely annotated references (Azimuth, CellTypist) tailored to your research question."></span></div>
+
+<div class="pitfall"><strong data-zh="陷阱 3：把 proportions 當 raw counts 做 DE" data-en="Pitfall 3: Treating proportions as counts for DE">陷阱 3：用 proportions 做 DE</strong><span data-zh="。deconv 輸出是 softmax 比例（總和為 1），不是 raw counts。不能餵 DESeq2 / edgeR。要做差異分析，應在 cluster 層級（spot 經 spatial clustering 後）做。" data-en=". Deconvolution outputs softmax proportions (sum to 1), not raw counts. Cannot feed DESeq2/edgeR. Run DE at cluster level (after spatial clustering of spots)."></span></div>
+
+<div class="pitfall"><strong data-zh="陷阱 4：忽略 ambient / spillover" data-en="Pitfall 4: Ignoring ambient / spillover">陷阱 4：未處理 ambient</strong><span data-zh="。Visium spot 邊緣可能捕獲鄰近 spot 的「外溢 RNA」。cell2location 的 detection_alpha 參數專門校正這個；過低會造成假高的「組織外」cell types。" data-en=". Visium spot edges may capture 'spillover' RNA from neighbors. cell2location's detection_alpha parameter corrects this; setting too low inflates 'extra-tissue' cell types."></span></div>
+
+<div class="pitfall"><strong data-zh="陷阱 5：對極稀有 cell type 過度信任" data-en="Pitfall 5: Over-trusting rare cell-type predictions">陷阱 5：稀有 type 結果不可靠</strong><span data-zh="。若 reference 某 cell type 只有 50 個細胞，其 signature 不夠穩定，deconv 出來的比例可能是 noise。建議：對該 type 用 multiplex IHC 驗證、或用 reference &gt; 500 cells 的標準 type。" data-en=". If a reference cell type has only 50 cells, its signature is unstable; deconvolved proportions may be noise. Validate rare types with multiplex IHC or restrict to types with &gt; 500 reference cells."></span></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="討論" data-en="DISCUSSION">討論</div>
+<h2 data-zh="六、思考題" data-en="VI. Discussion questions">六、思考題</h2>
+<div class="discussion">
+<h4 data-zh="💭 思考點" data-en="💭 Points to ponder">💭 思考點</h4>
+<div data-lang="zh">
+<p><span class="q-ico">Q1.</span> 你想分析「腫瘤微環境中 Treg 的空間分布」，但沒有自己的 tumor-specific scRNA reference。可選方案：(a) 用 PBMC 的 Treg signature、(b) 用 Tabula Sapiens 的 Treg、(c) 用其他公開 tumor scRNA。比較三者的優缺點。</p>
+<p><span class="q-ico">Q2.</span> deconv 後一個 spot 顯示「CD4 T = 30% + CD8 T = 30% + Macrophage = 40%」，但同位置 H&E 看起來像純纖維化區。可能原因？提示：reference signature、ambient RNA、deconv 模型限制。</p>
+<p><span class="q-ico">Q3.</span> Visium HD 的 2 μm bin 號稱「single-cell resolution」。是否仍需要 deconvolution？討論：bin 大小 vs 細胞大小、segmentation 演算法、reference 仍有意義嗎？</p>
+</div>
+<div data-lang="en">
+<p><span class="q-ico">Q1.</span> You want to map Tregs in the tumor microenvironment but lack a tumor-specific scRNA reference. Options: (a) PBMC Treg signature; (b) Tabula Sapiens Tregs; (c) other public tumor scRNA. Compare pros/cons.</p>
+<p><span class="q-ico">Q2.</span> A spot shows "CD4 T 30% + CD8 T 30% + Macrophage 40%" but the H&E looks like a pure fibrotic region. Possible causes? (Reference signature, ambient RNA, model limitations.)</p>
+<p><span class="q-ico">Q3.</span> Visium HD claims 2 μm bins = "single-cell resolution." Do we still need deconvolution? Discuss bin vs cell size, segmentation, reference utility.</p>
+</div>
+</div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="FAQ" data-en="FAQ">FAQ</div>
+<h2 data-zh="七、常見問答" data-en="VII. FAQ">七、常見問答</h2>
+<div class="faq-list">
+<div class="faq-item"><button class="faq-q" data-zh="❓ 我需要多少 scRNA cells 才足以建立 reference？" data-en="❓ How many scRNA cells for the reference?">❓ Reference 要多少細胞？</button>
+<div class="faq-a"><div data-lang="zh"><p>經驗值：每個 cell type 至少 500 cells，total &gt; 10,000 cells。少於這個量，signature 不穩定。Maynard et al. 用 ~78,000 cells 建 reference（DLPFC 約 20 個 cell types）。對稀有 type，可考慮從 multiplex panel 或多筆資料 pooling。</p></div><div data-lang="en"><p>Rule of thumb: ≥ 500 cells per cell type, total &gt; 10,000. Below that, signatures are unstable. Maynard et al. used ~78,000 cells (~20 cell types in DLPFC). For rare types, pool from multiplex panels or multiple datasets.</p></div></div></div>
+
+<div class="faq-item"><button class="faq-q" data-zh="❓ cell2location 跑 30,000 epochs 是不是太多？" data-en="❓ Are 30,000 epochs in cell2location too many?">❓ epochs 設多少？</button>
+<div class="faq-a"><div data-lang="zh"><p>官方建議 30,000，但實際視訓練 loss 收斂判斷。對 Visium 一個樣本 (~5000 spots) + 20 cell types，30k epochs 在 V100 GPU 約 30 分鐘。若 loss 在 10,000 epochs 已平緩，可早停。</p></div><div data-lang="en"><p>Official recommendation is 30,000, but watch training loss for convergence. For one Visium sample (~5000 spots) + 20 cell types, 30k epochs takes ~30 min on V100 GPU. If loss plateaus by 10,000, early-stop.</p></div></div></div>
+
+<div class="faq-item"><button class="faq-q" data-zh="❓ Tangram 與 cell2location 怎麼選？" data-en="❓ Tangram vs cell2location?">❓ Tangram vs cell2location？</button>
+<div class="faq-a"><div data-lang="zh"><p>Tangram 強項是<strong>同時做 gene imputation</strong>（把 scRNA 中有但 spatial 沒測到的基因補回 spatial）。若你的研究需要 spatial 的「補完基因表達」，用 Tangram。純做 cell type proportion 估計，cell2location 在 benchmark 上略佔上風。</p></div><div data-lang="en"><p>Tangram's strength is <strong>joint gene imputation</strong> — recovering scRNA-detected genes that spatial missed. For studies needing "extended gene expression in space," use Tangram. For pure cell-type proportion estimation, cell2location is slightly ahead in benchmarks.</p></div></div></div>
+
+<div class="faq-item"><button class="faq-q" data-zh="❓ 結果可信度怎麼驗證？" data-en="❓ How to validate results?">❓ 驗證 deconv 結果？</button>
+<div class="faq-a"><div data-lang="zh"><p>(1) 與 H&E 影像比對：高 immune cell 比例 spots 應對應淋巴浸潤；(2) multiplex IHC 確認關鍵 cell type；(3) 對連續組織 (如皮層) 看是否形成符合解剖的條帶；(4) 跨工具一致性：cell2location 與 RCTD 結果相關係數 &gt; 0.7 才安心。</p></div><div data-lang="en"><p>(1) Compare with H&E: high-immune spots should map to lymphocyte infiltration; (2) confirm key types via multiplex IHC; (3) for continuous tissues (cortex), expect anatomically consistent bands; (4) cross-tool consistency: correlation &gt; 0.7 between cell2location and RCTD = reassuring.</p></div></div></div>
+</div>
 </section>
 
 <nav class="page-nav"><a href="spatial-analysis.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 3：Spatial Analysis" data-en="Step 3: Spatial Analysis">Step 3：Spatial Analysis</span></a><a href="interactions.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 5：細胞通訊" data-en="Step 5: Cell-Cell Comm">Step 5：細胞通訊</span></a></nav>
 </main>
 <footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="../i18n.js"></script>
 <script>
-window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
-function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
-const decBar=new Chart(document.getElementById('decBar'),{type:'bar',data:{labels:['T cell','B cell','Myeloid'],datasets:[
-  {label:'True',data:[40,30,30],backgroundColor:'rgba(122,78,181,0.7)'},
-  {label:'Predicted',data:[],backgroundColor:'rgba(212,160,60,0.7)'}
-]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{min:0,max:100,title:{display:true,text:'Proportion (%)'}}}}});
-function upD(){
-  let t=+document.getElementById('sliderT').value;let b=+document.getElementById('sliderB').value;let m=+document.getElementById('sliderM').value;
-  const sum=t+b+m;if(sum===0){t=1;}
-  // normalize
-  const tn=t/(t+b+m)*100;const bn=b/(t+b+m)*100;const mn=m/(t+b+m)*100;
-  document.getElementById('valT').textContent=Math.round(tn);document.getElementById('valTEn').textContent=Math.round(tn);
-  document.getElementById('valB').textContent=Math.round(bn);document.getElementById('valBEn').textContent=Math.round(bn);
-  document.getElementById('valM').textContent=Math.round(mn);document.getElementById('valMEn').textContent=Math.round(mn);
-  // simulated prediction with noise
-  const noise=()=>(Math.random()-0.5)*15;const pt=Math.max(0,tn+noise());const pb=Math.max(0,bn+noise());const pm=Math.max(0,mn+noise());
-  const ps=pt+pb+pm;
-  const ptn=pt/ps*100;const pbn=pb/ps*100;const pmn=pm/ps*100;
-  decBar.data.datasets[0].data=[tn,bn,mn];
-  decBar.data.datasets[1].data=[ptn,pbn,pmn];
-  decBar.update('none');
-  const rmse=Math.sqrt(((tn-ptn)**2+(bn-pbn)**2+(mn-pmn)**2)/3);
-  const L=I18n.get();document.getElementById('rmseMsg').textContent=L==='zh'?'RMSE ≈ '+rmse.toFixed(1)+'（隨機模擬；真實情況下優秀 reference RMSE 通常 &lt; 8%）。':'RMSE ≈ '+rmse.toFixed(1)+' (random sim.; good references usually RMSE &lt; 8%).';
-}
+window.addEventListener('scroll',()=>{const h=document.documentElement;document.getElementById('progressBar').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+'%';});
+function switchTab(b,id){const p=b.closest('.code-tabs');p.querySelectorAll('.code-tab-btn').forEach(x=>x.classList.remove('active'));p.querySelectorAll('.code-tab-content').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById(id).classList.add('active');}
+document.querySelectorAll('.faq-q').forEach(b=>b.addEventListener('click',()=>{b.classList.toggle('open');b.nextElementSibling.classList.toggle('open');}));
+const decBar=new Chart(document.getElementById('decBar'),{type:'bar',data:{labels:['T cell','B cell','Myeloid'],datasets:[{label:'True',data:[40,30,30],backgroundColor:'rgba(122,78,181,0.7)'},{label:'Predicted',data:[],backgroundColor:'rgba(212,160,60,0.7)'}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{min:0,max:100,title:{display:true,text:'Proportion (%)'}}}}});
+function upD(){let t=+document.getElementById('sliderT').value;let b=+document.getElementById('sliderB').value;let m=+document.getElementById('sliderM').value;const sum=t+b+m;if(sum===0){t=1;}const tn=t/(t+b+m)*100;const bn=b/(t+b+m)*100;const mn=m/(t+b+m)*100;document.getElementById('valT').textContent=Math.round(tn);document.getElementById('valB').textContent=Math.round(bn);document.getElementById('valM').textContent=Math.round(mn);const noise=()=>(Math.random()-0.5)*15;const pt=Math.max(0,tn+noise());const pb=Math.max(0,bn+noise());const pm=Math.max(0,mn+noise());const ps=pt+pb+pm;const ptn=pt/ps*100;const pbn=pb/ps*100;const pmn=pm/ps*100;decBar.data.datasets[0].data=[tn,bn,mn];decBar.data.datasets[1].data=[ptn,pbn,pmn];decBar.update('none');const rmse=Math.sqrt(((tn-ptn)**2+(bn-pbn)**2+(mn-pmn)**2)/3);const L=(window.I18n&&I18n.get)?I18n.get():'zh';document.getElementById('rmseMsg').textContent=L==='zh'?'RMSE ≈ '+rmse.toFixed(1)+'%（隨機模擬；優秀 reference 通常 RMSE < 8%）。':'RMSE ≈ '+rmse.toFixed(1)+'% (random sim; good references usually RMSE < 8%).';}
 ['sliderT','sliderB','sliderM'].forEach(id=>document.getElementById(id).addEventListener('input',upD));document.addEventListener('langchange',upD);upD();
 </script></body></html>

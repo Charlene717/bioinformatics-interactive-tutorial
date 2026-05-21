@@ -8,62 +8,326 @@
   </ul>
 </div></nav>
 <div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
-<header class="page-hero"><div class="step-badge">STEP 1 / 5</div><h1 data-zh="平台與技術" data-en="Platforms & Technologies">平台與技術</h1><p class="subtitle" data-lang="zh">六大主流空間轉錄組學技術——解析度、通量、價格、適用場景的權衡。</p><p class="subtitle" data-lang="en">Six major spatial transcriptomics platforms — trade-offs in resolution, throughput, cost, and use cases.</p></header><main class="content-wrap">
+<header class="page-hero"><div class="step-badge">STEP 1 / 5</div>
+<h1 data-zh="平台與技術" data-en="Platforms & Technologies">平台與技術</h1>
+<p class="subtitle" data-lang="zh">七大主流空間轉錄組學技術——解析度、化學原理、預算、適用情境的全面權衡。</p>
+<p class="subtitle" data-lang="en">Seven mainstream spatial transcriptomics platforms — a full trade-off across resolution, chemistry, budget, and use cases.</p>
+<div class="diff-chips" style="justify-content:center;margin-top:18px">
+  <span class="diff-chip beg">🟢 <span data-zh="入門：平台地景" data-en="Beginner: platform landscape">入門</span></span>
+  <span class="diff-chip int">🟡 <span data-zh="進階：化學原理" data-en="Intermediate: chemistry">進階</span></span>
+  <span class="diff-chip adv">🔴 <span data-zh="高階：規格選型" data-en="Advanced: spec selection">高階</span></span>
+</div>
+</header><main class="content-wrap">
 
-<section class="section"><div class="section-label" data-zh="兩大派別" data-en="TWO FAMILIES">兩大派別</div>
-<h2 data-zh="Array-based vs Imaging-based" data-en="Array-based vs Imaging-based">兩大派別</h2>
-<div class="card-grid cols-2">
-<div class="card"><div class="card-icon">🟢</div><h4 data-zh="Array-based (NGS 流程)" data-en="Array-based (NGS workflow)">Array-based</h4><p data-lang="zh">在玻片上固定大量 barcoded 寡核苷酸，捕捉組織釋放的 mRNA，再用 short-read 定序讀取。<strong>優：</strong>全轉錄組、流程接近 scRNA-seq。<strong>限制：</strong>解析度受 barcode 大小限制。</p><p data-lang="en">Barcoded oligo arrays on a glass slide capture released mRNA; short-read sequencing reads them out. <strong>Pro:</strong> whole transcriptome, scRNA-like workflow. <strong>Limit:</strong> resolution capped by barcode size.</p><p data-lang="zh"><strong>代表：</strong>Visium、Visium HD、Slide-seq V2、Stereo-seq、HDST。</p><p data-lang="en"><strong>Tools:</strong> Visium, Visium HD, Slide-seq V2, Stereo-seq, HDST.</p></div>
-<div class="card"><div class="card-icon">🟣</div><h4 data-zh="Imaging-based (smFISH 流程)" data-en="Imaging-based (smFISH)">Imaging-based</h4><p data-lang="zh">針對預設基因 panel 設計多輪 FISH 探針，逐輪拍照、用組合編碼解讀基因身份。<strong>優：</strong>亞細胞、保留原位形貌。<strong>限制：</strong>panel 通常 100-1000 基因，非全轉錄組。</p><p data-lang="en">Pre-designed gene-panel FISH probes are imaged in multiple rounds; combinatorial codes decode gene identity. <strong>Pro:</strong> sub-cellular, preserves morphology. <strong>Limit:</strong> 100–1000 gene panels, not whole transcriptome.</p><p data-lang="zh"><strong>代表：</strong>MERFISH、Xenium、CosMx、STARmap、seqFISH+。</p><p data-lang="en"><strong>Tools:</strong> MERFISH, Xenium, CosMx, STARmap, seqFISH+.</p></div>
+<!-- Why platform matters -->
+<section class="section"><div class="section-label" data-zh="為什麼重要" data-en="WHY IT MATTERS">為什麼重要</div>
+<h2 data-zh="為什麼「選對平台」是 80% 的成功？" data-en="Why is platform choice 80% of the success?">為什麼「選對平台」是 80% 的成功？</h2>
+<div data-lang="zh">
+<p>空間轉錄組學是一個「<strong>實驗設計決定上限</strong>」的領域——後續再厲害的演算法也無法補回平台本身的物理限制。常見的「悲劇」：</p>
+<ul style="margin:8px 0 14px 24px;color:var(--c-ink-light)">
+<li>研究 <strong>單細胞 T-tumor 直接接觸</strong>，卻用了 55 μm 的 Visium → 每個 spot 都混了 5-10 種細胞，怎麼算「接觸」？</li>
+<li>研究 <strong>未知的代謝重塑</strong>，卻買了 1000-gene 的 MERFISH panel → panel 裡沒有那條代謝路徑的關鍵基因。</li>
+<li>研究 <strong>15 年前歸檔的 FFPE 病理切片</strong>，卻選了只支援新鮮冷凍的 Slide-seq → 樣本全部報廢。</li>
+</ul>
+<p>本章節將帶你穿越每個平台的<strong>物理 / 化學原理</strong>、規格表、價格區間，並以決策樹的形式給你 mental model。</p>
+</div>
+<div data-lang="en">
+<p>Spatial transcriptomics is a field where <strong>experimental design caps the upside</strong> — no clever algorithm can rescue a platform's physical limits. Common tragedies:</p>
+<ul style="margin:8px 0 14px 24px;color:var(--c-ink-light)">
+<li>Studying <strong>single-cell T-tumor contact</strong> but using 55 μm Visium → every spot mixes 5-10 cells, how do you call "contact"?</li>
+<li>Studying <strong>unknown metabolic rewiring</strong> but buying a 1000-gene MERFISH panel → key metabolic genes simply aren't on the panel.</li>
+<li>Studying <strong>15-year-old archival FFPE</strong> but choosing Slide-seq (fresh-frozen only) → all samples burned.</li>
+</ul>
+<p>This chapter walks you through each platform's <strong>physics / chemistry</strong>, spec sheet, and price band, then gives you a decision-tree mental model.</p>
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="平台比較" data-en="COMPARISON">平台比較</div>
-<h2 data-zh="關鍵指標一覽" data-en="Key Metrics at a Glance">關鍵指標一覽</h2>
-<table class="comp-table"><thead><tr><th>Platform</th><th data-zh="原理" data-en="Principle">原理</th><th data-zh="解析度" data-en="Resolution">解析度</th><th data-zh="基因數" data-en="Genes">基因數</th><th data-zh="特色" data-en="Notes">特色</th></tr></thead><tbody>
-<tr><td><strong>Visium</strong></td><td>poly-T array</td><td>55 μm (~1-10 cells)</td><td>~20,000 (whole-Tx)</td><td data-zh="商品化最成熟；FFPE 也支援" data-en="Most mature commercial; FFPE supported">最成熟</td></tr>
-<tr><td><strong>Visium HD</strong></td><td>2 μm bin array</td><td>2 μm (sub-cell)</td><td>~20,000</td><td data-zh="2023 推出；近單細胞解析度" data-en="Released 2023; near single-cell">2 μm bins</td></tr>
-<tr><td><strong>Slide-seq V2</strong></td><td>bead array</td><td>10 μm</td><td>~20,000</td><td data-zh="解析度高、捕獲率較低" data-en="Higher resolution; lower capture">捕獲率較低</td></tr>
-<tr><td><strong>Stereo-seq</strong></td><td>DNB chip</td><td data-zh="奈米級 (220 nm)" data-en="Nano (220 nm)">奈米級</td><td>~20,000</td><td data-zh="大組織面積 (cm 等級)；BGI 平台" data-en="cm-scale tissue area; BGI">大面積</td></tr>
-<tr><td><strong>10x Xenium</strong></td><td>imaging FISH</td><td>亞細胞</td><td>300-5000 panel</td><td data-zh="原位、FFPE 友好" data-en="In-situ, FFPE-friendly">FFPE 強</td></tr>
-<tr><td><strong>MERFISH</strong></td><td>combinatorial FISH</td><td>亞細胞</td><td>100-1000 panel</td><td data-zh="學術社群成熟、自製可行" data-en="Mature academic protocol">學術開源</td></tr>
-<tr><td><strong>CosMx</strong></td><td>imaging FISH</td><td>亞細胞</td><td>1000-6000 panel</td><td data-zh="NanoString 商品；含蛋白通道" data-en="NanoString commercial; protein channels">含蛋白</td></tr>
-</tbody></table>
+<!-- Two-family deep dive -->
+<section class="section"><div class="section-label" data-zh="化學原理" data-en="CHEMISTRY">化學原理</div>
+<h2 data-zh="兩大派別的化學深入解析" data-en="Chemistry deep dive of the two families">兩大派別的化學原理</h2>
+
+<h3 data-zh="① Array-based：捕捉與條碼" data-en="① Array-based: capture and barcoding">① Array-based：捕捉與條碼</h3>
+<div data-lang="zh">
+<p>核心步驟：</p>
+<ol style="margin:8px 0 14px 24px;color:var(--c-ink-light)">
+<li><strong>切片貼合：</strong>10 μm 厚的組織切片貼在預先排好 barcoded poly-T 寡核苷酸的玻片上。Visium 的 capture area 是 6.5×6.5 mm，含 ~5,000 個 55 μm spot。</li>
+<li><strong>透化（permeabilization）：</strong>用 pepsin / 蛋白酶讓細胞膜變透，mRNA 從細胞釋放後落到下方 spot。</li>
+<li><strong>反轉錄：</strong>poly-T 與 mRNA 的 polyA 配對，<span class="term">反轉錄酶<span class="term-tip">如 Maxima H Minus RTase — 在玻片表面做「在位」反轉錄，把每個 spot 的 barcode 加到 cDNA 上。</span></span> 把 mRNA 變 cDNA，spot 的 barcode 被「燒」進每條 cDNA。</li>
+<li><strong>建庫定序：</strong>cDNA 從玻片上洗下、做 NGS library、上 Illumina 機器。每條 read 含三段：spot barcode + UMI + cDNA 序列。</li>
+<li><strong>對位（registration）：</strong>軟體把每個 spot 的座標對齊到事先拍好的 H&E 影像上——所以你需要 H&E 影像！</li>
+</ol>
+</div>
+<div data-lang="en">
+<p>Core steps:</p>
+<ol style="margin:8px 0 14px 24px;color:var(--c-ink-light)">
+<li><strong>Tissue placement:</strong> 10 μm-thick section placed on a slide pre-arranged with barcoded poly-T oligos. Visium capture area is 6.5×6.5 mm with ~5,000 55 μm spots.</li>
+<li><strong>Permeabilization:</strong> pepsin / protease permeabilizes membranes; released mRNA falls onto the spot beneath.</li>
+<li><strong>Reverse transcription:</strong> poly-T base-pairs with mRNA polyA; <span class="term">reverse transcriptase<span class="term-tip">e.g., Maxima H Minus RTase — performs in-place RT on the slide, attaching each spot's barcode onto the cDNA.</span></span> writes cDNA with the barcode burned in.</li>
+<li><strong>Library + sequencing:</strong> cDNA stripped from slide, NGS-libraried, run on Illumina. Each read = spot barcode + UMI + cDNA sequence.</li>
+<li><strong>Registration:</strong> software aligns each spot to a pre-acquired H&E image — so you must take an H&E first!</li>
+</ol>
+</div>
+
+<div class="protip">
+<div class="pt-title" data-zh="關鍵：透化時間" data-en="Key: permeabilization time">關鍵：透化時間</div>
+<p data-lang="zh">不同組織需要不同透化時間（10x 的 <span class="kw-inline">Tissue Optimization</span> kit 就是用來測這個）。腦 ~12 分鐘、肝 ~30 分鐘、肌肉 ~40+ 分鐘。透化不足 → UMI 數低；透化過頭 → mRNA 擴散到鄰近 spot，「diffusion」造成解析度下降。</p>
+<p data-lang="en">Different tissues need different permeabilization times (10x's <span class="kw-inline">Tissue Optimization</span> kit measures exactly this). Brain ~12 min, liver ~30 min, muscle ~40+ min. Under-permeabilized → low UMI; over-permeabilized → mRNA diffuses to neighbors and resolution degrades.</p>
+</div>
+
+<h3 data-zh="② Imaging-based：組合編碼" data-en="② Imaging-based: combinatorial codes">② Imaging-based：組合編碼</h3>
+<div data-lang="zh">
+<p>核心邏輯：把「<strong>基因身分</strong>」用「<strong>多輪 ON/OFF 編碼</strong>」記下來。以 MERFISH 為例（其他 imaging 平台是變種）：</p>
+<ol style="margin:8px 0 14px 24px;color:var(--c-ink-light)">
+<li><strong>探針設計：</strong>每個基因設計 30-50 條 ~30 nt 的「encoding probes」貼到 mRNA 上。每條 encoding probe 帶有「readout sequence」，這就是基因的編碼。</li>
+<li><strong>輪流偵測：</strong>例如 16 輪 hybridization，每輪用一條螢光 readout probe 來「<span class="term">讀<span class="term-tip">readout probe 是 ~20 nt 短螢光探針，互補於 encoding probe 上的特定 readout sequence。每輪換不同 readout，就能在不同輪「亮」起不同的基因。</span></span>」一組 readout sequence。每個基因被設計為在 16 輪中固定 4 輪「亮」、12 輪「暗」——這是它的 4-of-16 Hamming code。</li>
+<li><strong>影像處理：</strong>把所有輪的影像配準、做點偵測（spot calling）、把每個點的 ON/OFF 序列解碼成基因身分。錯誤校正：Hamming distance ≥ 4 能容忍 1 bit 翻轉。</li>
+<li><strong>cell segmentation：</strong>用 DAPI（核）或細胞膜染色把點分配到細胞——這一步常是最大誤差源。</li>
+</ol>
+</div>
+<div data-lang="en">
+<p>Core logic: record <strong>gene identity</strong> as a <strong>multi-round ON/OFF code</strong>. Using MERFISH (others are variants):</p>
+<ol style="margin:8px 0 14px 24px;color:var(--c-ink-light)">
+<li><strong>Probe design:</strong> 30-50 ~30-nt "encoding probes" per gene hybridize to mRNA. Each carries a "readout sequence" — the gene's code.</li>
+<li><strong>Rounds:</strong> e.g., 16 rounds of hybridization. Each round uses one fluorescent <span class="term">readout probe<span class="term-tip">A ~20-nt short fluorescent probe complementary to a specific readout sequence on encoding probes. Different readouts each round → different genes "light up" each round.</span></span>. Each gene's encoded to be "on" in a fixed 4 of 16 rounds — its 4-of-16 Hamming code.</li>
+<li><strong>Image processing:</strong> register all rounds, do spot calling, decode each spot's ON/OFF sequence to gene identity. Error correction: Hamming distance ≥ 4 tolerates 1-bit flips.</li>
+<li><strong>Cell segmentation:</strong> assign spots to cells via DAPI (nucleus) or membrane stain — often the largest source of error.</li>
+</ol>
+</div>
+
+<div class="analogy">
+<div class="an-title" data-zh="比喻：摩斯密碼點亮的螢火蟲" data-en="Analogy: Morse-code fireflies">比喻：摩斯密碼點亮的螢火蟲</div>
+<p data-lang="zh">想像漆黑山谷裡有上萬隻螢火蟲，每隻代表一個 mRNA 分子。你拿著相機連拍 16 張，每張之間切換不同濾鏡（readout probe）。基因 A 的螢火蟲只在第 1, 3, 7, 12 張亮；基因 B 只在 2, 5, 9, 14 張亮——每隻螢火蟲的「閃爍序列」就是它的基因身份。MERFISH 就是用這個邏輯，把 ~140 個 mRNA 種類用 16 輪壓進一張影像。</p>
+<p data-lang="en">Imagine a dark valley with thousands of fireflies — each is an mRNA molecule. You shoot 16 photos, switching filters (readout probes) between each. Gene A's fireflies are visible only in shots 1, 3, 7, 12; gene B only in 2, 5, 9, 14 — each firefly's blink pattern is its gene identity. MERFISH compresses ~140 mRNA species into 16 rounds with this logic.</p>
+</div>
 </section>
 
+<!-- Comparison table - expanded -->
+<section class="section"><div class="section-label" data-zh="平台規格" data-en="SPECS">平台規格</div>
+<h2 data-zh="七大平台關鍵指標總覽" data-en="Spec sheet for the 7 major platforms">七大平台關鍵指標</h2>
+<table class="comp-table"><thead><tr>
+<th>Platform</th>
+<th data-zh="原理" data-en="Principle">原理</th>
+<th data-zh="解析度" data-en="Resolution">解析度</th>
+<th data-zh="基因數" data-en="Genes">基因數</th>
+<th data-zh="切片面積" data-en="Area">面積</th>
+<th data-zh="FFPE" data-en="FFPE">FFPE</th>
+<th data-zh="價/樣本" data-en="$/sample">$/樣本</th>
+</tr></thead><tbody>
+<tr><td><strong>Visium</strong></td><td>poly-T array</td><td>55 μm (~1-10 cells)</td><td>~20,000</td><td>6.5×6.5 mm</td><td>✅</td><td>~$2,500</td></tr>
+<tr><td><strong>Visium HD</strong></td><td>2 μm bin array</td><td>2 μm bin (8 μm 推薦)</td><td>~20,000</td><td>6.5×6.5 mm</td><td>✅</td><td>~$3,500</td></tr>
+<tr><td><strong>Slide-seq V2</strong></td><td>bead puck</td><td>10 μm</td><td>~20,000</td><td>3 mm 圓</td><td>❌</td><td>~$1,500</td></tr>
+<tr><td><strong>Stereo-seq</strong></td><td>DNB chip</td><td>220 nm bin (常 bin 到 5-50)</td><td>~20,000</td><td>1-13 cm²</td><td>✅</td><td>~$2,000-5,000</td></tr>
+<tr><td><strong>10x Xenium</strong></td><td>imaging ISH</td><td><span data-zh="亞細胞" data-en="sub-cell">亞細胞</span></td><td>300-5,000 panel</td><td>12×24 mm</td><td>✅</td><td>~$2,500</td></tr>
+<tr><td><strong>MERFISH (Vizgen MERSCOPE)</strong></td><td>combinatorial FISH</td><td><span data-zh="亞細胞" data-en="sub-cell">亞細胞</span></td><td>100-1,000 panel</td><td>~1 cm²</td><td>✅</td><td>~$3,000-6,000</td></tr>
+<tr><td><strong>CosMx (NanoString)</strong></td><td>imaging ISH</td><td><span data-zh="亞細胞" data-en="sub-cell">亞細胞</span></td><td>1,000-6,000 panel</td><td>~6×4 mm FOV</td><td>✅</td><td>~$4,000-8,000</td></tr>
+</tbody></table>
+
+<p data-lang="zh" style="font-size:.85rem;color:var(--c-ink-muted);margin-top:8px"><em>價格為 2024 年市場行情參考，含試劑與定序（array-based）或試劑（imaging-based）。各核心實驗室訂價不同。</em></p>
+<p data-lang="en" style="font-size:.85rem;color:var(--c-ink-muted);margin-top:8px"><em>Prices are 2024 ballpark figures including reagents + sequencing (array) or reagents (imaging). Core-facility pricing varies.</em></p>
+
+<div class="callout tip"><span class="callout-icon">📌</span>
+<div data-lang="zh"><strong>Visium HD 的「2 μm bin」真相：</strong>晶片設計是 2 μm 矩形 tile，但實際 mRNA capture 仍有約 1-2 μm 的擴散誤差。<strong>10x 官方推薦使用 8 μm 或 16 μm bin 分析</strong>——2 μm bin 的 UMI 數通常太稀（每 bin 只有 2-10 reads）以致於統計力不足。</div>
+<div data-lang="en"><strong>The truth about Visium HD's "2 μm bin":</strong> the chip is 2 μm tiles, but actual mRNA capture has ~1-2 μm diffusion. <strong>10x officially recommends 8 μm or 16 μm bin analysis</strong> — 2 μm bins are typically too sparse (only 2-10 reads/bin) for statistical power.</div>
+</div>
+</section>
+
+<!-- Interactive decision -->
 <section class="section"><div class="section-label" data-zh="互動決策" data-en="INTERACTIVE">互動決策</div>
-<h2 data-zh="選平台的決策樹" data-en="Platform Decision Tree">選平台的決策樹</h2>
+<h2 data-zh="互動決策器：什麼情境選什麼平台？" data-en="Interactive: which platform for which case?">互動決策器</h2>
+<p data-lang="zh">點擊不同情境，看推薦平台與其理由：</p>
+<p data-lang="en">Click each scenario to see the recommended platform with reasoning:</p>
 <div class="interactive-panel">
 <div class="toggle-row">
-<button class="toggle-btn active" data-key="genes">基因覆蓋</button>
-<button class="toggle-btn" data-key="res">解析度</button>
-<button class="toggle-btn" data-key="sample">樣本類型</button>
-<button class="toggle-btn" data-key="cost">預算/通量</button>
+<button class="toggle-btn active" data-key="genes" data-zh="基因覆蓋" data-en="Gene coverage">基因覆蓋</button>
+<button class="toggle-btn" data-key="res" data-zh="解析度" data-en="Resolution">解析度</button>
+<button class="toggle-btn" data-key="sample" data-zh="樣本類型" data-en="Sample type">樣本類型</button>
+<button class="toggle-btn" data-key="cost" data-zh="預算/通量" data-en="Budget/throughput">預算/通量</button>
+<button class="toggle-btn" data-key="area" data-zh="組織面積" data-en="Tissue area">組織面積</button>
 </div>
 <div id="decisionBox" style="min-height:180px;padding:18px;background:var(--c-surface-alt);border-radius:8px;font-size:.95rem;color:var(--c-ink);"></div>
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="實務考量" data-en="PRACTICAL">實務考量</div>
-<h2 data-zh="選擇技術時的五個關鍵問題" data-en="Five Questions Before Choosing">五個關鍵問題</h2>
-<div class="decision-tree"><h4>🌳 <span data-zh="思考順序" data-en="Decision order">思考順序</span></h4>
+<!-- Interactive: resolution-genes-cost simulator -->
+<section class="section"><div class="section-label" data-zh="互動模擬 II" data-en="INTERACTIVE II">互動模擬 II</div>
+<h2 data-zh="解析度 ↔ 通量 ↔ 預算 三角權衡" data-en="Resolution ↔ throughput ↔ budget triangle">三角權衡視覺化</h2>
+<p data-lang="zh">下圖是七大平台在三個維度上的位置（log scale）。<strong>越靠右上越「全能」</strong>，但通常代價是價格上漲。</p>
+<p data-lang="en">The chart below maps seven platforms across three dimensions (log scale). <strong>Upper-right = "more all-round"</strong>, usually at higher cost.</p>
+<div class="interactive-panel">
+<div class="toggle-row">
+<button class="toggle-btn active" data-axis="genes-res" data-zh="基因數 vs 解析度" data-en="Genes vs Resolution">基因數 vs 解析度</button>
+<button class="toggle-btn" data-axis="genes-cost" data-zh="基因數 vs 價格" data-en="Genes vs $/sample">基因數 vs 價格</button>
+<button class="toggle-btn" data-axis="res-cost" data-zh="解析度 vs 價格" data-en="Resolution vs $">解析度 vs 價格</button>
+</div>
+<div class="chart-container" style="height:380px;"><canvas id="platChart"></canvas></div>
+<p data-lang="zh" style="font-size:.82rem;color:var(--c-ink-muted);">點越大 = 越「全轉錄組」；點越藍 = 越「亞細胞」；點越右 = 越貴。</p>
+<p data-lang="en" style="font-size:.82rem;color:var(--c-ink-muted);">Larger dot = more "whole-transcriptome"; bluer = more "sub-cellular"; further right = more expensive.</p>
+</div>
+</section>
+
+<!-- Real case study -->
+<section class="section"><div class="section-label" data-zh="真實案例" data-en="CASE STUDY">真實案例</div>
+<h2 data-zh="真實案例：10x Visium DCIS-IDC 乳癌侵犯前緣研究" data-en="Case study: Visium DCIS-IDC breast cancer invasion front">案例：DCIS 乳癌侵犯前緣</h2>
+<div class="case-study">
+<div class="cs-title" data-zh="Janesick et al. 2023 Cell — 整合 Xenium、Visium、CytAssist 的乳癌單細胞地圖" data-en="Janesick et al. 2023 Cell — multi-platform breast cancer single-cell map">Janesick et al. 2023 Cell — 多平台乳癌地圖</div>
+<div class="cs-meta" data-zh="2023 · Cell · 樣本：人類乳癌 FFPE 切片 · 用平台：Xenium + Visium + CytAssist" data-en="2023 · Cell · Sample: human breast cancer FFPE · Platforms: Xenium + Visium + CytAssist">2023 · Cell · 三平台比較</div>
 <div data-lang="zh">
-<div class="dt-node"><span class="dt-q">1.</span><div>樣本是 FFPE 還是 fresh-frozen？FFPE → Visium FFPE / Xenium / CosMx。</div></div>
-<div class="dt-node"><span class="dt-q">2.</span><div>需要全轉錄組嗎？要 → array-based (Visium / Stereo-seq)；不要 → imaging-based 可獲更高解析。</div></div>
-<div class="dt-node"><span class="dt-q">3.</span><div>需要單細胞層級嗎？要 → Xenium / MERFISH / Visium HD 或結合 deconvolution。</div></div>
-<div class="dt-node"><span class="dt-q">4.</span><div>組織面積多大？大面積（&gt; 1 cm²） → Stereo-seq；標準 → Visium 6.5×6.5 mm。</div></div>
-<div class="dt-node"><span class="dt-q">5.</span><div>多模態需求（蛋白、染色）？CosMx / Visium + IF 可同時偵測蛋白。</div></div>
+<p><strong>實驗設計：</strong>對同一塊 FFPE 乳癌組織，同時跑 Xenium（313-gene panel，亞細胞）、Visium（55 μm，全轉錄組）、CytAssist（FFPE-friendly Visium）。研究目的：(1) 看 DCIS（原位癌）到 IDC（侵犯性導管癌）的<strong>轉變地圖</strong>，(2) 比較三平台優劣。</p>
+<p><strong>結果 1：DCIS-IDC 邊界的「過渡帶」</strong> 在 Xenium 中清楚看到，每個過渡細胞同時表達 DCIS marker（KRT5, KRT15）與 IDC marker（KRT8, KRT18），這在 Visium 的 55 μm spot 裡會被「平均掉」。</p>
+<p><strong>結果 2：Visium 找的腫瘤分區與 Xenium 一致</strong>，但 Xenium 的 313 基因 panel <strong>漏掉</strong> 了 Visium 找到的好幾個 SVG（如 SERPINA3）——可見全轉錄組的不可替代性。</p>
+<p><strong>結論：兩者互補</strong>。當預算允許時，最強策略是 Visium 做探索、Xenium 做亞細胞精修。</p>
 </div>
 <div data-lang="en">
-<div class="dt-node"><span class="dt-q">1.</span><div>FFPE or fresh-frozen? FFPE → Visium FFPE / Xenium / CosMx.</div></div>
-<div class="dt-node"><span class="dt-q">2.</span><div>Need whole transcriptome? Yes → array-based (Visium / Stereo-seq); no → imaging-based for higher resolution.</div></div>
-<div class="dt-node"><span class="dt-q">3.</span><div>Need single-cell? Yes → Xenium / MERFISH / Visium HD or pair with deconvolution.</div></div>
-<div class="dt-node"><span class="dt-q">4.</span><div>Large tissue (&gt; 1 cm²)? → Stereo-seq; standard → Visium 6.5×6.5 mm.</div></div>
-<div class="dt-node"><span class="dt-q">5.</span><div>Multimodal (protein, IF)? CosMx / Visium + IF for simultaneous protein detection.</div></div>
+<p><strong>Design:</strong> on the same FFPE breast tumor, ran Xenium (313-gene panel, sub-cellular), Visium (55 μm, whole-Tx), and CytAssist (FFPE-friendly Visium). Goals: (1) map the DCIS-to-IDC transition, (2) compare platforms.</p>
+<p><strong>Result 1: DCIS-IDC transition zone</strong> was clearly visible in Xenium — each transitional cell co-expressed DCIS markers (KRT5, KRT15) and IDC markers (KRT8, KRT18). This signal averages out in 55 μm Visium spots.</p>
+<p><strong>Result 2: Visium-identified tumor regions agreed with Xenium</strong>, but Xenium's 313-gene panel <strong>missed</strong> several Visium SVGs (e.g., SERPINA3) — confirming whole-Tx is irreplaceable.</p>
+<p><strong>Conclusion: the two are complementary.</strong> Budget permitting, the strongest strategy is Visium for discovery + Xenium for sub-cellular refinement.</p>
 </div>
 </div>
 </section>
 
+<!-- Decision tree -->
+<section class="section"><div class="section-label" data-zh="實務思考" data-en="PRACTICAL">實務思考</div>
+<h2 data-zh="選擇技術時的五個關鍵問題" data-en="Five questions before choosing">五個關鍵問題</h2>
+<div class="decision-tree"><h4>🌳 <span data-zh="思考順序" data-en="Decision order">思考順序</span></h4>
+<div data-lang="zh">
+<div class="dt-node"><span class="dt-q">Q1:</span><div>樣本是 <strong>FFPE</strong> 還是 <strong>fresh-frozen</strong>？<br>FFPE → Visium FFPE (CytAssist) / Xenium / CosMx / Stereo-seq FFPE；fresh-frozen → 所有平台皆可。</div></div>
+<div class="dt-node"><span class="dt-q">Q2:</span><div>需要 <strong>全轉錄組</strong> 還是已有 <strong>目標基因 panel</strong>？<br>全 → array-based；已有 panel → imaging-based，獲更高解析度。</div></div>
+<div class="dt-node"><span class="dt-q">Q3:</span><div>需要 <strong>單細胞層級</strong> 嗎？<br>必要 → Xenium / MERFISH / Visium HD；可接受多細胞 → Visium 標準款。</div></div>
+<div class="dt-node"><span class="dt-q">Q4:</span><div>組織面積多大？<br>標準 ≤ 6.5×6.5 mm → Visium；&gt; 1 cm² → Stereo-seq；&gt; 多 cm² → 切多塊 Visium / Xenium 拼接。</div></div>
+<div class="dt-node"><span class="dt-q">Q5:</span><div>多模態需求（蛋白、染色）？<br>含 protein 通道 → CosMx；高品質 H&E 同切片 → Visium；多輪 IF → Xenium / MERFISH。</div></div>
+</div>
+<div data-lang="en">
+<div class="dt-node"><span class="dt-q">Q1:</span><div><strong>FFPE</strong> or <strong>fresh-frozen</strong>?<br>FFPE → Visium FFPE (CytAssist) / Xenium / CosMx / Stereo-seq FFPE; fresh-frozen → any platform.</div></div>
+<div class="dt-node"><span class="dt-q">Q2:</span><div><strong>Whole transcriptome</strong> or known <strong>gene panel</strong>?<br>Whole → array-based; panel → imaging-based for higher resolution.</div></div>
+<div class="dt-node"><span class="dt-q">Q3:</span><div>Need <strong>single-cell</strong> resolution?<br>Must → Xenium / MERFISH / Visium HD; multi-cell OK → standard Visium.</div></div>
+<div class="dt-node"><span class="dt-q">Q4:</span><div>How large is the tissue?<br>≤ 6.5×6.5 mm → Visium; &gt; 1 cm² → Stereo-seq; multi-cm² → tile multiple Visium / Xenium.</div></div>
+<div class="dt-node"><span class="dt-q">Q5:</span><div>Multimodal (protein, IF)?<br>Protein channels → CosMx; high-quality H&E on same section → Visium; multi-round IF → Xenium / MERFISH.</div></div>
+</div>
+</div>
+</section>
+
+<!-- Pitfalls -->
+<section class="section"><div class="section-label" data-zh="新手陷阱" data-en="PITFALLS">新手陷阱</div>
+<h2 data-zh="三個必避免的選平台錯誤" data-en="Three platform-choice mistakes to avoid">三個必避免的錯誤</h2>
+
+<div class="pitfall">
+<div class="pf-title" data-zh="陷阱 1：被「解析度」字面綁架" data-en="Pitfall 1: hijacked by the word resolution">陷阱 1：被「解析度」字面綁架</div>
+<p data-lang="zh">看到 Visium HD 標示「2 μm」就以為比 Visium 「強 27 倍」。實際上：2 μm bin 的 UMI 數常太稀，分析時要 bin 到 8 或 16 μm；而且 mRNA 擴散決定了真實有效解析度 ~3-4 μm。買 HD 不一定是最划算選擇——對中等解析度需求（如組織層），標準 Visium 已綽綽有餘。</p>
+<p data-lang="en">Seeing Visium HD's "2 μm" label, people assume it's "27× better" than Visium. Reality: 2 μm bins are usually too sparse — analysis bins to 8 or 16 μm; plus mRNA diffusion caps real effective resolution at ~3-4 μm. HD isn't always the smart buy — for moderate-resolution needs (tissue layers), standard Visium is plenty.</p>
+</div>
+
+<div class="pitfall">
+<div class="pf-title" data-zh="陷阱 2：選 panel 平台卻沒檢查 panel 內容" data-en="Pitfall 2: choosing panel platform without checking panel">陷阱 2：選 panel 卻沒檢查內容</div>
+<p data-lang="zh">買 MERFISH/Xenium 之前<strong>務必逐基因檢查 panel</strong>。MERFISH 預設 panel 多偏向神經科學；Xenium 的 5K human pan-tissue panel 偏向常見癌症免疫 marker。若你的研究是「肝臟代謝重塑」，可能要付額外費用做 custom panel（多花 $10k+）。</p>
+<p data-lang="en">Before buying MERFISH/Xenium, <strong>check the panel gene-by-gene</strong>. MERFISH presets lean neuroscience; Xenium 5K human pan-tissue lean common cancer-immune markers. For "liver metabolic rewiring", you may need a custom panel (+$10k easily).</p>
+</div>
+
+<div class="pitfall">
+<div class="pf-title" data-zh="陷阱 3：FFPE 質量檢查漏失" data-en="Pitfall 3: skipping FFPE quality assessment">陷阱 3：FFPE 質量沒先檢查</div>
+<p data-lang="zh">FFPE 切片的 RNA 完整性（<span class="term">DV200<span class="term-tip">DV200 = RNA 中片段長度 ≥ 200 nt 的比例。Visium FFPE 推薦 DV200 ≥ 30%；&lt; 20% 通常失敗。</span></span>）差異極大。10 年前的切片 DV200 可能 &lt; 20%，跑 Visium FFPE 會失敗。<strong>送樣前先抽 RNA 跑 Tapestation</strong>，確認 DV200 ≥ 30%。</p>
+<p data-lang="en">FFPE RNA integrity (<span class="term">DV200<span class="term-tip">DV200 = fraction of RNA fragments ≥ 200 nt. Visium FFPE recommends DV200 ≥ 30%; &lt; 20% usually fails.</span></span>) varies enormously. A 10-year-old block may have DV200 &lt; 20% and Visium FFPE will fail. <strong>Extract RNA and run Tapestation first</strong> to confirm DV200 ≥ 30%.</p>
+</div>
+</section>
+
+<!-- Levels: 3-tier explanations -->
+<section class="section"><div class="section-label" data-zh="分層理解" data-en="LEVELED VIEW">分層理解</div>
+<h2 data-zh="按程度認識「探針化學」" data-en="Probe chemistry by level">按程度認識「探針化學」</h2>
+<div class="level-tabs">
+<div class="level-tab-btns">
+<button class="level-tab active" data-pane="lv1">🟢 <span data-zh="入門" data-en="Beginner">入門</span></button>
+<button class="level-tab" data-pane="lv2">🟡 <span data-zh="進階" data-en="Intermediate">進階</span></button>
+<button class="level-tab" data-pane="lv3">🔴 <span data-zh="高階" data-en="Advanced">高階</span></button>
+</div>
+<div class="level-pane active" id="lv1">
+<div data-lang="zh">
+<p>Visium 用 <strong>poly-T 探針</strong>——只能抓有 polyA 尾巴的 mRNA（占 ~90% 的 mRNA）。FFPE 樣本因為 RNA 斷裂、polyA 常掉，Visium 標準款做不了。</p>
+<p>2022 年推出的 <strong>Visium FFPE</strong> 改用 <span class="term">探針對<span class="term-tip">每基因 2 條 ~50 nt 的 LHS+RHS 探針，貼在同一條 mRNA 上後做 ligation 才能變 cDNA——這選擇性只連到「兩端都還在」的 mRNA 片段。</span></span> 連接策略，可在斷裂 RNA 上工作。</p>
+</div>
+<div data-lang="en">
+<p>Visium uses <strong>poly-T probes</strong> — capturing only mRNA with polyA tails (~90% of mRNA). FFPE samples have fragmented, polyA-stripped RNA, so standard Visium fails.</p>
+<p>The 2022-released <strong>Visium FFPE</strong> switches to <span class="term">probe pairs<span class="term-tip">Two ~50-nt LHS+RHS probes per gene; both must bind the same mRNA and be ligated into cDNA. This selects only mRNA fragments still intact at both probe sites.</span></span> with ligation chemistry, working on degraded RNA.</p>
+</div>
+</div>
+<div class="level-pane" id="lv2">
+<div data-lang="zh">
+<p>探針對策略（Visium FFPE、Xenium、CosMx 都用）有兩個關鍵：</p>
+<ul style="margin:8px 0 0 20px;color:var(--c-ink-light)">
+<li><strong>特異性高：</strong>需 LHS + RHS 兩條同時對到才連，誤標機會大降。</li>
+<li><strong>panel 受限：</strong>每基因要設計 specific probe pair，無法做 unbiased 全轉錄組。</li>
+</ul>
+<p>Xenium 用「<strong>padlock probe</strong>」加 <strong>rolling circle amplification (RCA)</strong>——讓單一 mRNA 變成幾百倍亮的訊號，比 MERFISH 的 encoding probe 更亮但要多兩步酶反應。</p>
+</div>
+<div data-lang="en">
+<p>Probe-pair strategy (used by Visium FFPE, Xenium, CosMx) has two implications:</p>
+<ul style="margin:8px 0 0 20px;color:var(--c-ink-light)">
+<li><strong>High specificity:</strong> both LHS and RHS must bind for ligation — misassignment rate drops sharply.</li>
+<li><strong>Panel limited:</strong> each gene needs a designed probe pair — no unbiased whole-Tx.</li>
+</ul>
+<p>Xenium uses <strong>padlock probes</strong> + <strong>rolling circle amplification (RCA)</strong> — turning one mRNA into a hundred-fold brighter signal vs MERFISH's encoding probes; two extra enzymatic steps trade off.</p>
+</div>
+</div>
+<div class="level-pane" id="lv3">
+<div data-lang="zh">
+<p><strong>編碼空間（codebook）的設計考量：</strong></p>
+<ul style="margin:8px 0 14px 20px;color:var(--c-ink-light)">
+<li><strong>Hamming distance ≥ 4：</strong>容忍 1-bit 翻轉。MERFISH 用 4-of-16 binary code，可編碼 <em>C(16,4) = 1820</em> 個基因，但實際只用 ~140-1000，留下「空 code」做 negative control 偵測 cross-hybridization。</li>
+<li><strong>Code 分布要均衡：</strong>每輪 ON 的基因數要平均（避免某輪曝光率特別高），用最佳化演算法（如 simulated annealing）分配。</li>
+<li><strong>Decoding 後處理：</strong>常見策略是 max-likelihood 解碼 + spot 強度 z-score 過濾 + 跨輪 registration error 量化。</li>
+</ul>
+<p><strong>Xenium 與 MERFISH 的關鍵差異：</strong>Xenium 訊號被 RCA 放大 ~100×，所以單張影像即可解碼一輪；MERFISH 每點亮度低、需要 confocal 高 NA 物鏡才能看清。這也是為什麼 Xenium 更適合常規實驗室、MERFISH 偏實驗室自製（DIY）。</p>
+</div>
+<div data-lang="en">
+<p><strong>Codebook design considerations:</strong></p>
+<ul style="margin:8px 0 14px 20px;color:var(--c-ink-light)">
+<li><strong>Hamming distance ≥ 4:</strong> tolerates 1-bit flips. MERFISH's 4-of-16 binary code can encode <em>C(16,4) = 1820</em> genes, but practically uses 140-1000 — empty codes serve as negative controls for cross-hybridization detection.</li>
+<li><strong>Balanced code distribution:</strong> "ON" count per round should be balanced (avoid one round hot) — solved by simulated annealing or ILP.</li>
+<li><strong>Decoding post-processing:</strong> ML decoding + spot-intensity z-score filtering + registration-error quantification across rounds.</li>
+</ul>
+<p><strong>Key Xenium vs MERFISH difference:</strong> Xenium signal is ~100× RCA-amplified, so one image per round decodes; MERFISH spots are dim, requiring high-NA confocal. This is why Xenium suits routine labs while MERFISH skews DIY academic.</p>
+</div>
+</div>
+</div>
+</section>
+
+<!-- FAQ -->
+<section class="section"><div class="section-label" data-zh="常見問題" data-en="FAQ">常見問題</div>
+<h2 data-zh="平台選擇 FAQ" data-en="Platform-choice FAQ">FAQ</h2>
+<div class="faq-list">
+<div class="faq-item"><button class="faq-q"><span data-zh="Q1：我要不要等 Visium HD？" data-en="Q1: Should I wait for Visium HD?">Q1：我要不要等 Visium HD？</span></button>
+<div class="faq-a"><p data-lang="zh">看時間表。若你的計畫在 6 個月內、且預算彈性 → HD（2024 起已成熟）。若預算緊、組織只需要 spot 層級 → 標準 Visium 已綽綽有餘且試劑成本低。HD 的最大優勢在於可同時看「組織層 + 近單細胞」，但缺點是分析資料量翻 ~10×。</p><p data-lang="en">Depends on timeline. If your project's within 6 months and budget is flexible → HD (matured since 2024). If budget-tight and spot-level suffices → standard Visium is plenty and cheaper. HD's edge is "tissue layer + near-single-cell" simultaneously, but data volume ~10× increases.</p></div></div>
+<div class="faq-item"><button class="faq-q"><span data-zh="Q2：Xenium 313-gene panel 太少嗎？" data-en="Q2: Is Xenium's 313-gene panel too few?">Q2：Xenium 313-gene 太少？</span></button>
+<div class="faq-a"><p data-lang="zh">看研究目的。若是「已知細胞類型在組織中的分布」→ 夠用，313 涵蓋常見免疫、上皮、間質 marker。若是「發現新細胞態」→ 不夠，應加 add-on 100-400 客製基因，或先做 scRNA 找候選基因再上 Xenium。</p><p data-lang="en">Depends on goal. For "spatial distribution of known cell types" → enough (313 covers common immune/epithelial/stromal markers). For "discovering novel states" → not enough; add 100-400 custom genes, or run scRNA first to nominate candidates.</p></div></div>
+<div class="faq-item"><button class="faq-q"><span data-zh="Q3：Stereo-seq 真的能做亞細胞嗎？" data-en="Q3: Can Stereo-seq really go sub-cellular?">Q3：Stereo-seq 真能亞細胞？</span></button>
+<div class="faq-a"><p data-lang="zh">理論 DNB chip 是 220 nm，但實際 UMI 太稀，常 bin 到 5-50 μm。其優勢是<strong>同時擁有亞細胞精度＋全轉錄組＋大面積</strong>，缺點是<strong>資料量爆炸</strong>（單樣本 TB 級）且後處理工具不如 Visium 生態成熟。胚胎 organogenesis 是 Stereo-seq 的「殺手級應用」。</p><p data-lang="en">In theory DNB chip is 220 nm, but UMI is too sparse and people bin to 5-50 μm. Its edge is <strong>sub-cellular + whole-Tx + large area simultaneously</strong>; downsides are <strong>TB-scale data</strong> and a less mature analysis ecosystem vs Visium. Embryo organogenesis is its killer app.</p></div></div>
+<div class="faq-item"><button class="faq-q"><span data-zh="Q4：CosMx 的「蛋白通道」實用嗎？" data-en="Q4: Are CosMx's protein channels useful?">Q4：CosMx 蛋白通道實用嗎？</span></button>
+<div class="faq-a"><p data-lang="zh">非常實用，但 panel 通常只到 60-100 種抗體，且抗體選擇受限。最佳用法是<strong>同切片 RNA + 關鍵蛋白</strong>（如 PD-L1、HLA 表面表現量）——尤其在免疫腫瘤學，蛋白比 mRNA 更貼近功能。</p><p data-lang="en">Very useful, but panels cap at 60-100 antibodies and antibody choice is limited. Best use: <strong>same-section RNA + key proteins</strong> (e.g., PD-L1, HLA surface levels) — especially in immuno-oncology where protein is functionally closer than mRNA.</p></div></div>
+<div class="faq-item"><button class="faq-q"><span data-zh="Q5：可以同時用多個平台嗎？" data-en="Q5: Can I combine platforms?">Q5：可以同時用多個平台？</span></button>
+<div class="faq-a"><p data-lang="zh">理想策略！典型搭配：<strong>scRNA-seq</strong>（cell type 註釋）+ <strong>Visium</strong>（探索性全轉錄組）+ <strong>Xenium/MERFISH</strong>（亞細胞精修）。Janesick 2023 Cell 就是這個策略。<strong>但需注意：相鄰切片（serial sections）做 alignment 時，每個平台 fiducial 不同，需要 STalign / PASTE 之類工具配準。</strong></p><p data-lang="en">Ideal strategy! Typical combo: <strong>scRNA</strong> (annotation) + <strong>Visium</strong> (whole-Tx discovery) + <strong>Xenium/MERFISH</strong> (sub-cell refinement). Janesick 2023 Cell used exactly this. <strong>Caveat: serial-section alignment differs per platform — use STalign / PASTE for registration.</strong></p></div></div>
+<div class="faq-item"><button class="faq-q"><span data-zh="Q6：學術自製 MERFISH 還可行嗎？" data-en="Q6: Is DIY MERFISH still viable?">Q6：自製 MERFISH 還可行？</span></button>
+<div class="faq-a"><p data-lang="zh">可行但門檻高。需要：(1) 高 NA 物鏡 confocal、(2) 流體系統（如自動 perfusion）、(3) 大儲存（每樣本 TB）、(4) 影像處理人手。從零做起 ~$500k+ 設備＋人。預算有限的話，買 Vizgen MERSCOPE（商業版 MERFISH）或 Xenium 反而省錢省力。</p><p data-lang="en">Viable but the bar is high. Needs: (1) high-NA confocal, (2) automated fluidics (perfusion), (3) TB-scale storage, (4) image-processing expertise. From scratch: ~$500k+ in equipment + staff. Cheaper to buy Vizgen MERSCOPE (commercial MERFISH) or Xenium if budget-limited.</p></div></div>
+</div>
+</section>
+
+<!-- Discussion questions -->
+<section class="section"><div class="section-label" data-zh="思考題" data-en="DISCUSSION">思考題</div>
+<h2 data-zh="深度思考：實驗設計" data-en="Deeper thinking: experimental design">深度思考</h2>
+<div class="discussion">
+<div class="disc-title" data-zh="開放性問題" data-en="Open questions">開放性問題</div>
+<ol>
+<li data-lang="zh">你想研究「<strong>大腸癌</strong>裡 <strong>tumor-associated macrophage（TAM）</strong> 的 M1/M2 切換」。給你 3 個樣本 + $30,000 預算，你會選哪個平台組合？請說出邏輯。</li>
+<li data-lang="zh">為什麼 <strong>Visium 一個 spot 是 55 μm 而不是 5 μm</strong>？背後的物理 / 化學限制是什麼？（提示：mRNA 擴散、捕獲效率、定序成本三角）</li>
+<li data-lang="zh">假設未來某天有個「全 transcriptome 亞細胞解析度大面積 FFPE 友好」的平台問世——它最可能是哪兩條技術路線的融合？會犧牲什麼？</li>
+<li data-lang="zh">為什麼相同 panel size 下 MERFISH 比 seqFISH+ 早商業化？兩者在編碼策略上的關鍵差異是？</li>
+<li data-lang="en">You want to study M1/M2 switching of tumor-associated macrophages (TAMs) in colorectal cancer. 3 samples + $30,000 budget — which platform combo? Justify.</li>
+<li data-lang="en">Why is a Visium spot 55 μm, not 5 μm? What physical/chemical constraints set this? (Hint: mRNA diffusion, capture efficiency, sequencing cost triangle)</li>
+<li data-lang="en">Imagine a future "whole-Tx, sub-cellular, large-area, FFPE-friendly" platform — which two existing routes would it most likely fuse, and what's the likely sacrifice?</li>
+<li data-lang="en">Why did MERFISH commercialize earlier than seqFISH+ at similar panel sizes? Key encoding-strategy differences?</li>
+</ol>
+</div>
+</section>
+
+<!-- Self-check quiz -->
 <section class="quiz-section"><h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
 <div class="quiz-q" data-answer="2"><p data-lang="zh">Visium 一個 spot 大約涵蓋多少細胞？</p><p data-lang="en">A Visium spot covers approximately how many cells?</p><div class="quiz-options">
 <div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 1 個（亞細胞）</span><span data-lang="en">A. 1 (sub-cellular)</span></div>
@@ -77,30 +341,96 @@
 <div class="quiz-opt" data-idx="2"><span data-lang="zh">C. Slide-seq</span><span data-lang="en">C. Slide-seq</span></div>
 <div class="quiz-opt" data-idx="3"><span data-lang="zh">D. Stereo-seq</span><span data-lang="en">D. Stereo-seq</span></div>
 </div><div class="quiz-feedback" id="fb2"></div></div>
+<div class="quiz-q" data-answer="2"><p data-lang="zh">關於 Visium HD 的「2 μm bin」，下列何者最正確？</p><p data-lang="en">Regarding Visium HD's "2 μm bin", which is most accurate?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 真實有效解析度就是 2 μm</span><span data-lang="en">A. True effective resolution is 2 μm</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 推薦直接用 2 μm bin 做下游分析</span><span data-lang="en">B. Recommended to use 2 μm bin directly downstream</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 物理為 2 μm tile，但常 bin 到 8/16 μm 以獲足夠 UMI</span><span data-lang="en">C. Physical 2 μm tile, but typically binned to 8/16 μm for adequate UMI</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 與標準 Visium 完全相同</span><span data-lang="en">D. Identical to standard Visium</span></div>
+</div><div class="quiz-feedback" id="fb3"></div></div>
+<div class="quiz-q" data-answer="0"><p data-lang="zh">FFPE 樣本送 Visium FFPE 前最該檢查的 RNA 指標是？</p><p data-lang="en">Most important RNA metric to check before Visium FFPE submission?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. DV200 ≥ 30%</span><span data-lang="en">A. DV200 ≥ 30%</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. RIN ≥ 9</span><span data-lang="en">B. RIN ≥ 9</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 28S/18S 比 ≥ 2</span><span data-lang="en">C. 28S/18S ≥ 2</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 不需要檢查</span><span data-lang="en">D. No need to check</span></div>
+</div><div class="quiz-feedback" id="fb4"></div></div>
+<div class="quiz-q" data-answer="3"><p data-lang="zh">何種情境最適合 Stereo-seq？</p><p data-lang="en">Best fit for Stereo-seq?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 1 個 5×5 mm 腦切片，預算極低</span><span data-lang="en">A. One 5×5 mm brain section, very low budget</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 已知 50 個免疫 marker 的乳癌 FFPE</span><span data-lang="en">B. Breast FFPE with known 50 immune markers</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 需要每細胞 50 種蛋白的免疫表型</span><span data-lang="en">C. Need 50-protein immune phenotype per cell</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 小鼠胚胎 E10 全切片 organogenesis</span><span data-lang="en">D. Whole E10 mouse embryo organogenesis</span></div>
+</div><div class="quiz-feedback" id="fb5"></div></div>
 </section>
 
-<nav class="page-nav"><a href="index.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Spatial 總覽" data-en="Spatial Overview">Spatial 總覽</span></a><a href="preprocessing.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 2：Preprocessing" data-en="Step 2: Preprocessing">Step 2：Preprocessing</span></a></nav>
+<nav class="page-nav">
+<a href="index.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Spatial 總覽" data-en="Spatial Overview">Spatial 總覽</span></a>
+<a href="preprocessing.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 2：Preprocessing" data-en="Step 2: Preprocessing">Step 2：Preprocessing</span></a>
+</nav>
 </main>
 <footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="../i18n.js"></script>
 <script>
 window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
+
+// Decision toggle
 const advice={
-  genes:{zh:'<strong>需要全轉錄組（無偏向探索）</strong> → Visium / Stereo-seq。<br><strong>已有先驗 panel 想加解析度</strong> → Xenium / MERFISH / CosMx。',
-        en:'<strong>Whole transcriptome (hypothesis-free)</strong> → Visium / Stereo-seq.<br><strong>Known gene panel + higher resolution</strong> → Xenium / MERFISH / CosMx.'},
-  res:{zh:'<strong>多細胞 spot OK</strong> → Visium (55 μm)。<br><strong>近單細胞</strong> → Visium HD (2 μm) / Slide-seq V2 (10 μm)。<br><strong>亞細胞 / 多輪 FISH</strong> → Xenium / MERFISH / CosMx。',
-       en:'<strong>Multi-cell spots OK</strong> → Visium (55 μm).<br><strong>Near single-cell</strong> → Visium HD (2 μm) / Slide-seq V2 (10 μm).<br><strong>Sub-cellular / multi-round FISH</strong> → Xenium / MERFISH / CosMx.'},
-  sample:{zh:'<strong>FFPE 切片</strong> → Visium CytAssist (FFPE 模式) / Xenium / CosMx。<br><strong>新鮮冷凍</strong> → 全平台支援；Visium 與 Stereo-seq 是常見起點。',
-         en:'<strong>FFPE</strong> → Visium CytAssist (FFPE) / Xenium / CosMx.<br><strong>Fresh-frozen</strong> → All platforms; Visium and Stereo-seq are common starting points.'},
-  cost:{zh:'<strong>單樣本快速試水</strong> → Visium (per-slide 約 $2,000-3,000)。<br><strong>大量臨床樣本</strong> → CytAssist 流程 + 自動化。<br><strong>大組織面積</strong> → Stereo-seq 一張 chip 即可。',
-       en:'<strong>Single sample, quick start</strong> → Visium (~$2,000-3,000 per slide).<br><strong>Large clinical batch</strong> → CytAssist + automation.<br><strong>Large tissue area</strong> → Stereo-seq one-chip coverage.'}
+  genes:{zh:'<strong>需要全轉錄組（hypothesis-free 探索）</strong> → Visium / Stereo-seq。<br><strong>已有先驗 panel 想加解析度</strong> → Xenium / MERFISH / CosMx。<br><strong>同時要：</strong>Visium 做探索 → Xenium 做精修（雙平台策略）。',
+        en:'<strong>Whole transcriptome (hypothesis-free)</strong> → Visium / Stereo-seq.<br><strong>Known panel + higher resolution</strong> → Xenium / MERFISH / CosMx.<br><strong>Both:</strong> Visium for discovery → Xenium for refinement (dual-platform strategy).'},
+  res:{zh:'<strong>多細胞 spot 可接受（組織層級研究）</strong> → Visium (55 μm)。<br><strong>近單細胞</strong> → Visium HD (2 μm tile, 用 8 μm) / Slide-seq V2 (10 μm)。<br><strong>必須亞細胞</strong> → Xenium / MERFISH / CosMx。',
+       en:'<strong>Multi-cell spot OK (tissue layer level)</strong> → Visium (55 μm).<br><strong>Near single-cell</strong> → Visium HD (2 μm tile, use 8 μm) / Slide-seq V2 (10 μm).<br><strong>Must sub-cellular</strong> → Xenium / MERFISH / CosMx.'},
+  sample:{zh:'<strong>FFPE 切片</strong> → Visium CytAssist (FFPE) / Xenium / CosMx / Stereo-seq FFPE。<br><strong>新鮮冷凍</strong> → 所有平台支援；Visium 與 Stereo-seq 是常見起點。<br><strong>檢查 DV200 ≥ 30%</strong> 才送 FFPE 流程。',
+         en:'<strong>FFPE</strong> → Visium CytAssist (FFPE) / Xenium / CosMx / Stereo-seq FFPE.<br><strong>Fresh-frozen</strong> → all platforms; Visium and Stereo-seq are common starts.<br><strong>Verify DV200 ≥ 30%</strong> before FFPE workflow.'},
+  cost:{zh:'<strong>單樣本快速試水</strong> → Visium (~$2,500/slide)。<br><strong>大量臨床樣本</strong> → CytAssist + 自動化 batch。<br><strong>含蛋白通道</strong> → CosMx ($4-8k)。<br><strong>大組織面積</strong> → Stereo-seq one-chip。',
+       en:'<strong>Single sample, quick start</strong> → Visium (~$2,500/slide).<br><strong>Large clinical batch</strong> → CytAssist + automation.<br><strong>With protein channels</strong> → CosMx ($4-8k).<br><strong>Large area</strong> → Stereo-seq one chip.'},
+  area:{zh:'<strong>≤ 6.5×6.5 mm</strong> → Visium / Visium HD（單片）。<br><strong>1-5 cm²</strong> → Stereo-seq（多片或單大片）。<br><strong>&gt; 5 cm² 全器官</strong> → Stereo-seq + 影像拼接；或多片 Visium FFPE + 切片配準。',
+       en:'<strong>≤ 6.5×6.5 mm</strong> → Visium / Visium HD (single slide).<br><strong>1-5 cm²</strong> → Stereo-seq (multi-chip or one large).<br><strong>&gt; 5 cm² whole organ</strong> → Stereo-seq + image stitch; or multiple Visium FFPE with section registration.'}
 };
 function setKey(k){
-  document.querySelectorAll('.toggle-btn').forEach(b=>b.classList.toggle('active',b.dataset.key===k));
+  document.querySelectorAll('.toggle-row .toggle-btn[data-key]').forEach(b=>b.classList.toggle('active',b.dataset.key===k));
   const L=I18n.get();document.getElementById('decisionBox').innerHTML=advice[k][L];
 }
-document.querySelectorAll('.toggle-btn').forEach(b=>b.addEventListener('click',()=>setKey(b.dataset.key)));
-document.addEventListener('langchange',()=>{const k=document.querySelector('.toggle-btn.active').dataset.key;setKey(k);});setKey('genes');
-window._QF={zh:{q1_y:'Visium spot 55 μm，依組織密度約涵蓋 1-10 個細胞。',q1_n:'答案是 C：1-10 個細胞。',q2_y:'MERFISH 是 multi-round combinatorial FISH，屬 imaging-based。',q2_n:'答案是 B：MERFISH。'},en:{q1_y:'Visium spot is 55 μm — typically 1–10 cells depending on tissue density.',q1_n:'Answer is C: 1–10 cells.',q2_y:'MERFISH is multi-round combinatorial FISH — imaging-based.',q2_n:'Answer is B: MERFISH.'}};
+document.querySelectorAll('.toggle-row .toggle-btn[data-key]').forEach(b=>b.addEventListener('click',()=>setKey(b.dataset.key)));
+document.addEventListener('langchange',()=>{const k=document.querySelector('.toggle-row .toggle-btn[data-key].active').dataset.key;setKey(k);});setKey('genes');
+
+// Platform scatter chart
+// each platform: name, genes (log), resolution (log μm), cost (log $/sample)
+const plats=[
+  {n:'Visium',          genes:20000, res:55,   cost:2500},
+  {n:'Visium HD',       genes:20000, res:8,    cost:3500},
+  {n:'Slide-seq V2',    genes:20000, res:10,   cost:1500},
+  {n:'Stereo-seq',      genes:20000, res:5,    cost:3500},
+  {n:'Xenium',          genes:500,   res:0.5,  cost:2500},
+  {n:'MERFISH',         genes:500,   res:0.5,  cost:4500},
+  {n:'CosMx',           genes:1000,  res:0.5,  cost:6000}
+];
+const colors=['#2C7BB6','#1a5e8a','#5AAE61','#c66a1e','#7a4eb5','#a33c34','#d4a03c'];
+const ctxP=document.getElementById('platChart').getContext('2d');
+const pCh=new Chart(ctxP,{type:'bubble',data:{datasets:[]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11}}}},scales:{x:{type:'logarithmic',title:{display:true,text:''}},y:{type:'logarithmic',title:{display:true,text:''}}}}});
+function setAxis(a){
+  document.querySelectorAll('.toggle-row .toggle-btn[data-axis]').forEach(b=>b.classList.toggle('active',b.dataset.axis===a));
+  let xKey,yKey,xLbl,yLbl;
+  if(a==='genes-res'){xKey='res';yKey='genes';xLbl='Resolution (μm, log)';yLbl='Genes (log)';}
+  else if(a==='genes-cost'){xKey='cost';yKey='genes';xLbl='Cost ($, log)';yLbl='Genes (log)';}
+  else{xKey='cost';yKey='res';xLbl='Cost ($, log)';yLbl='Resolution (μm, log)';}
+  pCh.options.scales.x.title.text=xLbl;pCh.options.scales.y.title.text=yLbl;
+  pCh.data.datasets=plats.map((p,i)=>({label:p.n,data:[{x:p[xKey],y:p[yKey],r:Math.sqrt(p.genes)/10+6}],backgroundColor:colors[i]+'AA',borderColor:colors[i],borderWidth:1.5}));
+  pCh.update();
+}
+document.querySelectorAll('.toggle-row .toggle-btn[data-axis]').forEach(b=>b.addEventListener('click',()=>setAxis(b.dataset.axis)));
+setAxis('genes-res');
+
+// Level tabs
+document.querySelectorAll('.level-tab').forEach(t=>t.addEventListener('click',()=>{
+  const par=t.closest('.level-tabs');par.querySelectorAll('.level-tab').forEach(x=>x.classList.remove('active'));par.querySelectorAll('.level-pane').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');document.getElementById(t.dataset.pane).classList.add('active');
+}));
+
+// FAQ accordion
+document.querySelectorAll('.faq-q').forEach(b=>b.addEventListener('click',()=>{
+  b.classList.toggle('open');b.nextElementSibling.classList.toggle('open');
+}));
+
+// Quiz
+window._QF={zh:{q1_y:'Visium spot 55 μm，依組織密度約涵蓋 1-10 個細胞。',q1_n:'答案是 C：1-10 個細胞。',q2_y:'MERFISH 是 multi-round combinatorial FISH，屬 imaging-based。',q2_n:'答案是 B：MERFISH。',q3_y:'2 μm 是晶片設計，但實際分析常 bin 到 8/16 μm 才有足夠 UMI。',q3_n:'答案是 C：實際分析常 bin 到 8 或 16 μm。',q4_y:'DV200 ≥ 30% 是 Visium FFPE 推薦門檻。RIN 對 FFPE 不適用。',q4_n:'答案是 A：DV200 ≥ 30%。',q5_y:'Stereo-seq 大面積 + 亞細胞 + 全 Tx，是胚胎 organogenesis 的殺手級應用。',q5_n:'答案是 D：胚胎大面積發育研究。'},en:{q1_y:'Visium spot is 55 μm — typically 1–10 cells.',q1_n:'Answer is C: 1–10 cells.',q2_y:'MERFISH is multi-round combinatorial FISH — imaging-based.',q2_n:'Answer is B: MERFISH.',q3_y:'2 μm is the chip design, but analysis usually bins to 8/16 μm for adequate UMI.',q3_n:'Answer is C: typically binned to 8 or 16 μm.',q4_y:'DV200 ≥ 30% is the Visium FFPE recommendation; RIN does not apply to FFPE.',q4_n:'Answer is A: DV200 ≥ 30%.',q5_y:'Stereo-seq combines large area + sub-cellular + whole-Tx — killer app for embryo organogenesis.',q5_n:'Answer is D: large-area embryo development.'}};
 const QF=window._QF||{};document.querySelectorAll(".quiz-q").forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll(".quiz-opt").forEach(o=>{o.addEventListener("click",()=>{if(q.classList.contains("answered"))return;q.classList.add("answered");const fb=document.getElementById("fb"+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?"correct":"wrong");if(!ok)q.querySelectorAll(".quiz-opt")[ans].classList.add("correct");const L=I18n.get();fb.className="quiz-feedback show "+(ok?"correct-fb":"wrong-fb");fb.textContent=(ok?"✅ ":"❌ ")+(QF[L]&&QF[L]["q"+(qi+1)+"_"+(ok?"y":"n")]||"");});});});
 </script></body></html>

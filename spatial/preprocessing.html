@@ -8,112 +8,481 @@
   </ul>
 </div></nav>
 <div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
-<header class="page-hero"><div class="step-badge">STEP 2 / 5</div><h1 data-zh="資料載入與 QC" data-en="Loading & Quality Control">資料載入與 QC</h1><p class="subtitle" data-lang="zh">SpaceRanger 輸出、Seurat / Scanpy 載入、與空間樣本獨特的 QC 指標。</p><p class="subtitle" data-lang="en">SpaceRanger output, Seurat / Scanpy loading, and QC metrics unique to spatial samples.</p></header><main class="content-wrap">
+<header class="page-hero"><div class="step-badge">STEP 2 / 5</div>
+<h1 data-zh="資料載入與 QC" data-en="Loading & Quality Control">資料載入與 QC</h1>
+<p class="subtitle" data-lang="zh">SpaceRanger 輸出結構、Seurat/Scanpy 載入、與空間樣本獨有的 QC 指標（壞死、組織覆蓋、空間批次）。</p>
+<p class="subtitle" data-lang="en">SpaceRanger output structure, Seurat/Scanpy loading, and QC metrics unique to spatial: necrosis, tissue coverage, spatial batch.</p>
+<div class="diff-chips" style="justify-content:center;margin-top:18px">
+  <span class="diff-chip beg">🟢 <span data-zh="入門：載入" data-en="Beginner: loading">入門</span></span>
+  <span class="diff-chip int">🟡 <span data-zh="進階：空間 QC" data-en="Intermediate: spatial QC">進階</span></span>
+  <span class="diff-chip adv">🔴 <span data-zh="高階：多切片整合" data-en="Advanced: multi-section integration">高階</span></span>
+</div>
+</header><main class="content-wrap">
 
-<section class="section"><div class="section-label" data-zh="檔案結構" data-en="FILE STRUCTURE">檔案結構</div>
-<h2 data-zh="SpaceRanger 輸出" data-en="SpaceRanger Output">SpaceRanger 輸出</h2>
-<div data-lang="zh"><p>10x Visium 的官方流程 SpaceRanger 會把每個樣本輸出為一個資料夾，重要檔案包含：</p></div>
-<div data-lang="en"><p>10x's SpaceRanger pipeline outputs a folder per sample. Key files:</p></div>
-<div class="code-tabs"><div class="code-tab-btns"><button class="code-tab-btn active" onclick="switchTab(this,'tree')">tree</button></div>
-<div class="code-tab-content active" id="tree"><pre>sample_outs/
-├─ filtered_feature_bc_matrix.h5    <span class="comment"># 主表達矩陣（HDF5）</span>
-├─ raw_feature_bc_matrix.h5          <span class="comment"># 未過濾矩陣（所有 spots）</span>
-├─ spatial/
-│  ├─ tissue_positions.csv          <span class="comment"># spot 像素 / 組織內外</span>
-│  ├─ tissue_lowres_image.png       <span class="comment"># 縮圖（顯示用）</span>
-│  ├─ tissue_hires_image.png        <span class="comment"># 高解析 H&E</span>
-│  ├─ scalefactors_json.json        <span class="comment"># 像素 ↔ μm 換算</span>
-│  └─ aligned_fiducials.jpg
-├─ analysis/                         <span class="comment"># SpaceRanger 內建分析</span>
-└─ web_summary.html                  <span class="comment"># 樣本 QC 報告</span></pre></div></div>
+<!-- Why preprocessing matters -->
+<section class="section"><div class="section-label" data-zh="為什麼重要" data-en="WHY IT MATTERS">為什麼重要</div>
+<h2 data-zh="為什麼空間 QC 與 scRNA 不同？" data-en="Why is spatial QC different from scRNA?">為什麼空間 QC 不同？</h2>
+<div data-lang="zh">
+<p>scRNA-seq 的 QC 假設：「異常的 cell barcode = 壞細胞 = 該丟掉」。空間轉錄組學的 QC 必須拋棄這個假設，因為：</p>
+<ol style="margin:8px 0 14px 24px;color:var(--c-ink-light)">
+<li><strong>「異常 spot」可能是真實生物訊號</strong>：腫瘤的<strong>壞死核心</strong>本就 mt% 高、UMI 低，但這是真實的腫瘤分區，不該丟。丟了你就看不到「壞死區包圍腫瘤核心」這個重要結構。</li>
+<li><strong>spot 不是細胞</strong>：一個 Visium spot 是 ~5,000 個 spot 中的一個，本身就是「混合多細胞訊號」。傳統「單細胞 QC 思維」不適用。</li>
+<li><strong>位置本身就是 QC 變量</strong>：邊緣 spot 通常 UMI 低（組織少）、中央 spot UMI 高——你不能用同一個 threshold 對待邊緣與中央。</li>
+<li><strong>多切片批次效應</strong>：不同實驗日、不同切片厚度、不同 RNA quality 都會造成 spot 間 UMI 差距大；需要 batch-aware normalization。</li>
+</ol>
+</div>
+<div data-lang="en">
+<p>scRNA-seq QC assumes: "abnormal barcode = bad cell = discard". Spatial transcriptomics must abandon this because:</p>
+<ol style="margin:8px 0 14px 24px;color:var(--c-ink-light)">
+<li><strong>"Abnormal spots" can be real biology</strong>: a tumor's <strong>necrotic core</strong> naturally has high mt% and low UMI — but it's a true tumor zone. Drop it and you lose the "necrosis encircling tumor core" architecture.</li>
+<li><strong>A spot is not a cell</strong>: each Visium spot is one of ~5,000 capture areas — inherently a mixed signal. Traditional "single-cell QC mindset" doesn't transfer.</li>
+<li><strong>Position itself is a QC covariate</strong>: edge spots have low UMI (less tissue); central spots are high — you can't apply one threshold equally.</li>
+<li><strong>Multi-section batch effects</strong>: different experimental days, section thicknesses, RNA qualities all create spot-level UMI gaps — needs batch-aware normalization.</li>
+</ol>
+</div>
+
+<div class="analogy">
+<div class="an-title" data-zh="比喻：城市衛星照的「黑區」" data-en="Analogy: dark zones in city satellite imagery">比喻：城市衛星照</div>
+<p data-lang="zh">想像看一張夜間衛星照判斷城市繁榮度——亮的地方一定繁榮嗎？不一定。<strong>夜間機場、墓園、公園</strong>都暗，但都很重要。如果你只憑「光強度 &gt; threshold」過濾，會把這些「結構性暗區」當雜訊丟掉。空間 QC 也是——壞死區是「結構性暗區」，要保留、要標註，而不是粗暴過濾。</p>
+<p data-lang="en">Imagine judging a city's prosperity from a nighttime satellite image. Bright = prosperous? Not always. <strong>Airports, cemeteries, parks</strong> are all dark but important. If you filter by "brightness &gt; threshold", you trash these "structural dark zones" as noise. Spatial QC is similar — necrotic zones are "structural darkness", to be preserved and annotated, not bluntly filtered.</p>
+</div>
 </section>
 
+<!-- File structure -->
+<section class="section"><div class="section-label" data-zh="檔案結構" data-en="FILE STRUCTURE">檔案結構</div>
+<h2 data-zh="SpaceRanger 輸出剖析" data-en="Anatomy of SpaceRanger output">SpaceRanger 輸出剖析</h2>
+<div data-lang="zh"><p>10x Visium 的官方流程 <span class="kw-inline">SpaceRanger</span> 會把每個樣本輸出為一個資料夾。理解每個檔案的角色，才能在自己的 pipeline 中靈活運用：</p></div>
+<div data-lang="en"><p>10x's official <span class="kw-inline">SpaceRanger</span> pipeline outputs one folder per sample. Understanding each file's role is essential for flexible pipelines:</p></div>
+
+<div class="code-tabs"><div class="code-tab-btns"><button class="code-tab-btn active" onclick="switchTab(this,'tree')">tree</button></div>
+<div class="code-tab-content active" id="tree"><pre>sample_outs/
+├─ filtered_feature_bc_matrix.h5    <span class="comment"># 主表達矩陣（HDF5）— 只含「在組織內」的 spots</span>
+├─ raw_feature_bc_matrix.h5          <span class="comment"># 未過濾矩陣（所有 ~5,000 spots，含組織外）</span>
+├─ filtered_feature_bc_matrix/       <span class="comment"># 同上但 mtx 格式（matrix.mtx, features.tsv, barcodes.tsv）</span>
+├─ spatial/
+│  ├─ tissue_positions.csv          <span class="comment"># spot ID, in_tissue 旗標, array_row, array_col, 像素 x/y</span>
+│  ├─ tissue_lowres_image.png       <span class="comment"># 低解析縮圖（一般 600 px）— 顯示用</span>
+│  ├─ tissue_hires_image.png        <span class="comment"># 高解析 H&E（~2000 px）— 出版用</span>
+│  ├─ detected_tissue_image.jpg     <span class="comment"># 演算法偵測到「組織區」的遮罩</span>
+│  ├─ scalefactors_json.json        <span class="comment"># 像素 ↔ μm 換算；不同影像版本有不同 scale</span>
+│  └─ aligned_fiducials.jpg          <span class="comment"># 對位用的 fiducial markers（玻片角的小圖案）</span>
+├─ analysis/                         <span class="comment"># SpaceRanger 自帶 PCA、clustering、DE</span>
+├─ web_summary.html                  <span class="comment"># 樣本層級 QC 報告（必看！）</span>
+├─ metrics_summary.csv               <span class="comment"># web_summary 同樣指標的 CSV 版</span>
+├─ molecule_info.h5                  <span class="comment"># 分子層級資料（重新分析或合併樣本時用）</span>
+└─ possorted_genome_bam.bam          <span class="comment"># 比對到基因組的 reads（除錯用）</span></pre></div></div>
+
+<div class="protip">
+<div class="pt-title" data-zh="關鍵：scalefactors_json.json" data-en="Key: scalefactors_json.json">關鍵：scalefactors_json.json</div>
+<p data-lang="zh">這個小檔有<strong>三個 scale</strong>：<span class="kw-inline">tissue_hires_scalef</span>（hires 影像對原始圖的比例）、<span class="kw-inline">tissue_lowres_scalef</span>（lowres 對原始圖比例）、<span class="kw-inline">spot_diameter_fullres</span>（spot 在 fullres 影像下的直徑像素）。當你寫自己的 spot ↔ μm 轉換時，永遠要用對應 scale，不然位置會錯位 10×！</p>
+<p data-lang="en">This tiny file holds <strong>three scales</strong>: <span class="kw-inline">tissue_hires_scalef</span> (hires image vs original), <span class="kw-inline">tissue_lowres_scalef</span> (lowres vs original), <span class="kw-inline">spot_diameter_fullres</span> (spot diameter in full-res pixels). When writing custom spot↔μm code, always use the matching scale — wrong scale causes 10× position misalignment!</p>
+</div>
+
+<div class="pitfall">
+<div class="pf-title" data-zh="陷阱：誤用 filtered vs raw" data-en="Pitfall: filtered vs raw confusion">陷阱：filtered vs raw 弄錯</div>
+<p data-lang="zh"><strong>filtered_feature_bc_matrix.h5</strong> 只含 SpaceRanger 判定「組織內」的 spot；<strong>raw_feature_bc_matrix.h5</strong> 含<strong>全部</strong> spot（含組織外的）。日常分析用 filtered；做 ambient RNA 校正、空 spot 訊號分析時才用 raw。新手常一律用 raw → 結果有大量 0-UMI 空 spot 把分析弄歪。</p>
+<p data-lang="en"><strong>filtered_feature_bc_matrix.h5</strong> contains only spots SpaceRanger called "in-tissue"; <strong>raw_feature_bc_matrix.h5</strong> contains <strong>all</strong> spots (including empty/out-of-tissue). Routine analysis uses filtered; raw is for ambient-RNA correction or empty-spot analysis. Beginners often use raw blindly → analysis dragged by zero-UMI empty spots.</p>
+</div>
+</section>
+
+<!-- Loading tools -->
 <section class="section"><div class="section-label" data-zh="載入" data-en="LOADING">載入</div>
-<h2 data-zh="主流工具" data-en="Mainstream Tools">主流工具</h2>
-<div class="tool-pills"><span class="tool-pill">Seurat (R)</span><span class="tool-pill">Scanpy + squidpy</span><span class="tool-pill">stLearn</span><span class="tool-pill">Giotto</span><span class="tool-pill">SpatialExperiment</span></div>
+<h2 data-zh="主流載入工具與資料結構" data-en="Loading tools and data structures">主流載入工具</h2>
+<div class="tool-pills">
+<span class="tool-pill">Seurat (R)</span>
+<span class="tool-pill">Scanpy + squidpy (Py)</span>
+<span class="tool-pill">SpatialExperiment (R/Bioc)</span>
+<span class="tool-pill">stLearn (Py)</span>
+<span class="tool-pill">Giotto (R)</span>
+<span class="tool-pill">semla (R)</span>
+</div>
+
 <div class="code-tabs"><div class="code-tab-btns">
 <button class="code-tab-btn active" onclick="switchTab(this,'seurat')">Seurat (R)</button>
 <button class="code-tab-btn" onclick="switchTab(this,'scanpy')">Scanpy (Py)</button>
+<button class="code-tab-btn" onclick="switchTab(this,'spe')">SpatialExperiment</button>
+<button class="code-tab-btn" onclick="switchTab(this,'stlearn')">stLearn</button>
 </div>
-<div class="code-tab-content active" id="seurat"><pre><span class="kw">library</span>(Seurat)
+<div class="code-tab-content active" id="seurat"><pre><span class="kw">library</span>(Seurat); <span class="kw">library</span>(ggplot2); <span class="kw">library</span>(patchwork)
+
+<span class="comment"># 1. 載入單樣本</span>
 br &lt;- <span class="func">Load10X_Spatial</span>(
   data.dir   = <span class="str">"sample_outs/"</span>,
   filename   = <span class="str">"filtered_feature_bc_matrix.h5"</span>,
   assay      = <span class="str">"Spatial"</span>,
-  slice      = <span class="str">"slice1"</span>)
+  slice      = <span class="str">"slice1"</span>      <span class="comment"># 在 Seurat 物件中此 slice 的名字</span>
+)
 
-<span class="comment"># 基本 QC</span>
-br[[<span class="str">"percent.mt"</span>]] &lt;- <span class="func">PercentageFeatureSet</span>(br, pattern = <span class="str">"^MT-"</span>)
-<span class="func">VlnPlot</span>(br, features = <span class="func">c</span>(<span class="str">"nCount_Spatial"</span>, <span class="str">"nFeature_Spatial"</span>, <span class="str">"percent.mt"</span>))
-<span class="func">SpatialFeaturePlot</span>(br, features = <span class="str">"nCount_Spatial"</span>)</pre></div>
-<div class="code-tab-content" id="scanpy"><pre><span class="kw">import</span> scanpy <span class="kw">as</span> sc; <span class="kw">import</span> squidpy <span class="kw">as</span> sq
-adata = sc.read_visium(<span class="str">"sample_outs/"</span>)
+<span class="comment"># 2. 內含哪些資料？</span>
+br
+<span class="comment"># An object of class Seurat 
+# 17943 features across 2696 samples within 1 assay 
+# Active assay: Spatial (17943 features, 0 variable features)
+# 1 image present: slice1</span>
+
+<span class="comment"># 3. 計算 QC 指標</span>
+br[[<span class="str">"percent.mt"</span>]]   &lt;- <span class="func">PercentageFeatureSet</span>(br, pattern = <span class="str">"^MT-"</span>)
+br[[<span class="str">"percent.rb"</span>]]   &lt;- <span class="func">PercentageFeatureSet</span>(br, pattern = <span class="str">"^RP[SL]"</span>)
+br[[<span class="str">"percent.hb"</span>]]   &lt;- <span class="func">PercentageFeatureSet</span>(br, pattern = <span class="str">"^HB[AB]"</span>) <span class="comment"># 血紅素</span>
+
+<span class="comment"># 4. 視覺化（小提琴 + 空間圖兩種視角！）</span>
+p1 &lt;- <span class="func">VlnPlot</span>(br, features = <span class="func">c</span>(<span class="str">"nCount_Spatial"</span>, <span class="str">"nFeature_Spatial"</span>, <span class="str">"percent.mt"</span>), ncol = <span class="num">3</span>, pt.size = <span class="num">0.1</span>)
+p2 &lt;- <span class="func">SpatialFeaturePlot</span>(br, features = <span class="str">"nCount_Spatial"</span>) + <span class="func">theme</span>(legend.position = <span class="str">"right"</span>)
+p3 &lt;- <span class="func">SpatialFeaturePlot</span>(br, features = <span class="str">"percent.mt"</span>) + <span class="func">theme</span>(legend.position = <span class="str">"right"</span>)
+p1 / (p2 + p3)</pre></div>
+<div class="code-tab-content" id="scanpy"><pre><span class="kw">import</span> scanpy <span class="kw">as</span> sc, squidpy <span class="kw">as</span> sq
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+
+<span class="comment"># 1. 載入單樣本</span>
+adata = sc.read_visium(<span class="str">"sample_outs/"</span>, count_file=<span class="str">"filtered_feature_bc_matrix.h5"</span>)
 adata.var_names_make_unique()
-sc.pp.calculate_qc_metrics(adata, percent_top=None, inplace=<span class="kw">True</span>)
+<span class="comment"># adata.obsm['spatial']  : (n_spots, 2)  像素座標</span>
+<span class="comment"># adata.uns['spatial']   : 影像 + scale factors</span>
+
+<span class="comment"># 2. QC 指標</span>
 adata.var[<span class="str">"mt"</span>] = adata.var_names.str.startswith(<span class="str">"MT-"</span>)
-sc.pp.calculate_qc_metrics(adata, qc_vars=[<span class="str">"mt"</span>], inplace=<span class="kw">True</span>)
-sc.pl.spatial(adata, color=[<span class="str">"total_counts"</span>, <span class="str">"n_genes_by_counts"</span>])</pre></div>
+adata.var[<span class="str">"rb"</span>] = adata.var_names.str.match(<span class="str">"^RP[SL]"</span>)
+adata.var[<span class="str">"hb"</span>] = adata.var_names.str.match(<span class="str">"^HB[AB]"</span>)
+sc.pp.calculate_qc_metrics(adata, qc_vars=[<span class="str">"mt"</span>,<span class="str">"rb"</span>,<span class="str">"hb"</span>], percent_top=<span class="kw">None</span>, inplace=<span class="kw">True</span>)
+
+<span class="comment"># 3. 視覺化</span>
+fig, axes = plt.subplots(<span class="num">2</span>,<span class="num">2</span>,figsize=(<span class="num">10</span>,<span class="num">9</span>))
+sc.pl.violin(adata, [<span class="str">"total_counts"</span>,<span class="str">"n_genes_by_counts"</span>,<span class="str">"pct_counts_mt"</span>], multi_panel=<span class="kw">True</span>, ax=axes[<span class="num">0</span>])
+sc.pl.spatial(adata, color=[<span class="str">"total_counts"</span>,<span class="str">"pct_counts_mt"</span>], ax=axes[<span class="num">1</span>])</pre></div>
+<div class="code-tab-content" id="spe"><pre><span class="kw">library</span>(SpatialExperiment); <span class="kw">library</span>(DropletUtils)
+
+<span class="comment"># 1. 載入</span>
+spe &lt;- <span class="func">read10xVisium</span>(samples = <span class="str">"sample_outs/"</span>,
+                     type    = <span class="str">"sparse"</span>,
+                     data    = <span class="str">"filtered"</span>,
+                     images  = <span class="str">"lowres"</span>)
+<span class="comment"># class: SpatialExperiment 
+# dim: 17943 2696 
+# colData names(4): in_tissue array_row array_col sample_id
+# spatialCoords names(2) : pxl_col_in_fullres pxl_row_in_fullres</span>
+
+<span class="comment"># 2. QC（用 scater / scran）</span>
+<span class="kw">library</span>(scater)
+spe &lt;- <span class="func">addPerCellQC</span>(spe, subsets = <span class="func">list</span>(MT = <span class="func">grep</span>(<span class="str">"^MT-"</span>, <span class="func">rownames</span>(spe))))
+spe$discard &lt;- <span class="func">isOutlier</span>(spe$subsets_MT_percent, type=<span class="str">"higher"</span>) |
+               <span class="func">isOutlier</span>(spe$sum, type=<span class="str">"lower"</span>, log=<span class="kw">TRUE</span>)
+spe &lt;- spe[, !spe$discard]</pre></div>
+<div class="code-tab-content" id="stlearn"><pre><span class="kw">import</span> stlearn <span class="kw">as</span> st
+<span class="comment"># stLearn 整合 H&E 影像深度的工具</span>
+data = st.Read10X(<span class="str">"sample_outs/"</span>)
+st.pp.filter_genes(data, min_cells=<span class="num">1</span>)
+st.pp.normalize_total(data)
+st.pp.log1p(data)
+<span class="comment"># 利用 H&E 影像萃取 tile-level features（給 SME 演算法用）</span>
+st.pp.tiling(data, out_path=<span class="str">"tiles/"</span>)
+st.pp.extract_feature(data)
+st.em.run_pca(data)
+st.spatial.SME.SME_normalize(data, use_data=<span class="str">"raw"</span>)</pre></div>
 </div>
 </section>
 
+<!-- QC metrics table -->
 <section class="section"><div class="section-label" data-zh="QC 指標" data-en="QC METRICS">QC 指標</div>
-<h2 data-zh="空間樣本的特殊 QC" data-en="Spatial-specific QC">空間樣本的特殊 QC</h2>
-<table class="comp-table"><thead><tr><th data-zh="指標" data-en="Metric">指標</th><th data-zh="意義" data-en="Meaning">意義</th><th data-zh="警示值" data-en="Warning">警示值</th></tr></thead><tbody>
-<tr><td>nCount per spot</td><td data-zh="每個 spot 的 UMI 總數，反映該位置組織量" data-en="UMI per spot — proxy for local tissue amount">每 spot UMI 總數</td><td data-zh="&lt; 500 通常代表 spot 上組織稀少" data-en="&lt; 500 often means thin tissue">&lt; 500 警示</td></tr>
-<tr><td>nFeature per spot</td><td data-zh="偵測到的基因數" data-en="Number of genes detected">基因數</td><td data-zh="&lt; 200 可能是空 spot 或邊緣" data-en="&lt; 200 likely empty or edge spot">&lt; 200</td></tr>
-<tr><td>% mitochondrial</td><td data-zh="與 scRNA 類似，但空間樣本 mt% 高常代表 ischemia / 壞死區" data-en="Like scRNA, but high mt% often marks ischemic / necrotic regions">高 mt% = 缺氧/壞死</td><td data-zh="&gt; 25-30%" data-en="&gt; 25-30%">&gt; 25-30%</td></tr>
-<tr><td>Tissue coverage</td><td data-zh="進入組織的 spots 佔比" data-en="% spots inside tissue">組織 spot 比例</td><td data-zh="設計上應 &gt; 50%；過低代表切片貼錯位置" data-en="Should be &gt; 50% by design; lower = misaligned section">&lt; 50%</td></tr>
-<tr><td>Spatial autocorrelation</td><td data-zh="QC 基因（如 housekeeping）是否呈空間趨勢" data-en="Whether housekeeping genes show spatial trends">空間自相關</td><td data-zh="高自相關於 housekeeping 表示批次 / 切片偏差" data-en="High autocorr. for HK genes = batch / section bias">housekeeping 不應有空間結構</td></tr>
+<h2 data-zh="空間樣本的 QC 指標完整列表" data-en="Full list of spatial QC metrics">空間 QC 完整指標</h2>
+<table class="comp-table"><thead><tr>
+<th data-zh="指標" data-en="Metric">指標</th>
+<th data-zh="意義" data-en="Meaning">意義</th>
+<th data-zh="典型範圍" data-en="Typical">典型範圍</th>
+<th data-zh="警示" data-en="Warning">警示</th>
+</tr></thead><tbody>
+<tr><td><strong>nCount per spot</strong></td><td data-zh="每 spot UMI 總數" data-en="UMI total per spot">UMI 總數</td><td>500-50,000</td><td data-zh="&lt; 500 通常是組織稀薄；&gt; 1×10⁵ 罕見" data-en="&lt; 500 = thin tissue; &gt; 1×10⁵ rare">&lt; 500</td></tr>
+<tr><td><strong>nFeature per spot</strong></td><td data-zh="偵測到的基因數" data-en="Genes detected">基因數</td><td>500-8,000</td><td data-zh="&lt; 200 多為空 spot" data-en="&lt; 200 = empty spot">&lt; 200</td></tr>
+<tr><td><strong>% mitochondrial</strong></td><td data-zh="壞死/缺氧指標" data-en="Necrosis / ischemia">壞死區</td><td>5-15%</td><td data-zh="&gt; 25-30% 可能壞死區（保留並標註）" data-en="&gt; 25-30% may be necrotic (annotate, don't discard)">&gt; 25-30%</td></tr>
+<tr><td><strong>% ribosomal</strong></td><td data-zh="高表達細胞活性指標" data-en="High-activity marker">活性</td><td>10-30%</td><td data-zh="極高可能掩蓋其他訊號" data-en="Extreme may mask other signals">&gt; 50%</td></tr>
+<tr><td><strong>% hemoglobin</strong></td><td data-zh="血液污染指標 (HBA/HBB)" data-en="Blood contamination">血污</td><td>&lt; 5%</td><td data-zh="&gt; 20% 為血管 / 出血區" data-en="&gt; 20% = vessel/hemorrhage">&gt; 20%</td></tr>
+<tr><td><strong>Tissue coverage</strong></td><td data-zh="進入組織的 spots 比例" data-en="% in-tissue spots">組織覆蓋率</td><td>50-95%</td><td data-zh="&lt; 50% 切片貼錯位置" data-en="&lt; 50% = misaligned">&lt; 50%</td></tr>
+<tr><td><strong>Spatial autocorr. of HK genes</strong></td><td data-zh="Housekeeping 不該有空間結構" data-en="HK shouldn't be spatial">空間自相關</td><td>Moran's I ≈ 0</td><td data-zh="HK 的 I &gt; 0.2 = 切片偏差" data-en="HK I &gt; 0.2 = section bias">I &gt; 0.2</td></tr>
+<tr><td><strong>Reads under tissue</strong></td><td data-zh="web_summary 指標" data-en="web_summary metric">組織下 reads</td><td>&gt; 80%</td><td data-zh="&lt; 60% = alignment 或透化問題" data-en="&lt; 60% = alignment or permeabilization issue">&lt; 60%</td></tr>
+<tr><td><strong>Median UMI / spot</strong></td><td data-zh="樣本品質" data-en="Sample quality">樣本品質</td><td>2,000-15,000</td><td data-zh="&lt; 1,000 切片或試劑問題" data-en="&lt; 1,000 = section/reagent issue">&lt; 1,000</td></tr>
 </tbody></table>
 </section>
 
-<section class="section"><div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
-<h2 data-zh="QC 過濾門檻" data-en="QC Filtering Thresholds">QC 過濾門檻</h2>
-<div data-lang="zh"><p>調整每 spot 最低 UMI / 基因數，看可用 spot 保留比例：</p></div>
-<div data-lang="en"><p>Drag thresholds on min UMI / genes per spot to see retention:</p></div>
+<!-- Interactive QC simulator -->
+<section class="section"><div class="section-label" data-zh="互動模擬 I" data-en="INTERACTIVE I">互動模擬 I</div>
+<h2 data-zh="QC 過濾門檻模擬器" data-en="QC threshold simulator">QC 門檻模擬器</h2>
+<div data-lang="zh"><p>調整每 spot 最低 UMI、最低基因數、最高 mt%，看可用 spot 保留比例與品質：</p></div>
+<div data-lang="en"><p>Adjust min UMI, min genes, max mt% per spot — see retention and quality:</p></div>
 <div class="interactive-panel">
 <div class="slider-group"><label>Min UMI / spot <span id="valU">500</span></label><input type="range" id="sliderU" min="0" max="3000" value="500" step="50"></div>
 <div class="slider-group"><label>Min genes / spot <span id="valG">200</span></label><input type="range" id="sliderG" min="0" max="2000" value="200" step="10"></div>
+<div class="slider-group"><label>Max mt% <span id="valMT">25</span>%</label><input type="range" id="sliderMT" min="5" max="50" value="25" step="1"></div>
 <div class="stat-row">
 <div class="stat-box"><div class="sb-num" id="keepN">--</div><div class="sb-lbl" data-zh="保留 spots" data-en="Spots kept">保留 spots</div></div>
 <div class="stat-box"><div class="sb-num" id="keepP">--</div><div class="sb-lbl" data-zh="保留 %" data-en="% kept">保留 %</div></div>
-<div class="stat-box"><div class="sb-num" id="medU">--</div><div class="sb-lbl" data-zh="保留 spots 中位 UMI" data-en="Median UMI of kept">中位 UMI</div></div>
+<div class="stat-box"><div class="sb-num" id="medU">--</div><div class="sb-lbl" data-zh="保留中位 UMI" data-en="Median UMI kept">中位 UMI</div></div>
+<div class="stat-box"><div class="sb-num" id="necLost">--</div><div class="sb-lbl" data-zh="可能誤殺壞死" data-en="Possible necrosis lost">壞死誤殺</div></div>
 </div>
 <div id="qcMsg" style="font-size:.9rem;color:var(--c-ink-light);margin-top:8px;"></div>
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="標準化" data-en="NORMALIZATION">標準化</div>
-<h2 data-zh="空間樣本的標準化" data-en="Normalizing Spatial Data">空間樣本的標準化</h2>
-<div data-lang="zh"><p>空間樣本標準化大致同 scRNA-seq，但需注意：</p></div>
-<div data-lang="en"><p>Largely the same as scRNA-seq, with a few caveats:</p></div>
-<div class="card-grid cols-2">
-<div class="card"><h4>SCTransform</h4><p data-lang="zh">變異穩定的 GLM 殘差，常用於 Visium（Seurat 預設）。對組織異質性區分力強。</p><p data-lang="en">Variance-stabilized GLM residuals — common Seurat default for Visium; strong at distinguishing tissue heterogeneity.</p></div>
-<div class="card"><h4>LogNormalize</h4><p data-lang="zh">與 scRNA 相同；簡單、跨工具一致。下游有 batch correction（如 Harmony）時表現穩定。</p><p data-lang="en">Same as scRNA; simple, cross-tool consistent. Stable when downstream batch correction (Harmony) is applied.</p></div>
+<!-- Interactive II: spatial visualization of QC -->
+<section class="section"><div class="section-label" data-zh="互動模擬 II" data-en="INTERACTIVE II">互動模擬 II</div>
+<h2 data-zh="UMI 空間分布視覺化" data-en="UMI spatial distribution viz">UMI 空間分布</h2>
+<p data-lang="zh">這張模擬圖展示一個 30×30 的「組織」：中央 UMI 高，邊緣低；右上角有一個「壞死區」（低 UMI + 高 mt%）。看看你的過濾門檻會如何切割這張圖。</p>
+<p data-lang="en">A simulated 30×30 "tissue": high UMI center, low UMI edges; upper-right has a "necrotic zone" (low UMI + high mt%). See how your filtering threshold cuts this image.</p>
+<div class="interactive-panel">
+<div class="slider-group"><label>UMI threshold <span id="valTh">500</span></label><input type="range" id="sliderTh" min="100" max="3000" value="500" step="50"></div>
+<div class="chart-container" style="height:380px;"><canvas id="tissueMap"></canvas></div>
+<p data-lang="zh" style="font-size:.82rem;color:var(--c-ink-muted);">紅色 = 通過；灰色 = 被過濾；觀察壞死區（右上）是否被誤殺。</p>
+<p data-lang="en" style="font-size:.82rem;color:var(--c-ink-muted);">Red = pass; gray = filtered. Watch whether the necrotic zone (upper-right) is wrongly removed.</p>
 </div>
-<div class="callout warn"><span class="callout-icon">⚠️</span><div data-lang="zh"><strong>勿用空間相關 deconv 結果做 DE：</strong>deconvolution 出來的 cell-type 比例不是 raw counts，不能直接餵 DESeq2；要做差異需用對應 cell-level matrices。</div><div data-lang="en"><strong>Don't DE on deconv-proportions:</strong> deconvolution outputs are proportions, not counts — never feed them to DESeq2; use cell-level matrices instead.</div></div>
 </section>
 
-<nav class="page-nav"><a href="platforms.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 1：平台" data-en="Step 1: Platforms">Step 1：平台</span></a><a href="spatial-analysis.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 3：空間分析" data-en="Step 3: Spatial Analysis">Step 3：空間分析</span></a></nav>
+<!-- Normalization -->
+<section class="section"><div class="section-label" data-zh="標準化" data-en="NORMALIZATION">標準化</div>
+<h2 data-zh="空間樣本的標準化方法" data-en="Normalization for spatial">空間標準化</h2>
+<div data-lang="zh"><p>空間樣本標準化大致同 scRNA-seq，但需注意：</p></div>
+<div data-lang="en"><p>Largely the same as scRNA-seq, with caveats:</p></div>
+
+<div class="card-grid cols-2">
+<div class="card"><h4>SCTransform v2</h4>
+<div data-lang="zh"><p><strong>原理：</strong>對每個基因做 NB 回歸（regress out 測序深度），把殘差當「標準化值」。</p><p><strong>適用：</strong>Visium 預設、組織異質性強。<br><strong>注意：</strong>v2 對低基因數樣本更穩定。</p></div>
+<div data-lang="en"><p><strong>How:</strong> per-gene NB regression (regress out depth); use residuals as normalized values.</p><p><strong>For:</strong> Seurat Visium default; strong tissue heterogeneity.<br><strong>Note:</strong> v2 more stable on low-feature samples.</p></div>
+</div>
+<div class="card"><h4>LogNormalize</h4>
+<div data-lang="zh"><p><strong>原理：</strong>對每 spot 除總 UMI、乘 10,000、log1p。簡單透明。</p><p><strong>適用：</strong>跨工具一致；下游有 Harmony 等 batch correction 時穩定。</p></div>
+<div data-lang="en"><p><strong>How:</strong> divide by total UMI per spot × 10,000, then log1p. Simple and transparent.</p><p><strong>For:</strong> cross-tool consistency; stable with downstream batch correction (Harmony).</p></div>
+</div>
+<div class="card"><h4>Pearson residuals (analytic Pearson)</h4>
+<div data-lang="zh"><p><strong>原理：</strong>Lause &amp; Berens 2021 提出，比 SCTransform 快 100×，數學上更乾淨。</p><p><strong>適用：</strong>大型 Visium HD / Stereo-seq；scanpy 已實作。</p></div>
+<div data-lang="en"><p><strong>How:</strong> Lause &amp; Berens 2021; ~100× faster than SCTransform with cleaner math.</p><p><strong>For:</strong> large Visium HD / Stereo-seq; implemented in scanpy.</p></div>
+</div>
+<div class="card"><h4>SME (Spatial Morphological gene Expression)</h4>
+<div data-lang="zh"><p><strong>原理：</strong>stLearn 提出，用 H&E 影像萃取的 morphology 特徵 + 鄰居 spot 平均做 smoothing。</p><p><strong>適用：</strong>低 UMI 樣本想做空間平滑時。</p></div>
+<div data-lang="en"><p><strong>How:</strong> stLearn — smooth via H&E-derived morphology features + neighbor-spot averaging.</p><p><strong>For:</strong> low-UMI samples that benefit from spatial smoothing.</p></div>
+</div>
+</div>
+
+<div class="callout warn"><span class="callout-icon">⚠️</span>
+<div data-lang="zh"><strong>千萬不要做的事：</strong>用 deconvolution 出來的 cell-type 比例直接餵 DESeq2 / edgeR——proportions 是 softmax 機率，不是 raw counts，模型假設完全不成立。要做差異就在 cluster / 區域層級做 pseudobulk。</div>
+<div data-lang="en"><strong>Never do this:</strong> feed deconvolution-derived cell-type proportions to DESeq2/edgeR — proportions are softmax probabilities, not counts; model assumptions are violated. For DE, use pseudobulk at cluster/region level.</div>
+</div>
+</section>
+
+<!-- Real case: necrotic core -->
+<section class="section"><div class="section-label" data-zh="真實案例" data-en="CASE STUDY">真實案例</div>
+<h2 data-zh="案例：膠質母細胞瘤的壞死核心" data-en="Case: glioblastoma necrotic core">案例：膠質母細胞瘤壞死核心</h2>
+<div class="case-study">
+<div class="cs-title" data-zh="Ravi et al. 2022 Cancer Cell — GBM 空間異質性" data-en="Ravi et al. 2022 Cancer Cell — GBM spatial heterogeneity">Ravi et al. 2022 Cancer Cell — GBM</div>
+<div class="cs-meta" data-zh="樣本：28 個原發 GBM Visium 切片" data-en="Sample: 28 primary GBM Visium sections">28 GBM Visium 切片</div>
+<div data-lang="zh">
+<p><strong>故事：</strong>研究團隊一開始套用標準 QC（mt% &gt; 25% 全部丟掉），結果發現「<strong>壞死核心整片消失</strong>」——但他們的研究問題正是「壞死如何驅動腫瘤異質性」！</p>
+<p><strong>解法：</strong>改寫流程：(1) <strong>不丟高 mt% spot</strong>，而是把它們標註為 <code>region = necrotic</code>；(2) 用空間鄰接資訊識別「壞死核心 ↔ 缺氧 ring ↔ 增殖前緣」三層結構；(3) 在每一層內做 DE。</p>
+<p><strong>關鍵發現：</strong>缺氧 ring 富含 <em>VEGFA, HIF1A, CA9</em>——血管新生訊號；增殖前緣富含 <em>MKI67, TOP2A</em>。這個分區只有「<strong>不過嚴的 QC + 空間註釋</strong>」才能看見。</p>
+<p><strong>教訓：</strong>把 QC 當「標註步驟」而非「丟棄步驟」。先標 region，再決定哪些 region 進入哪些下游分析。</p>
+</div>
+<div data-lang="en">
+<p><strong>Story:</strong> the team initially applied standard QC (drop mt% &gt; 25%) and found <strong>the necrotic core entirely disappeared</strong> — but their question was literally "how does necrosis drive heterogeneity"!</p>
+<p><strong>Fix:</strong> rewrote pipeline: (1) <strong>don't drop high mt% spots</strong> — label them <code>region = necrotic</code>; (2) use spatial adjacency to identify a 3-layer structure: necrotic core ↔ hypoxic ring ↔ proliferative front; (3) DE within each layer.</p>
+<p><strong>Key finding:</strong> hypoxic ring is rich in <em>VEGFA, HIF1A, CA9</em> — angiogenesis; proliferative front in <em>MKI67, TOP2A</em>. This zonation is only visible with <strong>lenient QC + spatial annotation</strong>.</p>
+<p><strong>Lesson:</strong> treat QC as <strong>annotation</strong>, not deletion. Tag regions first; decide later which regions enter which downstream analyses.</p>
+</div>
+</div>
+</section>
+
+<!-- Multi-section integration -->
+<section class="section"><div class="section-label" data-zh="多切片整合" data-en="MULTI-SECTION">多切片整合</div>
+<h2 data-zh="多切片 / 多樣本整合" data-en="Multi-section / multi-sample integration">多切片整合</h2>
+<div data-lang="zh">
+<p>實際研究常有「3 個治療組 × 2 個切片 / 組 = 6 切片」的場景。整合多切片時：</p>
+<ul style="margin:8px 0 14px 24px;color:var(--c-ink-light)">
+<li><strong>對齊（registration）：</strong>用 <span class="kw-inline">PASTE</span> / <span class="kw-inline">STalign</span> 把多切片放到「共享座標系統」，跑跨切片的 SVG / region 比較。</li>
+<li><strong>批次校正：</strong>表達矩陣層面用 <span class="kw-inline">Harmony</span> / <span class="kw-inline">scVI</span>，把不同實驗日的影響消除。</li>
+<li><strong>QC 一致性：</strong>每個 sample 用自己的 MAD 自適應門檻，而非全研究用同一閾值。</li>
+</ul>
+</div>
+<div data-lang="en">
+<p>Real studies often have "3 treatments × 2 sections each = 6 sections". When integrating:</p>
+<ul style="margin:8px 0 14px 24px;color:var(--c-ink-light)">
+<li><strong>Registration:</strong> use <span class="kw-inline">PASTE</span> / <span class="kw-inline">STalign</span> to put sections in a shared coordinate system for cross-section SVG / region comparison.</li>
+<li><strong>Batch correction:</strong> on the expression matrix, use <span class="kw-inline">Harmony</span> / <span class="kw-inline">scVI</span> to remove experimental-day effects.</li>
+<li><strong>Consistent QC:</strong> use per-sample MAD-adaptive thresholds, not a single study-wide threshold.</li>
+</ul>
+</div>
+
+<div class="code-tabs"><div class="code-tab-btns">
+<button class="code-tab-btn active" onclick="switchTab(this,'merge')">Seurat merge</button>
+<button class="code-tab-btn" onclick="switchTab(this,'paste')">PASTE</button>
+<button class="code-tab-btn" onclick="switchTab(this,'harmony')">Harmony</button>
+</div>
+<div class="code-tab-content active" id="merge"><pre><span class="comment"># 載入多個 sample 後合併</span>
+samples &lt;- <span class="func">list</span>(s1=<span class="str">"s1_outs/"</span>, s2=<span class="str">"s2_outs/"</span>, s3=<span class="str">"s3_outs/"</span>)
+objs &lt;- <span class="func">lapply</span>(<span class="func">names</span>(samples), <span class="kw">function</span>(n){
+  o &lt;- <span class="func">Load10X_Spatial</span>(samples[[n]], slice = n)
+  o$sample &lt;- n
+  o
+})
+merged &lt;- <span class="func">merge</span>(objs[[<span class="num">1</span>]], objs[-<span class="num">1</span>])
+<span class="comment"># 每個 sample 自己的 MAD QC</span>
+<span class="kw">library</span>(scuttle)
+<span class="func">VlnPlot</span>(merged, features = <span class="str">"percent.mt"</span>, group.by = <span class="str">"sample"</span>)</pre></div>
+<div class="code-tab-content" id="paste"><pre><span class="kw">import</span> paste <span class="kw">as</span> pst, anndata <span class="kw">as</span> ad
+<span class="comment"># PASTE: pairwise alignment between adjacent sections</span>
+slices = [adata_s1, adata_s2, adata_s3]
+alpha = <span class="num">0.1</span>   <span class="comment"># expression vs space weighting</span>
+pis = []
+<span class="kw">for</span> i <span class="kw">in</span> range(len(slices)-<span class="num">1</span>):
+    pi = pst.pairwise_align(slices[i], slices[i+<span class="num">1</span>], alpha=alpha)
+    pis.append(pi)
+new_slices = pst.stack_slices_pairwise(slices, pis)</pre></div>
+<div class="code-tab-content" id="harmony"><pre><span class="kw">library</span>(harmony); <span class="kw">library</span>(Seurat)
+merged &lt;- <span class="func">NormalizeData</span>(merged) <span class="func">|&gt;</span> <span class="func">FindVariableFeatures</span>() <span class="func">|&gt;</span>
+          <span class="func">ScaleData</span>() <span class="func">|&gt;</span> <span class="func">RunPCA</span>(npcs = <span class="num">30</span>)
+merged &lt;- <span class="func">RunHarmony</span>(merged, group.by.vars = <span class="str">"sample"</span>, plot_convergence = <span class="kw">TRUE</span>)
+merged &lt;- <span class="func">RunUMAP</span>(merged, reduction = <span class="str">"harmony"</span>, dims = <span class="num">1</span>:<span class="num">20</span>)
+<span class="func">DimPlot</span>(merged, group.by = <span class="str">"sample"</span>)   <span class="comment"># 應看不出明顯批次</span></pre></div>
+</div>
+</section>
+
+<!-- Pitfalls section -->
+<section class="section"><div class="section-label" data-zh="新手陷阱" data-en="PITFALLS">新手陷阱</div>
+<h2 data-zh="四個必避免的 QC 錯誤" data-en="Four QC mistakes to avoid">四個必避免的錯誤</h2>
+
+<div class="pitfall">
+<div class="pf-title" data-zh="陷阱 1：把壞死區當成「壞」spot" data-en="Pitfall 1: treating necrotic zones as bad spots">陷阱 1：誤殺壞死區</div>
+<p data-lang="zh">壞死區 mt% 高、UMI 低——但這是真實生物。用 mt% &gt; 25% 一刀切會丟掉壞死、缺氧、發炎核心。<strong>建議：</strong>標註而非丟棄。</p>
+<p data-lang="en">Necrotic zones have high mt%, low UMI — but it's real biology. Slashing mt% &gt; 25% deletes necrosis, hypoxia, inflammatory cores. <strong>Better:</strong> annotate, don't delete.</p>
+</div>
+
+<div class="pitfall">
+<div class="pf-title" data-zh="陷阱 2：全研究用同一 QC 門檻" data-en="Pitfall 2: one threshold across all samples">陷阱 2：統一閾值</div>
+<p data-lang="zh">不同實驗日、不同切片厚度、不同 RNA quality → UMI 分布天差地遠。用全研究一個閾值會把某些「正常」sample 全切掉。<strong>建議：</strong>用 scater::isOutlier() 或 MAD-based 自適應門檻。</p>
+<p data-lang="en">Different days, section thickness, RNA quality → UMI distributions diverge. One global threshold can wipe certain "normal" samples. <strong>Better:</strong> use scater::isOutlier() or MAD-based adaptive thresholds.</p>
+</div>
+
+<div class="pitfall">
+<div class="pf-title" data-zh="陷阱 3：忘了血紅素污染" data-en="Pitfall 3: forgetting hemoglobin contamination">陷阱 3：忘了血污</div>
+<p data-lang="zh">大血管附近、出血區的 spot 會富含 HBA、HBB——這些不是壞品質，但會「淹沒」其他訊號。<strong>建議：</strong>計算 percent.hb，標註血管區，但不一定全丟。</p>
+<p data-lang="en">Spots near large vessels or hemorrhages are rich in HBA, HBB — not low quality but they "drown" other signals. <strong>Better:</strong> compute percent.hb, label vessel zones, but don't always delete.</p>
+</div>
+
+<div class="pitfall">
+<div class="pf-title" data-zh="陷阱 4：raw vs filtered 弄錯" data-en="Pitfall 4: raw vs filtered confusion">陷阱 4：raw vs filtered 弄錯</div>
+<p data-lang="zh">日常 EDA 用 filtered（只組織內）；做 ambient RNA 校正、空 spot 訊號分析才用 raw。新手常一律用 raw → 大量 0-UMI spot 拖累分析。</p>
+<p data-lang="en">Routine EDA uses filtered (in-tissue only); ambient-RNA correction and empty-spot analysis use raw. Beginners default to raw → analysis bogged down by zero-UMI spots.</p>
+</div>
+</section>
+
+<!-- FAQ -->
+<section class="section"><div class="section-label" data-zh="常見問題" data-en="FAQ">常見問題</div>
+<h2 data-zh="QC FAQ" data-en="QC FAQ">QC FAQ</h2>
+<div class="faq-list">
+<div class="faq-item"><button class="faq-q"><span data-zh="Q1：mt% 多少才算「正常」？" data-en="Q1: what's a normal mt%?">Q1：mt% 多少才正常？</span></button>
+<div class="faq-a"><p data-lang="zh">完全看組織。神經元 ~5%、心肌 ~15-30%、肝 ~10-15%、腫瘤壞死區 ~30-50%。用「全組織 MAD」做自適應比固定 25% 更合理。心肌切片強行套 5% 會把所有 spot 殺光。</p><p data-lang="en">Totally tissue-dependent. Neurons ~5%, cardiomyocytes ~15-30%, liver ~10-15%, tumor necrosis ~30-50%. MAD-adaptive over the whole section is more rational than a fixed 25%. Forcing 5% on cardiac sections kills every spot.</p></div></div>
+<div class="faq-item"><button class="faq-q"><span data-zh="Q2：SCTransform 還是 LogNormalize？" data-en="Q2: SCTransform or LogNormalize?">Q2：SCTransform 還是 LogNorm？</span></button>
+<div class="faq-a"><p data-lang="zh">Visium 預設 SCTransform v2，組織異質性強時表現好；若要跨工具一致或下游有 Harmony，LogNormalize 更穩。大型 Visium HD / Stereo-seq → 用 Pearson residuals（scanpy），快 100×。</p><p data-lang="en">Visium default is SCTransform v2 — strong with heterogeneous tissue; if cross-tool consistency or downstream Harmony, LogNormalize is more stable. Large Visium HD / Stereo-seq → Pearson residuals (scanpy), ~100× faster.</p></div></div>
+<div class="faq-item"><button class="faq-q"><span data-zh="Q3：我該移除 ribosomal genes 嗎？" data-en="Q3: should I remove ribosomal genes?">Q3：移除 ribosomal 基因？</span></button>
+<div class="faq-a"><p data-lang="zh">不建議全移除——它們含真實生物訊號（蛋白合成活性）。但在<strong>挑 HVG/SVG 時</strong>可以排除 RPS/RPL，避免「核糖體基因主導」變異。Seurat 與 scanpy 都有 regress / exclude pattern 選項。</p><p data-lang="en">Don't fully remove — they carry real biology (protein-synthesis activity). But <strong>when picking HVG/SVG</strong>, excluding RPS/RPL avoids "ribosomal-dominated variance". Both Seurat and scanpy provide regress/exclude options.</p></div></div>
+<div class="faq-item"><button class="faq-q"><span data-zh="Q4：Visium HD 的 2 μm bin 怎麼 QC？" data-en="Q4: how to QC 2 μm bins in Visium HD?">Q4：HD 2 μm bin QC？</span></button>
+<div class="faq-a"><p data-lang="zh">官方建議在 8 μm 或 16 μm bin 層做 QC（2 μm 太稀無法穩定計算 mt%）。10x 的 <span class="kw-inline">spaceranger</span> 已自動產生多 bin 層級的 h5 檔，選 8 μm 開始最實用。</p><p data-lang="en">Official advice: QC at the 8 μm or 16 μm bin level (2 μm is too sparse for stable mt%). 10x's <span class="kw-inline">spaceranger</span> auto-generates multi-bin h5 files — start with 8 μm.</p></div></div>
+<div class="faq-item"><button class="faq-q"><span data-zh="Q5：MERFISH / Xenium 有 SpaceRanger 嗎？" data-en="Q5: do MERFISH / Xenium have a SpaceRanger?">Q5：imaging 平台 QC？</span></button>
+<div class="faq-a"><p data-lang="zh">Xenium 用 <span class="kw-inline">xeniumranger</span>；Vizgen MERSCOPE 用內建 MERlin pipeline。輸出皆為 transcript-level (x, y, gene) CSV + cell segmentation mask。QC 重點是 segmentation 品質、 false-positive rate（每基因 blank code 偵測）、cell shape。</p><p data-lang="en">Xenium uses <span class="kw-inline">xeniumranger</span>; Vizgen MERSCOPE uses its built-in MERlin pipeline. Both output transcript-level (x, y, gene) CSV + cell segmentation masks. Key QC: segmentation quality, false-positive rate (per-gene blank-code detection), cell shape.</p></div></div>
+<div class="faq-item"><button class="faq-q"><span data-zh="Q6：spatial batch correction 用什麼？" data-en="Q6: which tool for spatial batch correction?">Q6：空間批次校正？</span></button>
+<div class="faq-a"><p data-lang="zh">表達矩陣層用 Harmony（最常用）或 scVI（GPU 加速）；空間座標層用 PASTE 或 STalign。<strong>注意：</strong>批次校正不能矯枉過正——若不同治療組真的有不同表達模式，過度 batch correction 會把治療效應也消除。</p><p data-lang="en">For expression: Harmony (most common) or scVI (GPU-accelerated); for coordinates: PASTE or STalign. <strong>Caveat:</strong> don't over-correct — if treatment groups have genuinely different expression, aggressive batch correction also erases the treatment effect.</p></div></div>
+</div>
+</section>
+
+<!-- Discussion -->
+<section class="section"><div class="section-label" data-zh="思考題" data-en="DISCUSSION">思考題</div>
+<h2 data-zh="深度思考" data-en="Deeper thinking">深度思考</h2>
+<div class="discussion">
+<div class="disc-title" data-zh="開放問題" data-en="Open questions">開放問題</div>
+<ol>
+<li data-lang="zh">你拿到一個 GBM Visium 樣本，UMI 中位數 800、mt% 中位數 22%。標準 QC 會建議「丟掉太多 spot」，但生物上你預期看到壞死。你會怎麼設計過濾策略？</li>
+<li data-lang="zh">為什麼說「空間自相關 of housekeeping genes」是一個有用的 QC 指標？背後的生物學邏輯是什麼？</li>
+<li data-lang="zh">兩個 Visium 樣本，sample A 的 spot UMI 中位數是 sample B 的 3 倍。你會直接合併分析嗎？需要做什麼處理？</li>
+<li data-lang="en">You have a GBM Visium sample: median UMI 800, median mt% 22%. Standard QC would drop too many spots, but biologically you expect necrosis. How do you design filtering?</li>
+<li data-lang="en">Why is "spatial autocorrelation of housekeeping genes" a useful QC metric? What's the biological logic?</li>
+<li data-lang="en">Two Visium samples: A's median UMI is 3× B's. Would you merge directly? What needs to happen first?</li>
+</ol>
+</div>
+</section>
+
+<!-- Self-check quiz -->
+<section class="quiz-section"><h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
+<div class="quiz-q" data-answer="2"><p data-lang="zh">filtered_feature_bc_matrix.h5 與 raw_feature_bc_matrix.h5 的主要差別？</p><p data-lang="en">Main difference between filtered_* and raw_feature_bc_matrix.h5?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. filtered 已 normalize</span><span data-lang="en">A. filtered is already normalized</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. raw 含 cell-type 註釋</span><span data-lang="en">B. raw includes cell-type annotation</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. filtered 只含「組織內」spots；raw 含全部</span><span data-lang="en">C. filtered = in-tissue only; raw = all spots</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 完全相同</span><span data-lang="en">D. They're identical</span></div>
+</div><div class="quiz-feedback" id="fb1"></div></div>
+<div class="quiz-q" data-answer="1"><p data-lang="zh">高 mt% 的 spot 最該如何處理（在腫瘤研究中）？</p><p data-lang="en">How to handle high-mt% spots in tumor research?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 一律丟棄</span><span data-lang="en">A. Always discard</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 標註為 necrotic region，保留</span><span data-lang="en">B. Annotate as necrotic, keep them</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 把 mt% 設為 0</span><span data-lang="en">C. Set mt% to 0</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 重做實驗</span><span data-lang="en">D. Redo experiment</span></div>
+</div><div class="quiz-feedback" id="fb2"></div></div>
+<div class="quiz-q" data-answer="3"><p data-lang="zh">下列何者不是空間特有的 QC 指標？</p><p data-lang="en">Which is NOT a spatial-specific QC metric?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. Tissue coverage</span><span data-lang="en">A. Tissue coverage</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. Spatial autocorr. of HK genes</span><span data-lang="en">B. Spatial autocorr. of HK genes</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. Reads under tissue</span><span data-lang="en">C. Reads under tissue</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 28S/18S rRNA ratio</span><span data-lang="en">D. 28S/18S rRNA ratio</span></div>
+</div><div class="quiz-feedback" id="fb3"></div></div>
+<div class="quiz-q" data-answer="2"><p data-lang="zh">多切片 Visium 整合最常用的 batch correction 工具是？</p><p data-lang="en">Most common batch correction for multi-section Visium?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. ComBat</span><span data-lang="en">A. ComBat</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. limma::removeBatchEffect</span><span data-lang="en">B. limma::removeBatchEffect</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. Harmony</span><span data-lang="en">C. Harmony</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. SVA</span><span data-lang="en">D. SVA</span></div>
+</div><div class="quiz-feedback" id="fb4"></div></div>
+</section>
+
+<nav class="page-nav">
+<a href="platforms.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 1：平台" data-en="Step 1: Platforms">Step 1：平台</span></a>
+<a href="spatial-analysis.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 3：空間分析" data-en="Step 3: Spatial Analysis">Step 3：空間分析</span></a>
+</nav>
 </main>
 <footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="../i18n.js"></script>
 <script>
 window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
 function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
-// QC sim
-const M=5000;const spots=[];for(let i=0;i<M;i++){const u=Math.round(50+Math.exp(Math.random()*8.5));const g=Math.round(u*(0.3+Math.random()*0.4));spots.push({u,g});}
+
+// QC sim — generate 5000 simulated spots; tag ~5% as "necrotic" with high mt%
+const M=5000;const spots=[];for(let i=0;i<M;i++){const isNec=Math.random()<0.05;const u=isNec?Math.round(100+Math.random()*400):Math.round(50+Math.exp(Math.random()*8.5));const g=Math.round(u*(0.3+Math.random()*0.4));const mt=isNec?20+Math.random()*30:Math.random()*15;spots.push({u,g,mt,nec:isNec});}
 function upQC(){
-  const U=+document.getElementById('sliderU').value;const G=+document.getElementById('sliderG').value;
-  document.getElementById('valU').textContent=U;document.getElementById('valG').textContent=G;
-  const kept=spots.filter(s=>s.u>=U&&s.g>=G);
+  const U=+document.getElementById('sliderU').value;const G=+document.getElementById('sliderG').value;const MT=+document.getElementById('sliderMT').value;
+  document.getElementById('valU').textContent=U;document.getElementById('valG').textContent=G;document.getElementById('valMT').textContent=MT;
+  const kept=spots.filter(s=>s.u>=U&&s.g>=G&&s.mt<=MT);
+  const necLost=spots.filter(s=>s.nec&&!(s.u>=U&&s.g>=G&&s.mt<=MT)).length;
+  const necTotal=spots.filter(s=>s.nec).length;
   const us=kept.map(s=>s.u).sort((a,b)=>a-b);const med=us.length?us[Math.floor(us.length/2)]:0;
   document.getElementById('keepN').textContent=kept.length;
   document.getElementById('keepP').textContent=(kept.length/M*100).toFixed(1)+'%';
   document.getElementById('medU').textContent=med;
-  const L=I18n.get();const p=kept.length/M*100;
-  const msg=p>80?(L==='zh'?'門檻寬鬆：保留多數 spots，但可能含低品質點。':'Loose threshold: keep most spots, but may include low-quality ones.'):p>50?(L==='zh'?'門檻平衡：保留多數真實組織區，過濾邊緣空 spots。':'Balanced: keeps real tissue, filters edge / empty spots.'):(L==='zh'?'⚠ 門檻過嚴：可能丟失真實的低表達區域（如壞死、空腔附近）。':'⚠ Too strict: may discard real low-expression regions (necrotic, cavity-adjacent).');
+  document.getElementById('necLost').textContent=necLost+'/'+necTotal;
+  const L=I18n.get();const p=kept.length/M*100;const necPct=necLost/necTotal*100;
+  let msg='';
+  if(necPct>50)msg=L==='zh'?'⚠ 過半壞死 spots 被誤殺！考慮放寬 mt% 上限或將其標註而非丟棄。':'⚠ Over half necrotic spots wrongly removed! Consider relaxing mt% or annotating instead.';
+  else if(p>80)msg=L==='zh'?'門檻寬鬆：保留多數 spots，但可能含部分低品質點。':'Loose threshold: keep most spots, may include low quality.';
+  else if(p>50)msg=L==='zh'?'門檻平衡：保留多數真實組織，過濾邊緣與壞死。':'Balanced: keeps real tissue, filters edge and necrotic.';
+  else msg=L==='zh'?'⚠ 門檻過嚴：可能丟失真實低表達區（壞死、空腔）。':'⚠ Too strict: may lose real low-expression regions (necrosis, cavity).';
   document.getElementById('qcMsg').textContent=msg;
 }
-['sliderU','sliderG'].forEach(id=>document.getElementById(id).addEventListener('input',upQC));document.addEventListener('langchange',upQC);upQC();
+['sliderU','sliderG','sliderMT'].forEach(id=>document.getElementById(id).addEventListener('input',upQC));document.addEventListener('langchange',upQC);upQC();
+
+// Tissue map: simulate 30x30 grid; center high, edges low; necrotic at upper-right
+const N=30;const tissue=[];for(let i=0;i<N;i++){for(let j=0;j<N;j++){const dx=i-15,dy=j-15;const dist=Math.sqrt(dx*dx+dy*dy);const baseU=Math.max(50,3000-dist*150+Math.random()*500);const isNec=(i>22&&j<8&&Math.random()<0.7);const u=isNec?Math.max(80,300-Math.random()*200):baseU;tissue.push({x:i,y:j,u,nec:isNec});}}
+const tCtx=document.getElementById('tissueMap').getContext('2d');
+const tCh=new Chart(tCtx,{type:'scatter',data:{datasets:[{label:'tissue',data:[],pointStyle:'rect',pointRadius:7}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:false,min:-1,max:N},y:{display:false,min:-1,max:N}}}});
+function upTissue(){
+  const th=+document.getElementById('sliderTh').value;document.getElementById('valTh').textContent=th;
+  const pts=tissue.map(t=>({x:t.x,y:t.y}));
+  const bg=tissue.map(t=>t.u>=th?'rgba(220,80,80,0.85)':'rgba(180,180,180,0.6)');
+  tCh.data.datasets[0].data=pts;tCh.data.datasets[0].backgroundColor=bg;tCh.update('none');
+}
+document.getElementById('sliderTh').addEventListener('input',upTissue);upTissue();
+
+// FAQ
+document.querySelectorAll('.faq-q').forEach(b=>b.addEventListener('click',()=>{b.classList.toggle('open');b.nextElementSibling.classList.toggle('open');}));
+
+// Quiz
+window._QF={zh:{q1_y:'filtered 只含組織內 spots；raw 含全部（含空 spot），用於 ambient RNA 校正。',q1_n:'答案是 C：filtered = 組織內；raw = 全部。',q2_y:'高 mt% 區常是壞死，是真實生物，標註保留比一律丟棄合理。',q2_n:'答案是 B：標註為壞死區並保留。',q3_y:'28S/18S 是 bulk RNA 完整性指標，不是空間特有。',q3_n:'答案是 D：28S/18S 不是空間特有。',q4_y:'Harmony 是 Visium 多切片整合最常見的工具。',q4_n:'答案是 C：Harmony。'},en:{q1_y:'filtered = in-tissue only; raw = all spots (incl. empty), used for ambient-RNA correction.',q1_n:'Answer is C: filtered = in-tissue; raw = all.',q2_y:'High-mt% zones are often necrotic real biology — annotate to keep, don\'t blanket-delete.',q2_n:'Answer is B: annotate as necrotic and keep.',q3_y:'28S/18S is a bulk RNA integrity metric — not spatial-specific.',q3_n:'Answer is D: 28S/18S is not spatial-specific.',q4_y:'Harmony is the most common tool for multi-section Visium integration.',q4_n:'Answer is C: Harmony.'}};
+const QF=window._QF||{};document.querySelectorAll(".quiz-q").forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll(".quiz-opt").forEach(o=>{o.addEventListener("click",()=>{if(q.classList.contains("answered"))return;q.classList.add("answered");const fb=document.getElementById("fb"+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?"correct":"wrong");if(!ok)q.querySelectorAll(".quiz-opt")[ans].classList.add("correct");const L=I18n.get();fb.className="quiz-feedback show "+(ok?"correct-fb":"wrong-fb");fb.textContent=(ok?"✅ ":"❌ ")+(QF[L]&&QF[L]["q"+(qi+1)+"_"+(ok?"y":"n")]||"");});});});
 </script></body></html>

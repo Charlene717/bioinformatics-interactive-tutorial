@@ -1,6 +1,8 @@
 <!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Functional Profiling — Microbiome</title>
-<link rel="stylesheet" href="../styles.css"></head><body class="theme-microbiome">
+<link rel="stylesheet" href="../styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+</head><body class="theme-microbiome">
 <nav class="top-nav"><div class="top-nav-inner">
   <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
   <ul class="top-nav-links">
@@ -8,80 +10,576 @@
   </ul>
 </div></nav>
 <div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
-<header class="page-hero"><div class="step-badge">STEP 3 / 3</div><h1 data-zh="功能性分析" data-en="Functional Profiling">功能性分析</h1><p class="subtitle" data-lang="zh">從「有誰」躍進到「他們在做什麼」——pathway、KO、代謝重建。</p><p class="subtitle" data-lang="en">From "who's there" to "what they do" — pathways, KOs, metabolic reconstruction.</p></header><main class="content-wrap">
+<header class="page-hero"><div class="step-badge">STEP 3 / 3</div>
+<h1 data-zh="功能性分析" data-en="Functional Profiling">功能性分析</h1>
+<p class="subtitle" data-lang="zh">從「有誰」躍進到「他們在做什麼」——KEGG / MetaCyc 路徑、KO 註解、代謝重建與多組學整合。</p>
+<p class="subtitle" data-lang="en">From "who is there" to "what they do" — KEGG / MetaCyc pathways, KO annotation, metabolic reconstruction and multi-omics integration.</p>
+<div style="margin-top:18px"><span class="diff-chip int">🟡 Intermediate</span><span class="diff-chip adv">🔴 Advanced</span><span class="diff-chip expert">🟣 Biostatistician</span></div>
+</header>
+<main class="content-wrap">
 
-<section class="section"><div class="section-label" data-zh="核心概念" data-en="CONCEPT">核心概念</div>
-<h2 data-zh="兩條路：shotgun vs 16S" data-en="Two Routes: shotgun vs 16S">兩條路：shotgun vs 16S</h2>
-<div class="card-grid cols-2">
-<div class="card"><div class="card-icon">📚</div><h4 data-zh="Shotgun: 直接量化" data-en="Shotgun: direct quantification">Shotgun: 直接</h4><p data-lang="zh">直接從 reads 比對到蛋白家族（UniRef、KEGG Orthology）。實際存在的功能基因，最精準。</p><p data-lang="en">Map reads directly to protein families (UniRef, KEGG Orthology). Actual genes — most accurate.</p><p data-lang="zh"><strong>工具：</strong>HUMAnN3、SqueezeMeta、MetaQUAST。</p><p data-lang="en"><strong>Tools:</strong> HUMAnN3, SqueezeMeta, MetaQUAST.</p></div>
-<div class="card"><div class="card-icon">🔮</div><h4 data-zh="16S: 推估" data-en="16S: prediction">16S: 推估</h4><p data-lang="zh">用已知物種的「基因組功能輪廓」推估 16S 樣本可能有什麼基因。<strong>限：</strong>誤差大，不能取代 shotgun。</p><p data-lang="en">Predict gene content of a 16S sample from known reference genomes. <strong>Caveat:</strong> uncertain — not a shotgun substitute.</p><p data-lang="zh"><strong>工具：</strong>PICRUSt2、Tax4Fun2、Piphillin。</p><p data-lang="en"><strong>Tools:</strong> PICRUSt2, Tax4Fun2, Piphillin.</p></div>
+<!-- ===== Why this matters ===== -->
+<section class="section">
+<div class="section-label" data-zh="為什麼重要" data-en="WHY THIS MATTERS">為什麼重要</div>
+<h2 data-zh="知道誰沒用，要知道他們在做什麼" data-en="Knowing 'who' isn't enough — you need to know what they do">為什麼功能比物種重要？</h2>
+<div data-lang="zh">
+<p>2019 年 <em>Nature</em> 上的 HMP2 IBD 研究 (Lloyd-Price et al.) 提供了「物種 vs 功能」最戲劇性的對比。在 132 位 IBD 患者 vs 健康人縱向追蹤中：</p>
+<ul style="margin-left:24px;color:var(--c-ink-light)">
+<li><strong>物種變化</strong>：alpha diversity 下降，<em>Faecalibacterium prausnitzii</em>、<em>Roseburia</em> 減少；Proteobacteria 增加。但個體之間差異<strong>很大</strong>，難以建構診斷模型。</li>
+<li><strong>功能變化</strong>：丁酸合成路徑 (butyrate via butyryl-CoA acetate CoA transferase) 顯著下降；色胺酸代謝路徑 (kynurenine pathway 上升、indole 下降) 重組；硫化物代謝增強。<strong>功能訊號比物種訊號更穩定</strong>，可作為跨研究 IBD biomarker。</li>
+</ul>
+<p>同樣的觀察在多個系統重複：</p>
+<ul style="margin-left:24px;color:var(--c-ink-light)">
+<li><strong>癌症免疫治療</strong>：response 與否更與「<em>多胺合成</em>、<em>inosine</em> 產生、<em>2'-FL</em> 利用」這些功能關聯，而非單一菌種 (Sivan, Routy 2015–2023)。</li>
+<li><strong>第二型糖尿病</strong>：菌種變異大，但短鏈脂肪酸 (SCFA) 合成下降、BCAA 合成上升幾乎一致 (Karlsson 2013, Pedersen 2016)。</li>
+<li><strong>新生兒</strong>：剖腹產 vs 自然產的 strain 差異大，但「複合醣分解」與「免疫訓練」相關功能相似化只需幾個月。</li>
+</ul>
+<p>核心訊息：<strong>功能比物種更接近表型 (phenotype)</strong>。同樣，物種比基因更穩定——你研究的是哪一層，決定了用哪個工具。</p>
+</div>
+<div data-lang="en">
+<p>The 2019 <em>Nature</em> HMP2 IBD study (Lloyd-Price et al.) offers the cleanest "species vs function" contrast. In 132 IBD patients vs healthy with longitudinal sampling:</p>
+<ul style="margin-left:24px;color:var(--c-ink-light)">
+<li><strong>Species changes</strong>: alpha diversity drops, <em>Faecalibacterium prausnitzii</em> and <em>Roseburia</em> fall; Proteobacteria rise. But between-individual variance is <strong>huge</strong> — poor for diagnostic models.</li>
+<li><strong>Function changes</strong>: butyrate synthesis (via butyryl-CoA acetate CoA transferase) is significantly down; tryptophan metabolism reroutes (kynurenine up, indole down); sulfide metabolism up. <strong>Function signal is more stable than species</strong> and serves as cross-study IBD biomarkers.</li>
+</ul>
+<p>The same pattern recurs across systems:</p>
+<ul style="margin-left:24px;color:var(--c-ink-light)">
+<li><strong>Cancer immunotherapy</strong>: response correlates with <em>polyamine synthesis</em>, <em>inosine production</em>, <em>2'-FL utilization</em> — not a single species (Sivan, Routy 2015–2023).</li>
+<li><strong>Type 2 diabetes</strong>: species variable, but SCFA synthesis falls and BCAA synthesis rises consistently (Karlsson 2013, Pedersen 2016).</li>
+<li><strong>Neonates</strong>: huge strain differences between C-section and vaginal delivery, but functional convergence (carbohydrate degradation, immune training) emerges within months.</li>
+</ul>
+<p>Core message: <strong>function is closer to phenotype than species</strong>. And species are more stable than genes — which layer you study dictates which tool you use.</p>
+</div>
+
+<div class="analogy"><strong data-zh="比喻：交響樂團" data-en="Analogy: a symphony orchestra">比喻：</strong>
+<span data-lang="zh">把腸道想成交響樂團。<strong>16S / shotgun 物種</strong>告訴你「樂團裡有幾把小提琴、幾把大提琴」(誰)；<strong>功能分析</strong>告訴你「他們今晚在演奏什麼樂章」(做什麼)。兩個樂團演奏同一首貝多芬，可能有不同的樂器組合——同樣的「健康功能」可以由不同菌組組合達成。這就是為什麼 IBD 病人「物種變了，但功能變得更類似」。</span>
+<span data-lang="en">Think of the gut as a symphony orchestra. <strong>16S / shotgun species</strong> tells you "how many violins, cellos, oboes" (who); <strong>function analysis</strong> tells you "what they are playing tonight" (what). Two orchestras can perform the same Beethoven with different instruments — likewise, the same "healthy function" can be realized by different species mixes. That's why IBD patients can have "different species but more similar dysfunction".</span></div>
+</section>
+
+<!-- ===== Two routes ===== -->
+<section class="section">
+<div class="section-label" data-zh="兩條路" data-en="TWO ROUTES">兩條路</div>
+<h2 data-zh="兩條路：Shotgun 直接量 vs 16S 推估" data-en="Two routes: shotgun direct vs 16S inference">兩條路</h2>
+<div class="vs-grid">
+<div class="vs-side"><h5>📚 Shotgun 直接量化</h5>
+<p data-lang="zh">把 reads 比對到蛋白家族 (UniRef、KEGG Orthology、Pfam、TIGRFAM、eggNOG)。<strong>實際存在的基因</strong>——最準確。</p>
+<p data-lang="zh"><strong>優：</strong>真實量化、可達 strain、能找 AMR / 毒力。</p>
+<p data-lang="zh"><strong>限：</strong>需要 shotgun (貴) + 大型計算。</p>
+<p data-lang="zh"><strong>工具：</strong>HUMAnN3 (標準)、SqueezeMeta、metaG-Tk、eggNOG-mapper、KofamScan。</p>
+<p data-lang="en">Align reads to protein families (UniRef, KEGG Orthology, Pfam, TIGRFAM, eggNOG). <strong>Actual genes</strong> — most accurate.</p>
+<p data-lang="en"><strong>Pro:</strong> true quantification, can reach strain level, finds AMR / virulence.</p>
+<p data-lang="en"><strong>Con:</strong> requires shotgun (expensive) + heavy compute.</p>
+<p data-lang="en"><strong>Tools:</strong> HUMAnN3 (standard), SqueezeMeta, metaG-Tk, eggNOG-mapper, KofamScan.</p></div>
+<div class="vs-mid">VS</div>
+<div class="vs-side"><h5>🔮 16S 推估</h5>
+<p data-lang="zh">用已知物種的「基因組功能輪廓」推估 16S 樣本可能有什麼基因。<strong>是「猜」</strong>，依賴參考基因組覆蓋。</p>
+<p data-lang="zh"><strong>優：</strong>16S 預算就能跑、結果速度快、cohort 規模大也可。</p>
+<p data-lang="zh"><strong>限：</strong>失準於非培養菌；對 strain 級功能差異盲；不可作機制論述。</p>
+<p data-lang="zh"><strong>工具：</strong>PICRUSt2 (主流)、Tax4Fun2、Piphillin、PanFP。</p>
+<p data-lang="en">Predict gene content of a 16S sample from known reference genomes. <strong>It's a guess</strong>, dependent on reference coverage.</p>
+<p data-lang="en"><strong>Pro:</strong> runs on a 16S budget, fast, scales to huge cohorts.</p>
+<p data-lang="en"><strong>Con:</strong> wrong for uncultured organisms; blind to strain-level function; should not drive mechanistic claims.</p>
+<p data-lang="en"><strong>Tools:</strong> PICRUSt2 (main), Tax4Fun2, Piphillin, PanFP.</p></div>
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="HUMAnN3" data-en="HUMAnN3">HUMAnN3</div>
-<h2 data-zh="HUMAnN3 流程" data-en="HUMAnN3 Workflow">HUMAnN3 流程</h2>
-<div data-lang="zh"><p>HUMAnN3 是 shotgun 功能分析的事實標準。流程分三層：</p></div>
-<div data-lang="en"><p>HUMAnN3 is the shotgun functional analysis de facto standard. Three layers:</p></div>
-<div class="flow-chain">
-  <span class="fc-step" data-zh="MetaPhlAn4" data-en="MetaPhlAn4">MetaPhlAn4</span><span class="fc-arrow">→</span>
-  <span class="fc-step" data-zh="ChocoPhlAn pangenomes" data-en="ChocoPhlAn pangenomes">ChocoPhlAn</span><span class="fc-arrow">→</span>
-  <span class="fc-step">UniRef</span><span class="fc-arrow">→</span>
-  <span class="fc-step" data-zh="MetaCyc pathways" data-en="MetaCyc pathways">MetaCyc</span>
+<!-- ===== Functional databases ===== -->
+<section class="section">
+<div class="section-label" data-zh="功能資料庫" data-en="FUNCTIONAL DATABASES">功能資料庫</div>
+<h2 data-zh="重要功能註解資料庫" data-en="Key functional annotation databases">資料庫地圖</h2>
+<table class="comp-table"><thead><tr><th>Database</th><th data-zh="實體" data-en="Entity">實體</th><th data-zh="層級" data-en="Level">層級</th><th data-zh="特色 / 用途" data-en="Notes / use">特色</th></tr></thead><tbody>
+<tr><td><strong>KEGG</strong></td><td>KO (KEGG Orthology)</td><td data-zh="基因家族 → module → pathway" data-en="Gene family → module → pathway">~25,000 KO</td><td data-zh="商業授權；最完整 module 與 pathway map；KEGG Pathway 圖最直觀" data-en="Commercial license; most complete modules and pathway maps; pathway diagrams are iconic">最完整</td></tr>
+<tr><td><strong>MetaCyc</strong></td><td>Pathway + reaction</td><td data-zh="代謝路徑為主" data-en="Metabolic pathways">2700+ pathway</td><td data-zh="HUMAnN3 預設；強調代謝細節；多生物源；學術免費" data-en="HUMAnN3 default; emphasizes metabolism; multi-domain; academic-free">HUMAnN3 預設</td></tr>
+<tr><td><strong>UniRef90 / 50</strong></td><td data-zh="蛋白序列群集" data-en="Protein sequence clusters">序列</td><td data-zh="protein family" data-en="protein family">100M+ 蛋白</td><td data-zh="HUMAnN3 比對庫；可細到 strain 級基因" data-en="HUMAnN3's alignment DB; resolves to strain-level genes">HUMAnN3 比對庫</td></tr>
+<tr><td><strong>eggNOG</strong></td><td>Orthologous groups</td><td data-zh="跨物種 ortholog" data-en="Cross-organism orthologs">10M+ groups</td><td data-zh="eggNOG-mapper；含 COG/KO/Pfam 整合" data-en="eggNOG-mapper integrates COG/KO/Pfam">整合</td></tr>
+<tr><td><strong>Pfam / InterPro</strong></td><td data-zh="蛋白結構域" data-en="Protein domains">domain</td><td>20,000+ Pfam</td><td data-zh="HMM 模型；對新蛋白也敏感" data-en="HMM models; sensitive to novel proteins">domain</td></tr>
+<tr><td><strong>CAZy</strong></td><td data-zh="碳水化合物活性酵素" data-en="Carbohydrate-active enzymes">CAZymes</td><td>400+ family</td><td data-zh="纖維分解、複合醣代謝 (gut 重要)" data-en="Fiber degradation, complex carb metabolism (key for gut)">糖類</td></tr>
+<tr><td><strong>CARD / ResFinder</strong></td><td data-zh="抗藥基因" data-en="AMR genes">AMR</td><td>3000+ AMR</td><td data-zh="抗生素抗藥；RGI 工具掃 reads" data-en="Antibiotic resistance; scan with RGI">AMR</td></tr>
+<tr><td><strong>VFDB</strong></td><td data-zh="毒力因子" data-en="Virulence factors">virulence</td><td>30,000+</td><td data-zh="致病性研究" data-en="Pathogenicity studies">毒力</td></tr>
+<tr><td><strong>GO</strong></td><td>Gene Ontology</td><td data-zh="功能 / 過程 / 位置" data-en="Function / process / location">三分支</td><td data-zh="enrichment 分析經典；對微生物覆蓋稀疏" data-en="Classical for enrichment; sparse coverage for microbes">enrichment</td></tr>
+</tbody></table>
+</section>
+
+<!-- ===== HUMAnN3 deep dive ===== -->
+<section class="section">
+<div class="section-label" data-zh="HUMAnN3 機制" data-en="HUMAnN3 MECHANISM">HUMAnN3 機制</div>
+<h2 data-zh="HUMAnN3 是如何運作的？" data-en="How does HUMAnN3 work?">HUMAnN3 三層架構</h2>
+<div data-lang="zh">
+<p>HUMAnN3 (HMP Unified Metabolic Analysis Network 3) 是 shotgun 功能分析的事實標準。三層 tiered search 策略：</p>
+<ol style="margin-left:24px;color:var(--c-ink-light)">
+<li><strong>Tier 1 — MetaPhlAn4 物種快篩</strong>：先找出樣本中哪些物種存在 (clade-specific marker genes)。</li>
+<li><strong>Tier 2 — Bowtie2 對 ChocoPhlAn pangenome</strong>：對已偵測物種，拉出它們的 pangenome；reads bowtie2 對齊。多數 reads (typically &gt; 60%) 在此匹配，並能<strong>追蹤到物種</strong>。</li>
+<li><strong>Tier 3 — translated DIAMOND 對 UniRef90</strong>：未匹配 reads 翻譯成蛋白後跑 DIAMOND (BLASTP 加速版)。能找到稀有物種或新基因。</li>
+<li><strong>輸出三層表</strong>：① genefamilies (UniRef90，可 stratified by species)、② pathabundance (MetaCyc pathway)、③ pathcoverage。</li>
+</ol>
+<p><strong>Stratification 是 killer feature</strong>：HUMAnN3 不只說「丁酸合成路徑下降」，還告訴你「下降來自 <em>Roseburia</em> 30% + <em>F. prausnitzii</em> 40% + unclassified 30%」。臨床機制研究關鍵。</p>
 </div>
-<div class="code-tabs"><div class="code-tab-btns"><button class="code-tab-btn active" onclick="switchTab(this,'humann')">HUMAnN3</button></div>
-<div class="code-tab-content active" id="humann"><pre>humann --input sample1_concat.fq.gz \
+<div data-lang="en">
+<p>HUMAnN3 (HMP Unified Metabolic Analysis Network 3) is the shotgun functional analysis de facto standard. Three-tiered search strategy:</p>
+<ol style="margin-left:24px;color:var(--c-ink-light)">
+<li><strong>Tier 1 — MetaPhlAn4 species fingerprint</strong>: identify which species are present (clade-specific markers).</li>
+<li><strong>Tier 2 — Bowtie2 against ChocoPhlAn pangenome</strong>: pull the pangenome for the detected species; bowtie2 reads. Usually &gt; 60% reads match, and they <strong>retain species attribution</strong>.</li>
+<li><strong>Tier 3 — translated DIAMOND against UniRef90</strong>: leftover reads are translated and aligned with DIAMOND. Captures rare species or novel genes.</li>
+<li><strong>Three output tables</strong>: (1) genefamilies (UniRef90, stratifiable by species), (2) pathabundance (MetaCyc pathways), (3) pathcoverage.</li>
+</ol>
+<p><strong>Stratification is the killer feature</strong>: HUMAnN3 doesn't just say "butyrate synthesis is down" — it tells you "the drop is 30% from <em>Roseburia</em>, 40% from <em>F. prausnitzii</em>, 30% unclassified". Crucial for mechanistic clinical work.</p>
+</div>
+
+<div class="flow-chain">
+  <span class="fc-step">QC reads</span><span class="fc-arrow">→</span>
+  <span class="fc-step">MetaPhlAn4 species</span><span class="fc-arrow">→</span>
+  <span class="fc-step">ChocoPhlAn pangenome</span><span class="fc-arrow">→</span>
+  <span class="fc-step">UniRef90 DIAMOND</span><span class="fc-arrow">→</span>
+  <span class="fc-step">KO / MetaCyc</span><span class="fc-arrow">→</span>
+  <span class="fc-step">Differential</span>
+</div>
+</section>
+
+<!-- ===== Code: HUMAnN3 ===== -->
+<section class="section">
+<div class="section-label" data-zh="HUMAnN3 程式碼" data-en="HUMAnN3 CODE">HUMAnN3 程式碼</div>
+<h2 data-zh="HUMAnN3 完整流程" data-en="HUMAnN3 full pipeline">HUMAnN3 程式碼</h2>
+<div class="code-tabs"><div class="code-tab-btns">
+<button class="code-tab-btn active" onclick="switchTab(this,'h1')">基本流程</button>
+<button class="code-tab-btn" onclick="switchTab(this,'h2')">Normalize + Regroup</button>
+<button class="code-tab-btn" onclick="switchTab(this,'h3')">Stratified 視覺化</button>
+</div>
+<div class="code-tab-content active" id="h1"><pre><span class="comment"># 1. 合併 paired-end (HUMAnN3 吃 single concat)</span>
+cat clean_R1.fq.gz clean_R2.fq.gz &gt; sample1.fq.gz
+
+<span class="comment"># 2. HUMAnN3 主流程</span>
+humann --input sample1.fq.gz \
   --output humann_out/ \
   --threads <span class="num">16</span> \
-  --metaphlan-options=<span class="str">"--bowtie2db metaphlan4_db"</span>
+  --search-mode uniref90 \
+  --metaphlan-options=<span class="str">"--bowtie2db /db/metaphlan4"</span> \
+  --remove-temp-output
 
-<span class="comment"># 主要輸出</span>
-<span class="comment">#   sample1_genefamilies.tsv  — UniRef gene families × samples</span>
-<span class="comment">#   sample1_pathabundance.tsv — MetaCyc pathway abundance</span>
-<span class="comment">#   sample1_pathcoverage.tsv  — pathway coverage</span>
+<span class="comment"># 主要輸出：</span>
+<span class="comment">#   sample1_genefamilies.tsv    UniRef90 family × sample, |species|</span>
+<span class="comment">#   sample1_pathabundance.tsv   MetaCyc pathway abundance</span>
+<span class="comment">#   sample1_pathcoverage.tsv    pathway 完整度 (0-1)</span>
 
-<span class="comment"># 重新正規化為 CPM 並做 KO/Pfam mapping</span>
-humann_renorm_table -i sample1_genefamilies.tsv -o sample1_gf.cpm.tsv --units cpm
-humann_regroup_table -i sample1_gf.cpm.tsv -g uniref90_ko -o sample1_KO.tsv</pre></div>
+<span class="comment"># 3. 合併多樣本</span>
+humann_join_tables -i humann_out/ -o all_gf.tsv --file_name genefamilies
+humann_join_tables -i humann_out/ -o all_path.tsv --file_name pathabundance</pre></div>
+
+<div class="code-tab-content" id="h2"><pre><span class="comment"># 4. 標準化為 CPM 或 relative abundance</span>
+humann_renorm_table -i all_gf.tsv -o all_gf.cpm.tsv --units cpm
+humann_renorm_table -i all_path.tsv -o all_path.relab.tsv --units relab
+
+<span class="comment"># 5. Regroup UniRef90 → KO (KEGG Orthology)</span>
+humann_regroup_table -i all_gf.cpm.tsv \
+  -g uniref90_ko \
+  -o all_KO.cpm.tsv
+
+<span class="comment"># 加描述</span>
+humann_rename_table -i all_KO.cpm.tsv -n kegg-orthology -o all_KO.named.tsv
+
+<span class="comment"># 6. Regroup → GO / Pfam / eggNOG (其他映射)</span>
+humann_regroup_table -i all_gf.cpm.tsv -g uniref90_go -o all_GO.tsv
+humann_regroup_table -i all_gf.cpm.tsv -g uniref90_pfam -o all_Pfam.tsv
+
+<span class="comment"># 7. 拆 stratified vs unstratified</span>
+humann_split_stratified_table -i all_path.relab.tsv -o split_out/
+<span class="comment"># split_out/all_path.relab_stratified.tsv      ← 帶物種來源</span>
+<span class="comment"># split_out/all_path.relab_unstratified.tsv    ← 總和</span></pre></div>
+
+<div class="code-tab-content" id="h3"><pre><span class="comment"># 8. 視覺化 — 帶物種貢獻的 barplot</span>
+humann_barplot --input all_path.relab_stratified.tsv \
+  --focal-metadata disease \
+  --last-metadata disease \
+  --output butyrate_barplot.png \
+  --focal-feature <span class="str">"PWY-5022: butyrate biosynthesis"</span> \
+  --sort sum
+
+<span class="comment"># 9. 用 R 對 KO 做差異分析 (compositional)</span>
+<span class="kw">library</span>(ALDEx2); <span class="kw">library</span>(Maaslin2)
+ko &lt;- <span class="func">read.table</span>(<span class="str">"all_KO.cpm.tsv"</span>, sep=<span class="str">"\t"</span>, header=<span class="kw">TRUE</span>, row.names=<span class="num">1</span>)
+ko &lt;- ko[!<span class="func">grepl</span>(<span class="str">"\\|"</span>, <span class="func">rownames</span>(ko)),]  <span class="comment"># keep unstratified only</span>
+
+<span class="comment"># ALDEx2 對 KO</span>
+x &lt;- <span class="func">aldex.clr</span>(ko, conds=group, mc.samples=<span class="num">128</span>)
+res &lt;- <span class="func">cbind</span>(<span class="func">aldex.ttest</span>(x), <span class="func">aldex.effect</span>(x))
+
+<span class="comment"># MaAsLin2 帶協變量</span>
+<span class="func">Maaslin2</span>(input_data=ko, input_metadata=meta,
+         output=<span class="str">"maaslin_KO"</span>, normalization=<span class="str">"NONE"</span>,
+         transform=<span class="str">"LOG"</span>, analysis_method=<span class="str">"LM"</span>,
+         fixed_effects=<span class="func">c</span>(<span class="str">"disease"</span>,<span class="str">"age"</span>,<span class="str">"sex"</span>),
+         random_effects=<span class="func">c</span>(<span class="str">"subject"</span>))</pre></div>
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="PICRUSt2" data-en="PICRUSt2">PICRUSt2</div>
-<h2 data-zh="PICRUSt2 from 16S" data-en="PICRUSt2 from 16S">PICRUSt2 from 16S</h2>
-<div class="code-tabs"><div class="code-tab-btns"><button class="code-tab-btn active" onclick="switchTab(this,'picrust')">PICRUSt2</button></div>
-<div class="code-tab-content active" id="picrust"><pre><span class="comment"># 1. 把 ASV 放到參考樹</span>
-picrust2_pipeline.py \
-  -s rep-seqs.fasta \
-  -i feature-table.biom \
-  -o picrust2_out \
-  -p <span class="num">16</span>
+<!-- ===== PICRUSt2 ===== -->
+<section class="section">
+<div class="section-label" data-zh="PICRUSt2" data-en="PICRUSt2">PICRUSt2</div>
+<h2 data-zh="PICRUSt2：從 16S 推估功能" data-en="PICRUSt2: inferring function from 16S">PICRUSt2 與 NSTI</h2>
+<div data-lang="zh">
+<p>PICRUSt2 (Phylogenetic Investigation of Communities by Reconstruction of Unobserved States 2) 的核心想法：</p>
+<ol style="margin-left:24px;color:var(--c-ink-light)">
+<li>用所有<strong>已測序的細菌基因組</strong>建一棵參考系統發育樹，每個葉子標註其 KO / EC / pathway 含量。</li>
+<li>對你的 ASV，用 SEPP 或 EPA-ng <strong>插入到參考樹</strong>。</li>
+<li>對該 ASV「祖先狀態重建 (hidden state prediction)」推估其 KO 含量。</li>
+<li>乘以 ASV 豐度 → 樣本的 KO 豐度。</li>
+</ol>
+<p><strong>NSTI 是品質指標</strong>：<span class="term">NSTI<span class="tip">Nearest Sequenced Taxon Index：你的 ASV 在參考樹上「最近已測序鄰居」的演化距離。0 = 完美匹配；2 = 很遠 (預測不可信)。</span></span> 衡量 ASV 與最近參考的演化距離。預設過濾 NSTI &gt; 2；嚴格研究用 NSTI &gt; 0.5。</p>
+</div>
+<div data-lang="en">
+<p>PICRUSt2 (Phylogenetic Investigation of Communities by Reconstruction of Unobserved States 2) core idea:</p>
+<ol style="margin-left:24px;color:var(--c-ink-light)">
+<li>Build a reference phylogenetic tree from <strong>all sequenced bacterial genomes</strong>; annotate each leaf with KO / EC / pathway counts.</li>
+<li>Place your ASVs into this tree via SEPP or EPA-ng.</li>
+<li>Apply <strong>ancestral state reconstruction (hidden state prediction)</strong> to estimate the ASV's KO content.</li>
+<li>Multiply by ASV abundance → per-sample KO abundance.</li>
+</ol>
+<p><strong>NSTI is the quality flag</strong>: <span class="term">NSTI<span class="tip">Nearest Sequenced Taxon Index: phylogenetic distance from your ASV to its nearest sequenced neighbor on the reference tree. 0 = perfect match; 2 = far (unreliable).</span></span> measures how far an ASV is from its nearest reference. Default filter NSTI &gt; 2; for rigorous work, &gt; 0.5.</p>
+</div>
 
-<span class="comment"># 輸出：</span>
-<span class="comment">#   KO_metagenome_out/  ←  KEGG Orthology 豐度</span>
-<span class="comment">#   pathways_out/       ←  MetaCyc pathway 豐度</span>
+<div class="formula-box">
+NSTI = mean phylogenetic distance from query ASV to nearest reference genome (on tree)
+<span class="formula-label" data-zh="NSTI 計算（接近 0 = 預測可信；接近 2+ = 推估不可靠）" data-en="NSTI (close to 0 = reliable; close to 2+ = unreliable)">NSTI</span>
+</div>
+
+<div class="code-tabs"><div class="code-tab-btns"><button class="code-tab-btn active" onclick="switchTab(this,'pc1')">PICRUSt2 流程</button><button class="code-tab-btn" onclick="switchTab(this,'pc2')">NSTI 過濾 R</button></div>
+<div class="code-tab-content active" id="pc1"><pre><span class="comment"># 標準 PICRUSt2 流程</span>
+picrust2_pipeline.py \
+  -s rep-seqs.fasta \              <span class="comment"># DADA2 ASV 代表序列</span>
+  -i feature-table.biom \          <span class="comment"># DADA2 計數表</span>
+  -o picrust2_out \
+  -p <span class="num">16</span> --verbose
+
+<span class="comment"># 輸出資料夾：</span>
+<span class="comment">#   out.tre                          ← ASV 插入後的樹</span>
+<span class="comment">#   marker_predicted_and_nsti.tsv.gz ← 每個 ASV 的 NSTI</span>
+<span class="comment">#   KO_metagenome_out/               ← KEGG Orthology 豐度</span>
+<span class="comment">#       pred_metagenome_unstrat.tsv.gz</span>
+<span class="comment">#       pred_metagenome_contrib.tsv.gz  ← 含「哪個 ASV 貢獻」</span>
+<span class="comment">#   EC_metagenome_out/               ← EC 酵素豐度</span>
+<span class="comment">#   pathways_out/                    ← MetaCyc pathway</span>
 
 <span class="comment"># 加描述</span>
 add_descriptions.py \
   -i KO_metagenome_out/pred_metagenome_unstrat.tsv.gz \
   -m KO -o KO_with_desc.tsv.gz</pre></div>
+<div class="code-tab-content" id="pc2"><pre><span class="comment"># NSTI 過濾 + 比例分析</span>
+<span class="kw">library</span>(tidyverse)
+nsti &lt;- <span class="func">read_tsv</span>(<span class="str">"picrust2_out/marker_predicted_and_nsti.tsv.gz"</span>)
+<span class="func">summary</span>(nsti$metadata_NSTI)
+<span class="comment"># 過濾 NSTI &gt; 2 的 ASV（可信度低）</span>
+good_asv &lt;- nsti %&gt;% <span class="func">filter</span>(metadata_NSTI &lt; <span class="num">2</span>) %&gt;% <span class="func">pull</span>(sequence)
+
+<span class="comment"># 拿掉相對應的 KO 預測</span>
+ko &lt;- <span class="func">read_tsv</span>(<span class="str">"KO_metagenome_out/pred_metagenome_unstrat.tsv.gz"</span>)
+<span class="comment"># 跨樣本平均 NSTI 高的研究警告：&gt; 0.5 表預測整體不可信</span>
+
+<span class="comment"># 視覺化 NSTI 分佈</span>
+<span class="kw">library</span>(ggplot2)
+<span class="func">ggplot</span>(nsti, <span class="func">aes</span>(metadata_NSTI)) + <span class="func">geom_histogram</span>(bins=<span class="num">50</span>) +
+  <span class="func">geom_vline</span>(xintercept=<span class="num">2</span>, color=<span class="str">"red"</span>) +
+  <span class="func">labs</span>(title=<span class="str">"PICRUSt2 NSTI per ASV (red = filter)"</span>)</pre></div>
 </div>
-<div class="callout warn"><span class="callout-icon">⚠️</span><div data-lang="zh"><strong>NSTI 是品質指標：</strong>PICRUSt2 對每個 ASV 計算 Nearest Sequenced Taxon Index——距離參考越遠、預測越不可信。建議過濾 NSTI &gt; 2。</div><div data-lang="en"><strong>NSTI is a quality flag:</strong> PICRUSt2 computes Nearest Sequenced Taxon Index for each ASV — farther from reference = less reliable. Filter NSTI &gt; 2.</div></div>
+
+<div class="callout warn"><span class="callout-icon">⚠️</span><div>
+<div data-lang="zh"><strong>限制：</strong>PICRUSt2 對非培養菌、非典型環境 (極端、海洋深海、土壤) 表現差。它最適合「人類腸道」這種參考菌豐富的環境。土壤研究若 NSTI &gt; 1 是常態，不該用 PICRUSt2 作機制結論。</div>
+<div data-lang="en"><strong>Limitation:</strong> PICRUSt2 fails for uncultured / unusual environments (extreme, deep-sea, soil). Best for "human gut" where references are dense. Soil studies routinely show NSTI &gt; 1; do not draw mechanistic conclusions from PICRUSt2 there.</div>
+</div></div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="下游" data-en="DOWNSTREAM">下游</div>
-<h2 data-zh="差異功能分析" data-en="Differential Functional Analysis">差異功能分析</h2>
-<div class="card-grid cols-2">
-<div class="card"><h4>MaAsLin2</h4><p data-lang="zh">廣義線性模型，支援 metadata 多協變量；適合臨床 cohort 功能差異分析。</p><p data-lang="en">GLM with multiple covariates; ideal for clinical cohort functional differential analysis.</p></div>
-<div class="card"><h4>LEfSe</h4><p data-lang="zh">非參數 + LDA 找最具區別力的功能/物種。</p><p data-lang="en">Non-parametric + LDA to find most discriminative features.</p></div>
-<div class="card"><h4>ALDEx2 / ANCOM-BC</h4><p data-lang="zh">處理 composition 資料的差異豐度——對 KO 計數同樣適用。</p><p data-lang="en">Compositional-aware DA tools — work on KO counts too.</p></div>
-<div class="card"><h4 data-zh="代謝模型" data-en="Metabolic models">代謝模型</h4><p data-lang="zh">用 <strong>CarveMe</strong>、<strong>MICOM</strong> 從 MAG / 群落建立 genome-scale metabolic model，預測代謝物產出與物種交互。</p><p data-lang="en"><strong>CarveMe</strong>, <strong>MICOM</strong> build genome-scale metabolic models from MAGs / communities to predict metabolite outputs and interactions.</p></div>
+<!-- ===== Tool comparison ===== -->
+<section class="section">
+<div class="section-label" data-zh="工具比較" data-en="TOOL COMPARISON">工具比較</div>
+<h2 data-zh="HUMAnN3 vs PICRUSt2 vs eggNOG-mapper" data-en="HUMAnN3 vs PICRUSt2 vs eggNOG-mapper">功能工具比較</h2>
+<table class="comp-table"><thead><tr><th>Tool</th><th data-zh="輸入" data-en="Input">輸入</th><th data-zh="輸出" data-en="Output">輸出</th><th data-zh="物種分層" data-en="Species-stratified?">物種分層</th><th data-zh="準確度" data-en="Accuracy">準確度</th><th data-zh="速度 / 資源" data-en="Speed/RAM">速度</th></tr></thead><tbody>
+<tr><td><strong>HUMAnN3</strong></td><td>shotgun reads</td><td>UniRef + MetaCyc + KO</td><td>✅</td><td>⭐⭐⭐⭐⭐</td><td data-zh="中（DIAMOND 步驟慢）" data-en="Medium (DIAMOND step slow)">中</td></tr>
+<tr><td><strong>PICRUSt2</strong></td><td>16S ASV</td><td>KO + EC + MetaCyc</td><td data-zh="contribution 表" data-en="contribution table">部分</td><td>⭐⭐</td><td>快</td></tr>
+<tr><td><strong>eggNOG-mapper</strong></td><td data-zh="蛋白 / contig" data-en="proteins / contigs">contig</td><td>COG/KO/Pfam/GO</td><td data-zh="contig 級" data-en="per-contig">部分</td><td>⭐⭐⭐⭐</td><td>中</td></tr>
+<tr><td><strong>KofamScan</strong></td><td data-zh="蛋白序列" data-en="proteins">protein</td><td>KO</td><td>❌</td><td>⭐⭐⭐⭐⭐</td><td>慢 (HMM)</td></tr>
+<tr><td><strong>SqueezeMeta</strong></td><td>shotgun reads</td><td data-zh="組裝+功能整合" data-en="Assembly+function combined">整合</td><td>✅</td><td>⭐⭐⭐⭐</td><td data-zh="慢 (含組裝)" data-en="Slow (includes assembly)">慢</td></tr>
+<tr><td><strong>MEGAN6</strong></td><td>BLAST output</td><td>tax + func</td><td>✅</td><td>⭐⭐⭐</td><td>互動式 GUI</td></tr>
+<tr><td><strong>SUPER-FOCUS</strong></td><td>shotgun reads</td><td>SEED subsystems</td><td>❌</td><td>⭐⭐⭐</td><td>快</td></tr>
+</tbody></table>
+</section>
+
+<!-- ===== Decision tree ===== -->
+<section class="section">
+<div class="section-label" data-zh="決策引導" data-en="DECISION GUIDE">決策引導</div>
+<h2 data-zh="功能分析決策樹" data-en="Functional analysis decision tree">決策樹</h2>
+<div class="decision-tree"><h4>🌳 <span data-zh="該用哪個功能工具？" data-en="Which functional tool?">該用哪個功能工具？</span></h4>
+<div data-lang="zh">
+<div class="dt-node"><span class="dt-q">Q1:</span><div>只有 16S 資料 (沒預算跑 shotgun)？ <span class="dt-arrow">→ 是 →</span> <strong>PICRUSt2</strong> + NSTI 過濾；標明為「inference」非「measurement」</div></div>
+<div class="dt-node"><span class="dt-q">Q2:</span><div>有 shotgun + 想看人類腸道菌的代謝路徑？ <span class="dt-arrow">→ 是 →</span> <strong>HUMAnN3</strong> (標配)</div></div>
+<div class="dt-node"><span class="dt-q">Q3:</span><div>有 MAG 或 isolate genome？ <span class="dt-arrow">→ 是 →</span> <strong>eggNOG-mapper + KofamScan</strong> 註解；CarveMe 重建代謝模型</div></div>
+<div class="dt-node"><span class="dt-q">Q4:</span><div>研究碳水化合物代謝 / 纖維分解？ <span class="dt-arrow">→ 是 →</span> <strong>dbCAN3 / CAZy</strong>（HUMAnN3 不夠細）</div></div>
+<div class="dt-node"><span class="dt-q">Q5:</span><div>抗藥基因 / 毒力因子？ <span class="dt-arrow">→ 是 →</span> <strong>RGI (CARD)</strong> for AMR、<strong>VFDB / virulencefinder</strong> for virulence</div></div>
+<div class="dt-node"><span class="dt-q">Q6:</span><div>有配對代謝體資料？ <span class="dt-arrow">→ 是 →</span> <strong>MICOM</strong> 或 <strong>mimosa2</strong> 連結微生物代謝模型與血液 / 糞便代謝物</div></div>
+</div>
+<div data-lang="en">
+<div class="dt-node"><span class="dt-q">Q1:</span><div>Only 16S data (no shotgun budget)? <span class="dt-arrow">→ Yes →</span> <strong>PICRUSt2</strong> + NSTI filtering; label as "inference" not "measurement"</div></div>
+<div class="dt-node"><span class="dt-q">Q2:</span><div>Shotgun + want gut metabolic pathways? <span class="dt-arrow">→ Yes →</span> <strong>HUMAnN3</strong> (default)</div></div>
+<div class="dt-node"><span class="dt-q">Q3:</span><div>Have MAGs or isolate genomes? <span class="dt-arrow">→ Yes →</span> <strong>eggNOG-mapper + KofamScan</strong>; CarveMe to build metabolic models</div></div>
+<div class="dt-node"><span class="dt-q">Q4:</span><div>Studying carbohydrate metabolism / fiber? <span class="dt-arrow">→ Yes →</span> <strong>dbCAN3 / CAZy</strong> (HUMAnN3 too coarse)</div></div>
+<div class="dt-node"><span class="dt-q">Q5:</span><div>AMR / virulence factors? <span class="dt-arrow">→ Yes →</span> <strong>RGI (CARD)</strong> for AMR, <strong>VFDB / virulencefinder</strong> for virulence</div></div>
+<div class="dt-node"><span class="dt-q">Q6:</span><div>Have paired metabolomics? <span class="dt-arrow">→ Yes →</span> <strong>MICOM</strong> or <strong>mimosa2</strong> link microbial models to blood/stool metabolites</div></div>
+</div>
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="陷阱" data-en="PITFALLS">陷阱</div>
-<h2 data-zh="常見錯誤" data-en="Common Pitfalls">常見錯誤</h2>
-<div class="callout danger"><span class="callout-icon">🚫</span><div data-lang="zh"><strong>把 16S 預測當實驗事實：</strong>PICRUSt2 只是「推估」，準確度依賴參考樹涵蓋度。談機制前一定要 shotgun 驗證。</div><div data-lang="en"><strong>Treating 16S predictions as ground truth:</strong> PICRUSt2 only predicts; accuracy depends on tree coverage. Validate with shotgun before mechanistic claims.</div></div>
-<div class="callout danger"><span class="callout-icon">🚫</span><div data-lang="zh"><strong>用 raw counts 做 pathway 比較：</strong>樣本間 library size 差異會干擾——先 CPM / CLR 正規化。</div><div data-lang="en"><strong>Pathway compare on raw counts:</strong> library-size differences confound — normalize with CPM / CLR.</div></div>
-<div class="callout danger"><span class="callout-icon">🚫</span><div data-lang="zh"><strong>忽略 host DNA：</strong>人類腸道樣本可能含 30%+ 人類 DNA，會稀釋微生物訊號。先用 Bowtie2 對人類基因組過濾。</div><div data-lang="en"><strong>Ignoring host DNA:</strong> human gut samples may contain 30%+ human DNA diluting microbial signal. Pre-filter with Bowtie2 against host genome.</div></div>
+<!-- ===== Metabolic modeling ===== -->
+<section class="section">
+<div class="section-label" data-zh="代謝模型" data-en="METABOLIC MODELING">代謝模型</div>
+<h2 data-zh="進階：基因組規模代謝模型 (GEM)" data-en="Advanced: genome-scale metabolic models (GEMs)">代謝建模</h2>
+<div data-lang="zh">
+<p>當你有 MAG 或 isolate genome，可以建立 <strong>基因組規模代謝模型 (GEM)</strong>：把所有預測的代謝反應寫成矩陣，用 <strong>flux balance analysis (FBA)</strong> 預測穩態下代謝物流量。</p>
+<ul style="margin-left:24px;color:var(--c-ink-light)">
+<li><strong>CarveMe</strong>：從 genome 自動生成 GEM (15 分鐘/基因組)。</li>
+<li><strong>gapseq</strong>：另一個 GEM 自動生成，含 gap-filling。</li>
+<li><strong>MICOM</strong>：把社群多個 GEM 連動做 community-level FBA；預測群落代謝物產出。</li>
+<li><strong>COBRA Toolbox</strong> (MATLAB) / <strong>cobrapy</strong> (Python)：分析與優化 GEM。</li>
+</ul>
+</div>
+<div data-lang="en">
+<p>With MAGs or isolate genomes, you can build a <strong>genome-scale metabolic model (GEM)</strong>: encode all predicted reactions in a matrix and use <strong>flux balance analysis (FBA)</strong> to predict steady-state metabolite fluxes.</p>
+<ul style="margin-left:24px;color:var(--c-ink-light)">
+<li><strong>CarveMe</strong>: automatically generate GEMs from genomes (~15 min/genome).</li>
+<li><strong>gapseq</strong>: alternative GEM builder with gap-filling.</li>
+<li><strong>MICOM</strong>: couple multiple GEMs to do community FBA; predicts community-level metabolite outputs.</li>
+<li><strong>COBRA Toolbox</strong> (MATLAB) / <strong>cobrapy</strong> (Python): analyze and optimize GEMs.</li>
+</ul>
+</div>
+
+<div class="formula-box">
+maximize: c<sup>T</sup>v   subject to:  S·v = 0,  v<sub>L</sub> ≤ v ≤ v<sub>U</sub>
+<span class="formula-label" data-zh="Flux Balance Analysis：穩態 (S·v = 0)、線性目標 (通常 c = biomass)、有界 fluxes" data-en="FBA: steady-state S·v=0, linear objective (usually biomass), bounded fluxes">FBA core LP</span>
+</div>
+
+<div class="protip"><strong data-zh="MICOM 案例：" data-en="MICOM use case:">MICOM 案例：</strong>
+<span data-lang="zh">給定 IBD 病人糞便宏基因組 → 提取 MAG → 對每個 MAG 跑 CarveMe → 用 MICOM 模擬群落代謝 → 預測「丁酸生產量比健康低 5×」。再用糞便代謝體驗證——這就是 mechanistic loop。</span>
+<span data-lang="en">Given IBD patient stool metagenome → extract MAGs → run CarveMe per MAG → run MICOM for community simulation → predict "butyrate production is 5× lower than healthy". Validate with stool metabolomics — that's the mechanistic loop.</span></div>
+</section>
+
+<!-- ===== Case study ===== -->
+<section class="case-study">
+<h4 data-zh="案例研究：HMP2 — IBD 多組學整合 (Lloyd-Price 2019)" data-en="Case study: HMP2 — IBD multi-omics integration (Lloyd-Price 2019)">案例：HMP2 IBD 多組學</h4>
+<div class="case-meta">Lloyd-Price J. et al. 2019, Nature 569:655-662</div>
+<div data-lang="zh">
+<p><strong>背景：</strong>132 位 IBD 受試者 (Crohn's / UC / non-IBD)，每位每 2 週採樣，共 1785 個糞便樣本。多組學包含：16S amplicon、shotgun metagenomics、metatranscriptomics、proteomics、metabolomics、virome、host transcriptomics。</p>
+<p><strong>方法：</strong></p>
+<ol style="margin-left:24px"><li>HUMAnN3 計算每樣本 ~10,000 個 KO 與 700 個 MetaCyc 路徑</li>
+<li>MaAsLin2 對 KO、pathway、代謝物、轉錄做差異分析，控制 age / sex / diagnosis / collection</li>
+<li>橫向跨組學整合 (HAllA 找 cross-omics 關聯)</li>
+</ol>
+<p><strong>關鍵發現：</strong></p>
+<ul style="margin-left:24px">
+<li><strong>「Dysbiosis state」</strong>是個自家定義的高度發炎時刻——不是穩態，而是<strong>交替</strong>進入。</li>
+<li><strong>色胺酸代謝重組</strong>：indole 路徑 (健康) 被 kynurenine 路徑 (發炎) 取代。</li>
+<li><strong>SCFA 合成下降</strong>：丁酸合成相關基因下降，與糞便丁酸濃度線性相關。</li>
+<li><strong>硫化氫產生上升</strong>：dissimilatory sulfate reduction (DSR) 路徑增強——可能直接損傷腸上皮。</li>
+<li><strong>Bile acid 改變</strong>：bsh (bile salt hydrolase) 與 baiCD (7α-dehydroxylation) 下降，未結合膽酸減少。</li>
+<li><strong>單一物種無法解釋</strong>，但「功能簽名」橫跨整個 cohort 一致。</li>
+</ul>
+<p><strong>啟示：</strong>① 縱向設計重要 (穩態研究會錯失 dysbiosis 視窗)；② 多組學整合 &gt;&gt; 單一組學；③ 把功能當主訊號、物種當機制解釋；④ 公開資料 (ibdmdb.org) 仍持續被引用——可作為你的 reanalysis 基礎。</p>
+</div>
+<div data-lang="en">
+<p><strong>Background:</strong> 132 IBD subjects (Crohn's / UC / non-IBD), sampled every 2 weeks, 1785 stool samples total. Multi-omics: 16S amplicon, shotgun metagenomics, metatranscriptomics, proteomics, metabolomics, virome, host transcriptomics.</p>
+<p><strong>Methods:</strong></p>
+<ol style="margin-left:24px"><li>HUMAnN3 computed ~10,000 KOs and 700 MetaCyc pathways per sample</li>
+<li>MaAsLin2 differential analysis on KOs, pathways, metabolites, transcripts, controlling age/sex/diagnosis/site</li>
+<li>Cross-omics integration with HAllA</li>
+</ol>
+<p><strong>Key findings:</strong></p>
+<ul style="margin-left:24px">
+<li><strong>"Dysbiosis state"</strong> — a defined inflamed time-window; not steady, samples <strong>alternate in and out</strong>.</li>
+<li><strong>Tryptophan rerouting</strong>: the indole path (healthy) gives way to the kynurenine path (inflammation).</li>
+<li><strong>SCFA synthesis down</strong>: butyrate-synthesis genes drop, linearly correlated with stool butyrate levels.</li>
+<li><strong>Hydrogen sulfide up</strong>: dissimilatory sulfate reduction (DSR) is upregulated — may directly damage gut epithelium.</li>
+<li><strong>Bile acid changes</strong>: bsh (bile salt hydrolase) and baiCD (7α-dehydroxylation) drop, unconjugated bile acids shrink.</li>
+<li><strong>No single species explains</strong>, but the "functional signature" is reproducible across the cohort.</li>
+</ul>
+<p><strong>Take-home:</strong> (1) longitudinal design matters — cross-sectional misses the dysbiosis window; (2) multi-omics integration &gt;&gt; single layer; (3) function is the primary signal, species the mechanistic interpretation; (4) the public dataset (ibdmdb.org) is still actively reused — a great starting point for your own reanalysis.</p>
+</div>
+</section>
+
+<!-- ===== Interactive 1: NSTI ===== -->
+<section class="section">
+<div class="section-label" data-zh="互動模擬一" data-en="INTERACTIVE 1">互動模擬一</div>
+<h2 data-zh="NSTI 過濾對預測比例的影響" data-en="NSTI filtering impact on prediction coverage">NSTI 過濾模擬器</h2>
+<div data-lang="zh"><p>調整 NSTI 閾值，看保留多少 ASV 與預測準確度的權衡。<strong>規則：</strong>越嚴 (低 NSTI) 越準但保留少；越寬鬆 (高 NSTI) 保留多但精度差。</p></div>
+<div data-lang="en"><p>Adjust the NSTI threshold; watch the trade-off between ASV retention and prediction accuracy. <strong>Rule:</strong> stricter (low NSTI) = more accurate but fewer ASVs; looser (high NSTI) = more retained but lower accuracy.</p></div>
+<div class="interactive-panel">
+<div class="slider-group"><label>NSTI threshold <span id="valNsti">2.0</span></label><input type="range" id="sliderNsti" min="0.05" max="3" value="2" step="0.05"></div>
+<div class="stat-row">
+<div class="stat-box"><div class="sb-num" id="retain">--</div><div class="sb-lbl" data-zh="ASV 保留率" data-en="ASV retention">保留</div></div>
+<div class="stat-box"><div class="sb-num" id="accuracy">--</div><div class="sb-lbl" data-zh="預測 Spearman ρ" data-en="Prediction Spearman ρ">準確度</div></div>
+<div class="stat-box"><div class="sb-num" id="recommend">--</div><div class="sb-lbl" data-zh="建議" data-en="Recommendation">建議</div></div>
+</div>
+<div class="chart-container" style="height:200px"><canvas id="nstiChart"></canvas></div>
+</div>
+</section>
+
+<!-- ===== Interactive 2: Pathway abundance ===== -->
+<section class="section">
+<div class="section-label" data-zh="互動模擬二" data-en="INTERACTIVE 2">互動模擬二</div>
+<h2 data-zh="HUMAnN3 stratification：丁酸路徑物種來源" data-en="HUMAnN3 stratification: species sources of butyrate pathway">丁酸路徑來源</h2>
+<div data-lang="zh"><p>調整 3 個產丁酸物種的相對豐度，看 stratified pathway abundance 變化。<strong>觀察：</strong>同一個總丁酸量可能由不同物種組合達成——這就是「functional redundancy」。</p></div>
+<div data-lang="en"><p>Adjust 3 butyrate-producing species' relative abundances; watch the stratified pathway shift. <strong>Note:</strong> the same total butyrate can come from different species mixes — this is "functional redundancy".</p></div>
+<div class="interactive-panel">
+<div class="slider-group"><label><em>Faecalibacterium prausnitzii</em> (%) <span id="vF">30</span></label><input type="range" id="fpra" min="0" max="100" value="30"></div>
+<div class="slider-group"><label><em>Roseburia intestinalis</em> (%) <span id="vR">20</span></label><input type="range" id="rint" min="0" max="100" value="20"></div>
+<div class="slider-group"><label><em>Eubacterium rectale</em> (%) <span id="vE">15</span></label><input type="range" id="erec" min="0" max="100" value="15"></div>
+<div class="stat-row">
+<div class="stat-box"><div class="sb-num" id="butyTot">--</div><div class="sb-lbl" data-zh="總丁酸路徑豐度 (a.u.)" data-en="Total butyrate pathway">總丁酸</div></div>
+<div class="stat-box"><div class="sb-num" id="topContrib">--</div><div class="sb-lbl" data-zh="主要貢獻物種" data-en="Top contributor">主貢獻</div></div>
+</div>
+<div class="chart-container" style="height:220px"><canvas id="butyChart"></canvas></div>
+</div>
+</section>
+
+<!-- ===== Pitfalls ===== -->
+<section class="section">
+<div class="section-label" data-zh="陷阱" data-en="PITFALLS">陷阱</div>
+<h2 data-zh="功能分析的 5 個關鍵陷阱" data-en="5 functional analysis pitfalls">5 個關鍵陷阱</h2>
+<div class="pitfall"><strong data-zh="① 把 PICRUSt2 預測當實驗事實" data-en="① Treating PICRUSt2 inference as experiment">① 預測當事實：</strong>
+<span data-lang="zh">PICRUSt2 是「推估」，準確度依賴參考樹涵蓋度。聲稱「IBD 患者丁酸合成路徑下降」只用 PICRUSt2 是<strong>不夠的</strong>。談機制必須 shotgun 驗證或代謝體量化。NSTI &gt; 0.5 的研究尤其要謹慎。</span>
+<span data-lang="en">PICRUSt2 is an <em>inference</em> dependent on reference tree coverage. Claiming "IBD patients lose butyrate synthesis pathways" from PICRUSt2 alone is <strong>insufficient</strong>. Mechanistic claims require shotgun verification or metabolomic quantification. NSTI &gt; 0.5 studies should be especially careful.</span></div>
+<div class="pitfall"><strong data-zh="② Raw counts 跑 pathway 比較" data-en="② Raw counts for pathway comparison">② Raw counts 比較：</strong>
+<span data-lang="zh">樣本間 library size 差異會干擾——10 Gb 樣本當然有更多 KO reads。對策：HUMAnN3 內建 <code>--units cpm</code> 或 <code>--units relab</code>；對 KO counts 做 CLR + linear model。</span>
+<span data-lang="en">Library-size differences confound — a 10 Gb sample naturally has more KO reads. Use HUMAnN3's <code>--units cpm</code> or <code>--units relab</code>; apply CLR + linear model on KO counts.</span></div>
+<div class="pitfall"><strong data-zh="③ 忽略 host DNA / 宿主轉錄" data-en="③ Ignoring host DNA / transcripts">③ 宿主干擾：</strong>
+<span data-lang="zh">未過濾的 ~5% 人類 reads 會在 HUMAnN3 出錯「對應到細菌 KO」——尤其 ribosomal 與 translation KO 一定爆。對策：HUMAnN3 前 KneadData 對 human + rRNA 過濾。</span>
+<span data-lang="en">Unfiltered ~5% human reads will misalign to bacterial KOs in HUMAnN3 — ribosomal and translation KOs especially balloon. Filter with KneadData against human + rRNA before HUMAnN3.</span></div>
+<div class="pitfall"><strong data-zh="④ KEGG 路徑 enrichment 用錯背景" data-en="④ Wrong background for KEGG enrichment">④ Enrichment 背景：</strong>
+<span data-lang="zh">用 human gene-set enrichment 的方式對微生物 KO 跑 hypergeometric——背景集合錯！對策：用 MaAsLin2 / ALDEx2 直接對 KO；若做 enrichment，背景應為「樣本中偵測到的所有 KO」，非全 KEGG。</span>
+<span data-lang="en">Running hypergeometric enrichment on microbial KOs with a human gene-set-style background is wrong! Use MaAsLin2 / ALDEx2 directly on KOs; if doing enrichment, the background must be "all KOs detected in your samples", not the whole KEGG.</span></div>
+<div class="pitfall"><strong data-zh="⑤ Pathway abundance vs coverage 混淆" data-en="⑤ Confusing pathway abundance with coverage">⑤ Abundance vs Coverage：</strong>
+<span data-lang="zh">HUMAnN3 有兩個輸出：pathabundance (路徑酵素的總豐度) 與 pathcoverage (路徑酵素完整度，0-1)。abundance 高但 coverage 低 = 部分酵素過多但路徑沒拼齊。<strong>機制研究用 coverage</strong>，定量比較用 abundance。</span>
+<span data-lang="en">HUMAnN3 outputs both pathabundance (total enzyme abundance) and pathcoverage (fraction of pathway's enzymes present, 0–1). High abundance + low coverage = some enzymes over-represented but pathway incomplete. <strong>Use coverage for mechanism</strong>, abundance for quantitative comparison.</span></div>
+</section>
+
+<!-- ===== Discussion ===== -->
+<section class="discussion">
+<h4 data-zh="討論題：思考一下" data-en="Discussion: think about it">討論題</h4>
+<div data-lang="zh">
+<p><span class="q-ico">Q1.</span> 「Functional redundancy」是說不同物種能做同樣事。這對 FMT 治療有什麼意義？「移植任何健康菌叢都行」嗎？</p>
+<p><span class="q-ico">Q2.</span> 為什麼色胺酸代謝對 IBD 那麼重要？指出 indole vs kynurenine 路徑分別由誰做、又如何影響宿主。</p>
+<p><span class="q-ico">Q3.</span> 你的 PICRUSt2 結果顯示「<em>nifH</em> 固氮基因豐度增加」於某個土壤樣本。值得相信嗎？哪些驗證步驟必須做？</p>
+<p><span class="q-ico">Q4.</span> Shotgun 看 DNA 中的基因，metatranscriptomics 看 RNA 表現。哪個更接近「真的在做什麼」？兩者整合能解決什麼問題？</p>
+<p><span class="q-ico">Q5.</span> 你想設計一個 RCT 驗證「補充 <em>Akkermansia</em> 能改善 anti-PD1 反應」。要量哪些 layer (16S / shotgun / function / metabolome)，順序怎麼安排？</p>
+</div>
+<div data-lang="en">
+<p><span class="q-ico">Q1.</span> "Functional redundancy" says different species can do the same job. What does this mean for FMT? Is "any healthy stool" interchangeable?</p>
+<p><span class="q-ico">Q2.</span> Why does tryptophan metabolism matter so much in IBD? Identify which microbes drive the indole vs kynurenine paths, and the host consequences of each.</p>
+<p><span class="q-ico">Q3.</span> Your PICRUSt2 result shows "<em>nifH</em> (N-fixation) gene abundance increased" in a soil sample. Should you believe it? What validations must you run?</p>
+<p><span class="q-ico">Q4.</span> Shotgun looks at DNA genes; metatranscriptomics at RNA expression. Which is closer to "what is actually happening"? What does integrating both solve?</p>
+<p><span class="q-ico">Q5.</span> Design an RCT to test "supplementing <em>Akkermansia</em> improves anti-PD1 response". Which layers (16S / shotgun / function / metabolome) do you measure, and in what order?</p>
+</div>
+</section>
+
+<!-- ===== FAQ ===== -->
+<section class="section">
+<div class="section-label" data-zh="常見問答" data-en="FAQ">常見問答</div>
+<h2>FAQ</h2>
+<div class="faq-list">
+<div class="faq-item"><button class="faq-q">HUMAnN3 跑多久？</button>
+<div class="faq-a"><span data-lang="zh">取決於樣本大小、CPU、是否 cache UniRef DB。10 Gb 糞便、16 CPU、SSD：1-3 hr/樣本；皮膚 / 低生物量可 30 min。DIAMOND 是瓶頸；可用 GPU 版 DIAMOND2 加速。</span>
+<span data-lang="en">Depends on sample size, CPU, whether UniRef DB is cached. 10 Gb stool, 16 CPU, SSD: 1–3 hr/sample; skin / low-biomass ~30 min. DIAMOND is the bottleneck; GPU DIAMOND2 can speed it up.</span></div></div>
+
+<div class="faq-item"><button class="faq-q">為什麼 HUMAnN3 結果中很多 "UNMAPPED" / "UNINTEGRATED"？</button>
+<div class="faq-a"><span data-lang="zh">UNMAPPED = read 沒比對到 UniRef90 (新菌 / 噪音)；UNINTEGRATED = 比對到 UniRef 但沒整合到 MetaCyc 路徑。30-50% UNINTEGRATED 是正常 (微生物路徑覆蓋率有限)。若 UNMAPPED &gt; 60%，檢查樣本來源、宿主過濾、定序品質。</span>
+<span data-lang="en">UNMAPPED = read failed UniRef90 alignment (novel taxa / noise); UNINTEGRATED = aligned to UniRef but not in any MetaCyc pathway. 30–50% UNINTEGRATED is normal (microbial pathway coverage is incomplete). If UNMAPPED &gt; 60%, check sample source, host filtering, sequencing QC.</span></div></div>
+
+<div class="faq-item"><button class="faq-q">KO vs MetaCyc 該用哪個？</button>
+<div class="faq-a"><span data-lang="zh"><strong>KO</strong>：基因家族層，最細；做 KEGG pathway visualization 用。<strong>MetaCyc</strong>：路徑層，重點在代謝；做 mechanistic interpretation 用。<strong>實務上兩個都跑</strong>——KO 找候選 gene，MetaCyc 看 pathway 整體變化。</span>
+<span data-lang="en"><strong>KO</strong>: gene-family layer, finest resolution; great for KEGG pathway visualization. <strong>MetaCyc</strong>: pathway layer, metabolism-focused; for mechanistic interpretation. <strong>In practice, run both</strong> — KOs to find candidate genes, MetaCyc to see pathway-level shifts.</span></div></div>
+
+<div class="faq-item"><button class="faq-q">什麼是 "stratified" 表？</button>
+<div class="faq-a"><span data-lang="zh">HUMAnN3 stratified output 把每個 KO / pathway 的豐度<strong>拆解到物種</strong>：例如 K00929 (丁酸合成) 在 sample1 總共 100 CPM = 60 from <em>F. prausnitzii</em> + 30 from <em>Roseburia</em> + 10 unclassified。對機制研究非常重要。</span>
+<span data-lang="en">HUMAnN3 stratified output decomposes each KO / pathway abundance <strong>by contributing species</strong>: e.g., K00929 (butyrate synthesis) in sample1 total 100 CPM = 60 from <em>F. prausnitzii</em> + 30 from <em>Roseburia</em> + 10 unclassified. Crucial for mechanistic work.</span></div></div>
+
+<div class="faq-item"><button class="faq-q">我的 KO 表有幾百萬行——怎麼分析？</button>
+<div class="faq-a"><span data-lang="zh">① 先過濾 prevalence (在 ≥ 10% 樣本中存在)、② 過濾豐度 (mean &gt; 1 CPM)；通常剩下幾千。② 再做 unstratified 比較找 candidate；最後對 candidate 看 stratified 找物種。</span>
+<span data-lang="en">(1) Filter by prevalence (present in ≥10% samples), (2) filter by abundance (mean &gt; 1 CPM) — usually leaves a few thousand. (3) Compare on unstratified first to find candidates; then look at stratified for top hits to find contributing species.</span></div></div>
+
+<div class="faq-item"><button class="faq-q">SCFA / 膽酸 / 神經傳導物質如何研究？</button>
+<div class="faq-a"><span data-lang="zh">配對 metabolomics 是金標準。① 糞便短鏈脂肪酸 (acetate / propionate / butyrate) — GC-MS。② 膽酸譜 (initial vs deconjugated vs secondary) — LC-MS。③ 神經活性 (GABA, 5-HT, dopamine, kynurenine) — LC-MS/MS。再用 HAllA / MMVec 連結微生物與代謝物。</span>
+<span data-lang="en">Paired metabolomics is the gold standard. (1) Stool short-chain fatty acids (acetate / propionate / butyrate) — GC-MS. (2) Bile-acid panel (primary vs deconjugated vs secondary) — LC-MS. (3) Neuroactive (GABA, 5-HT, dopamine, kynurenine) — LC-MS/MS. Link to microbes with HAllA / MMVec.</span></div></div>
+
+<div class="faq-item"><button class="faq-q">CarveMe vs gapseq 該選哪個？</button>
+<div class="faq-a"><span data-lang="zh"><strong>CarveMe</strong>：快 (15 min/genome)、廣泛驗證、社群成熟；HUMAnN3 / MICOM 配套。<strong>gapseq</strong>：gap-filling 較細、覆蓋更多 secondary metabolism。新研究 CarveMe，深入特定代謝路徑 gapseq。</span>
+<span data-lang="en"><strong>CarveMe</strong>: fast (15 min/genome), broadly validated, mature community; pairs with HUMAnN3 / MICOM. <strong>gapseq</strong>: better gap-filling, covers more secondary metabolism. CarveMe for new studies; gapseq when you focus on a particular pathway.</span></div></div>
+</div>
+</section>
+
+<!-- ===== Quiz ===== -->
+<section class="quiz-section">
+<h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
+<div class="quiz-q" data-answer="1">
+<p data-lang="zh">1. NSTI = 1.5 對你的 ASV 意味著？</p>
+<p data-lang="en">1. NSTI = 1.5 for your ASV means?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 預測非常可靠</span><span data-lang="en">A. Prediction is very reliable</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 預測尚可，但接近不可信，需謹慎</span><span data-lang="en">B. Borderline reliable; interpret with caution</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 該 ASV 應立即丟棄</span><span data-lang="en">C. Discard the ASV immediately</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 該 ASV 對應太多參考</span><span data-lang="en">D. The ASV matches too many references</span></div>
+</div><div class="quiz-feedback" id="fb1"></div></div>
+
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">2. 你 HUMAnN3 看 pathway 結果發現 PWY-5022 (butyrate biosynthesis) abundance 高但 coverage 低。最合理解讀？</p>
+<p data-lang="en">2. HUMAnN3 shows PWY-5022 (butyrate biosynthesis) high abundance but low coverage. Best interpretation?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 樣本中丁酸生產旺盛</span><span data-lang="en">A. Strong butyrate production in this sample</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 樣本中物種多但都不產丁酸</span><span data-lang="en">B. Many species, none produces butyrate</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 某些酵素豐度高，但整條路徑不齊，可能無法實際合成</span><span data-lang="en">C. Some enzymes are abundant, but the pathway is incomplete — may not actually function</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. HUMAnN3 故障</span><span data-lang="en">D. HUMAnN3 bug</span></div>
+</div><div class="quiz-feedback" id="fb2"></div></div>
+
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">3. 為什麼 HUMAnN3 stratification 對機制研究重要？</p>
+<p data-lang="en">3. Why is HUMAnN3 stratification crucial for mechanistic studies?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 加速計算</span><span data-lang="en">A. Speeds up compute</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 提升 unmapped reads 的分類</span><span data-lang="en">B. Improves classification of unmapped reads</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 告訴你「哪個物種貢獻多少」此功能</span><span data-lang="en">C. Tells you "which species contributes how much" of a function</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 自動做 enrichment 分析</span><span data-lang="en">D. Auto-runs enrichment analysis</span></div>
+</div><div class="quiz-feedback" id="fb3"></div></div>
+
+<div class="quiz-q" data-answer="3">
+<p data-lang="zh">4. 「functional redundancy」是說：</p>
+<p data-lang="en">4. "Functional redundancy" means:</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 微生物群有冗餘的 16S 拷貝</span><span data-lang="en">A. Microbial 16S genes have redundant copies</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. HUMAnN3 結果常有重複</span><span data-lang="en">B. HUMAnN3 outputs are often redundant</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 同一基因在多個 KO 中</span><span data-lang="en">C. The same gene appears in multiple KOs</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 不同物種能執行相同功能；解釋為何「物種變了但功能穩」</span><span data-lang="en">D. Different species can perform the same function; explains "species change but function persists"</span></div>
+</div><div class="quiz-feedback" id="fb4"></div></div>
+
+<div class="quiz-q" data-answer="0">
+<p data-lang="zh">5. HMP2 (Lloyd-Price 2019) 的最大方法學貢獻是？</p>
+<p data-lang="en">5. The biggest methodological contribution of HMP2 (Lloyd-Price 2019)?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 縱向多組學整合 — 顯示功能比物種穩定</span><span data-lang="en">A. Longitudinal multi-omics — showing function is more stable than species</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 第一篇 IBD 16S 研究</span><span data-lang="en">B. First-ever IBD 16S paper</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 證明 FMT 治癒 IBD</span><span data-lang="en">C. Proved FMT cures IBD</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 發現 IBD 的單一致病菌</span><span data-lang="en">D. Identified a single causative organism</span></div>
+</div><div class="quiz-feedback" id="fb5"></div></div>
+</section>
+
+<!-- ===== Further reading ===== -->
+<section class="section">
+<div class="section-label" data-zh="延伸閱讀" data-en="FURTHER READING">延伸閱讀</div>
+<h2 data-zh="重要論文" data-en="Key papers">重要論文</h2>
+<ul style="margin-left:24px;color:var(--c-ink-light);line-height:1.9">
+<li><strong>Beghini et al. 2021</strong>. <em>Integrating taxonomic, functional and strain-level profiling of diverse microbial communities with bioBakery 3 (HUMAnN3)</em>. eLife 10:e65088.</li>
+<li><strong>Douglas et al. 2020</strong>. <em>PICRUSt2 for prediction of metagenome functions</em>. Nat Biotechnol 38:685.</li>
+<li><strong>Lloyd-Price et al. 2019</strong>. <em>Multi-omics of the gut microbial ecosystem in inflammatory bowel diseases (HMP2)</em>. Nature 569:655.</li>
+<li><strong>Machado et al. 2018</strong>. <em>Fast automated reconstruction of genome-scale metabolic models for microbial species and communities (CarveMe)</em>. Nucleic Acids Res 46:7542.</li>
+<li><strong>Diener, Gibbons, Resendis-Antonio 2020</strong>. <em>MICOM: metagenome-scale modeling to infer metabolic interactions in the gut microbiota</em>. mSystems 5:e00606.</li>
+<li><strong>Cantalapiedra et al. 2021</strong>. <em>eggNOG-mapper v2</em>. Mol Biol Evol 38:5825.</li>
+<li><strong>Aramaki et al. 2020</strong>. <em>KofamKOALA: KEGG Ortholog assignment based on profile HMM and adaptive score threshold</em>. Bioinformatics 36:2251.</li>
+<li><strong>Alcock et al. 2023</strong>. <em>CARD 2023: expanded curation, support for machine learning, and resistome prediction</em>. Nucleic Acids Res 51:D690.</li>
+<li><strong>Routy et al. 2018</strong>. <em>Gut microbiome influences efficacy of PD-1–based immunotherapy against epithelial tumors</em>. Science 359:91.</li>
+<li><strong>Mallick et al. 2021</strong>. <em>MaAsLin2 — multivariable association discovery in population-scale meta-omics</em>. PLoS Comput Biol 17:e1009442.</li>
+</ul>
 </section>
 
 <nav class="page-nav"><a href="metagenomics.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 2：Metagenomics" data-en="Step 2: Metagenomics">Step 2：Metagenomics</span></a><a href="../index.html"><span class="nav-dir" data-zh="完成 ✓" data-en="Done ✓">完成 ✓</span><span class="nav-title" data-zh="返回 Hub" data-en="Back to Hub">返回 Hub</span></a></nav>
@@ -91,4 +589,56 @@ add_descriptions.py \
 <script>
 window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
 function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
+
+// NSTI sim
+let nstiChart;
+function upNsti(){
+  const t=+document.getElementById('sliderNsti').value;
+  document.getElementById('valNsti').textContent=t.toFixed(2);
+  // simulated: retention ~ 1 - exp(-t*1.5), accuracy ~ exp(-t*0.6)
+  const retain=Math.min(1, 1-Math.exp(-t*1.5));
+  const acc=Math.max(0.1, Math.exp(-t*0.6));
+  let rec='';
+  if(t<=0.3) rec='⚠️ 過嚴 / Too strict';
+  else if(t<=1.0) rec='✅ 嚴格研究 / Rigorous';
+  else if(t<=2.0) rec='👍 標準 / Default';
+  else rec='⚠️ 過鬆 / Too loose';
+  document.getElementById('retain').textContent=(retain*100).toFixed(1)+'%';
+  document.getElementById('accuracy').textContent=acc.toFixed(2);
+  document.getElementById('recommend').textContent=rec;
+  const ctx=document.getElementById('nstiChart');
+  if(nstiChart) nstiChart.destroy();
+  nstiChart=new Chart(ctx,{type:'bar',data:{labels:['ASV retention','Prediction accuracy (ρ)'],datasets:[{data:[retain*100,acc*100],backgroundColor:['#3b82f6','#10b981']}]},options:{plugins:{legend:{display:false}},scales:{y:{max:100}}}});
+}
+document.getElementById('sliderNsti').addEventListener('input',upNsti);upNsti();
+
+// Butyrate stratification sim
+let butyChart;
+function upButy(){
+  const f=+document.getElementById('fpra').value;
+  const r=+document.getElementById('rint').value;
+  const e=+document.getElementById('erec').value;
+  document.getElementById('vF').textContent=f;document.getElementById('vR').textContent=r;document.getElementById('vE').textContent=e;
+  // Pathway contribution (heuristic)
+  const cF=f*1.2;const cR=r*1.0;const cE=e*0.9;
+  const total=cF+cR+cE;
+  document.getElementById('butyTot').textContent=total.toFixed(0);
+  let top='F. prausnitzii';let mx=cF;
+  if(cR>mx){top='R. intestinalis';mx=cR;}
+  if(cE>mx){top='E. rectale';mx=cE;}
+  document.getElementById('topContrib').textContent=top;
+  const ctx=document.getElementById('butyChart');
+  if(butyChart) butyChart.destroy();
+  butyChart=new Chart(ctx,{type:'bar',data:{labels:['Butyrate path (stratified)'],datasets:[
+    {label:'F. prausnitzii',data:[cF],backgroundColor:'#10b981'},
+    {label:'R. intestinalis',data:[cR],backgroundColor:'#3b82f6'},
+    {label:'E. rectale',data:[cE],backgroundColor:'#f59e0b'},
+  ]},options:{indexAxis:'y',scales:{x:{stacked:true},y:{stacked:true}}}});
+}
+['fpra','rint','erec'].forEach(id=>document.getElementById(id).addEventListener('input',upButy));upButy();
+
+// FAQ + level tabs + Quiz
+document.querySelectorAll('.faq-q').forEach(b=>b.addEventListener('click',()=>{b.classList.toggle('open');b.nextElementSibling.classList.toggle('open');}));
+document.querySelectorAll('.level-tabs').forEach(tabs=>{tabs.querySelectorAll('.level-tab').forEach(t=>t.addEventListener('click',()=>{const tgt=t.dataset.tab;tabs.querySelectorAll('.level-tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===tgt));tabs.parentElement.querySelectorAll('.level-pane').forEach(p=>p.classList.toggle('active',p.dataset.pane===tgt));}));});
+document.querySelectorAll('.quiz-q').forEach((q)=>{const ans=+q.dataset.answer;q.querySelectorAll('.quiz-opt').forEach(o=>{o.addEventListener('click',()=>{const idx=+o.dataset.idx;q.querySelectorAll('.quiz-opt').forEach(x=>x.classList.remove('selected','correct','incorrect'));o.classList.add('selected',idx===ans?'correct':'incorrect');const fb=q.querySelector('.quiz-feedback');fb.textContent=idx===ans?'✓ Correct!':'✗ Try again';fb.className='quiz-feedback '+(idx===ans?'show correct':'show incorrect');});});});
 </script></body></html>

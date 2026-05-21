@@ -8,102 +8,458 @@
   </ul>
 </div></nav>
 <div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
-<header class="page-hero"><div class="step-badge">STEP 2 / 4</div><h1 data-zh="Alignment、Peak Calling 與 QC" data-en="Alignment, Peak Calling, and QC">Alignment、Peak Calling 與 QC</h1><p class="subtitle" data-lang="zh">把 reads 對齊到基因組、找出開放區域 (peaks)、並用標準指標評估資料品質。</p><p class="subtitle" data-lang="en">Align reads, find open regions (peaks), and benchmark data quality with standard metrics.</p></header><main class="content-wrap">
+<header class="page-hero"><div class="step-badge">STEP 2 / 4 · ALIGN + PEAKS + QC</div>
+<h1 data-zh="Alignment、Peak Calling 與 QC" data-en="Alignment, Peak Calling, and QC">Alignment、Peak Calling 與 QC</h1>
+<p class="subtitle" data-lang="zh">把 reads 對齊到基因組、找出開放區域（peaks）、並用 ENCODE 黃金標準評估資料品質。深入 MACS3、Genrich、HMMRATAC 的選擇邏輯，以及 TSS enrichment、FRiP、PBC1、NRF 的公式與閾值。</p>
+<p class="subtitle" data-lang="en">Align reads, find open regions (peaks), and benchmark quality against ENCODE gold standards. Deep dive into MACS3 / Genrich / HMMRATAC trade-offs and TSS enrichment, FRiP, PBC1, NRF formulas.</p>
+<div style="margin-top:14px;"><span class="diff-chip int">🟡 Intermediate</span><span class="diff-chip adv">🔴 Advanced</span></div>
+</header><main class="content-wrap">
 
-<section class="section"><div class="section-label" data-zh="工具選擇" data-en="TOOLS">工具選擇</div>
-<h2 data-zh="Alignment 與 Peak Calling 工具" data-en="Alignment & Peak Calling Tools">Alignment 與 Peak Calling</h2>
-<table class="comp-table"><thead><tr><th data-zh="階段" data-en="Stage">階段</th><th data-zh="工具" data-en="Tool">工具</th><th data-zh="特色" data-en="Notes">特色</th></tr></thead><tbody>
-<tr><td data-zh="比對" data-en="Alignment" rowspan="2">比對</td><td><strong>Bowtie2 --very-sensitive</strong></td><td data-zh="ENCODE ATAC-seq 標準" data-en="ENCODE ATAC-seq standard">ENCODE 標準</td></tr>
-<tr><td>BWA-MEM</td><td data-zh="長讀適合；通用性高" data-en="Better for longer reads; general-purpose">通用</td></tr>
-<tr><td data-zh="Peak Calling" data-en="Peak Calling" rowspan="3">Peak Calling</td><td><strong>MACS2 / MACS3</strong></td><td data-zh="最普及；ATAC 用 <code>-f BAMPE --nomodel --shift -75 --extsize 150</code>" data-en="Most popular; for ATAC use <code>-f BAMPE --nomodel --shift -75 --extsize 150</code>">最普及</td></tr>
-<tr><td>Genrich</td><td data-zh="ATAC 友好、無需事先 shift；可同時處理多 replicates" data-en="ATAC-friendly; no shift needed; handles replicates jointly">ATAC 友好</td></tr>
-<tr><td>HMMRATAC</td><td data-zh="同時辨識 NFR / nucleosome；隱馬可夫模型" data-en="HMM-based; identifies NFR / nucleosome jointly">HMM</td></tr>
-</tbody></table>
-</section>
-
-<section class="section"><div class="section-label" data-zh="關鍵 QC" data-en="QC METRICS">關鍵 QC</div>
-<h2 data-zh="ENCODE 推薦 QC 指標" data-en="ENCODE Recommended QC">ENCODE 推薦 QC</h2>
-<div class="card-grid cols-2">
-<div class="card"><h4>TSS Enrichment</h4><p data-lang="zh">TSS 周圍 ±2 kb 訊號 / 背景訊號比。<strong>&gt; 7 為高品質、5-7 可接受、&lt; 5 低品質</strong>。是 ATAC 最重要的單一指標。</p><p data-lang="en">Signal at TSS ±2 kb / background. <strong>&gt; 7 high quality, 5-7 acceptable, &lt; 5 low</strong>. The single most important ATAC metric.</p></div>
-<div class="card"><h4>FRiP (Fraction of Reads in Peaks)</h4><p data-lang="zh">落在 peaks 內的 read 比例。<strong>ENCODE 建議 &gt; 0.3</strong>；超過 0.5 已是優秀。</p><p data-lang="en">Read fraction in peaks. <strong>ENCODE recommends &gt; 0.3</strong>; &gt; 0.5 is excellent.</p></div>
-<div class="card"><h4 data-zh="Library complexity / PBC" data-en="Library complexity / PBC">Library 複雜度</h4><p data-lang="zh">PBC1 = unique positions / mapped positions。<strong>&gt; 0.7</strong> 良好；過低代表 PCR 過頭或樣本不足。</p><p data-lang="en">PBC1 = unique / mapped positions. <strong>&gt; 0.7</strong> good; lower indicates PCR over-amplification or too few cells.</p></div>
-<div class="card"><h4 data-zh="Peak 數量" data-en="Peak count">Peak 數</h4><p data-lang="zh">大多數人類樣本 ~50,000 - 150,000 peaks (q &lt; 0.05)。過少代表 under-tagmented 或品質差。</p><p data-lang="en">Human samples typically 50,000 - 150,000 peaks (q &lt; 0.05). Too few indicates under-tagmentation or poor quality.</p></div>
+<section class="section"><div class="section-label" data-zh="為何重要" data-en="WHY THIS MATTERS">為何重要</div>
+<h2 data-zh="Peak 是後續所有分析的基石" data-en="Peaks Are the Foundation of Everything Downstream">Peak 是基石</h2>
+<div data-lang="zh">
+<p>差一個 peak 設定，下游 motif 富集、footprint 比較、peak-gene linking 全會偏掉。本章告訴你：</p>
+<ul style="margin-left:20px;line-height:1.85;color:var(--c-ink-light);">
+<li><strong>怎麼比對？</strong>Bowtie2 vs BWA-MEM vs chromap，各自速度 / 準確度 trade-off。</li>
+<li><strong>怎麼叫 peak？</strong>MACS3 vs Genrich vs HMMRATAC 的數學模型差異。</li>
+<li><strong>怎麼判斷品質？</strong>ENCODE 5 個 must-have 指標（TSS enrichment、FRiP、PBC1、NRF、peak 數）。</li>
+<li><strong>差異分析怎麼做？</strong>DiffBind vs csaw 的策略。</li>
+</ul>
+</div>
+<div data-lang="en">
+<p>One mis-set peak parameter and everything downstream (motif enrichment, footprint comparison, peak-gene linking) skews. This chapter covers:</p>
+<ul style="margin-left:20px;line-height:1.85;color:var(--c-ink-light);">
+<li><strong>How to align?</strong> Bowtie2 vs BWA-MEM vs chromap, speed/accuracy trade-offs.</li>
+<li><strong>How to call peaks?</strong> Mathematical differences among MACS3, Genrich, HMMRATAC.</li>
+<li><strong>How to judge quality?</strong> ENCODE's 5 must-have metrics (TSS enrichment, FRiP, PBC1, NRF, peak count).</li>
+<li><strong>How to do differential analysis?</strong> DiffBind vs csaw strategies.</li>
+</ul>
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
-<h2 data-zh="TSS Enrichment 形狀" data-en="TSS Enrichment Shape">TSS Enrichment 形狀</h2>
-<div data-lang="zh"><p>調整品質參數，看 TSS 周圍 ±2 kb coverage 曲線：</p></div>
-<div data-lang="en"><p>Tune quality; see the ±2 kb coverage profile around TSSs:</p></div>
+<section class="section"><div class="section-label" data-zh="比對工具" data-en="ALIGNMENT TOOLS">比對工具</div>
+<h2 data-zh="Bowtie2、BWA-MEM、chromap 比較" data-en="Bowtie2, BWA-MEM, chromap Compared">比對工具比較</h2>
+<table class="comp-table"><thead><tr><th>Tool</th><th data-zh="模式" data-en="Algorithm">模式</th><th data-zh="速度" data-en="Speed">速度</th><th data-zh="ATAC 推薦設定" data-en="ATAC settings">ATAC 推薦設定</th><th data-zh="ENCODE?" data-en="ENCODE?">ENCODE?</th></tr></thead><tbody>
+<tr><td><strong>Bowtie2</strong></td><td data-zh="end-to-end 或 local" data-en="end-to-end or local">e2e / local</td><td>⭐⭐⭐</td><td><code>--very-sensitive -X 2000 --dovetail</code></td><td>✔️ <span data-zh="官方" data-en="official">官方</span></td></tr>
+<tr><td>BWA-MEM</td><td data-zh="seed-and-extend" data-en="seed-and-extend">seed-and-extend</td><td>⭐⭐⭐⭐</td><td><code>bwa mem -M -t 12</code></td><td data-zh="可接受" data-en="acceptable">可</td></tr>
+<tr><td>chromap</td><td data-zh="hash + chaining" data-en="hash + chaining">hash + chaining</td><td>⭐⭐⭐⭐⭐</td><td><code>--preset atac</code></td><td data-zh="新興" data-en="emerging">新興</td></tr>
+<tr><td>STAR</td><td data-zh="splice-aware（RNA 用）" data-en="splice-aware (RNA-only)">splice-aware</td><td>⭐⭐⭐⭐</td><td data-zh="不適合 ATAC" data-en="Not for ATAC">✗</td><td>✗</td></tr>
+</tbody></table>
+<div class="protip">
+<span data-lang="zh"><strong>實務建議：</strong>第一次跑用 <strong>Bowtie2 ENCODE 設定</strong>（與其他公共資料可比）；大批樣本（&gt;50）追求速度用 <strong>chromap</strong>，但要確認 chromap 與 Bowtie2 結果一致（peak overlap &gt; 0.95）。</span>
+<span data-lang="en"><strong>Practical advice:</strong> First run → <strong>Bowtie2 with ENCODE settings</strong> (comparable to public data). Batch &gt; 50 samples → <strong>chromap</strong> for speed, but validate peak overlap with Bowtie2 (&gt; 0.95).</span>
+</div>
+<div class="analogy"><strong data-zh="比喻：" data-en="Analogy:">比喻：</strong>
+<span data-lang="zh">把 reads 比對到基因組像在「2000 頁的字典裡找詞」。Bowtie2 像翻字典查每個字（嚴謹）；BWA-MEM 像先看詞根再找（更聰明）；chromap 像把字典做成索引卡（最快）。對 ATAC 而言三者準確度差不多（&gt; 95% overlap），但 chromap 比 Bowtie2 快 5–10 倍。</span>
+<span data-lang="en">Aligning reads is like "looking up a word in a 2000-page dictionary." Bowtie2 flips every page (rigorous); BWA-MEM checks roots first (smarter); chromap pre-builds index cards (fastest). For ATAC, all three reach &gt; 95% peak overlap, but chromap is 5–10× faster than Bowtie2.</span>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="Peak callers" data-en="PEAK CALLERS">Peak callers</div>
+<h2 data-zh="MACS3、Genrich、HMMRATAC 的數學差異" data-en="MACS3, Genrich, HMMRATAC: Math Differences">Peak callers 深入比較</h2>
+<table class="comp-table"><thead><tr><th>Tool</th><th data-zh="統計模型" data-en="Statistical model">統計模型</th><th data-zh="ATAC 友好度" data-en="ATAC-friendliness">ATAC 友好度</th><th data-zh="輸出" data-en="Output">輸出</th><th data-zh="優點" data-en="Pros">優點</th></tr></thead><tbody>
+<tr><td><strong>MACS2 / MACS3</strong></td><td data-zh="Poisson + dynamic background" data-en="Poisson + dynamic background">Poisson + 動態背景</td><td>⭐⭐⭐⭐ <span data-zh="需手調" data-en="(needs tuning)">(需手調)</span></td><td>narrowPeak / broadPeak</td><td data-zh="社群最大、文件最齊、與 ChIP 統一" data-en="Largest community, best docs, unified w/ ChIP">社群大</td></tr>
+<tr><td><strong>Genrich</strong></td><td data-zh="LR test 比較 read pileup" data-en="LR test on pileup">LR test</td><td>⭐⭐⭐⭐⭐ <span data-zh="原生 ATAC 模式" data-en="(native ATAC mode)">(原生)</span></td><td>narrowPeak</td><td data-zh="內建 ATAC 模式、自動 chrM 移除、多 replicates 聯合" data-en="Native ATAC mode, auto-chrM, joint-replicates">內建 ATAC 模式</td></tr>
+<tr><td><strong>HMMRATAC</strong></td><td data-zh="Hidden Markov Model" data-en="Hidden Markov Model">HMM</td><td>⭐⭐⭐⭐</td><td>gappedPeak (NFR + nucleosomal)</td><td data-zh="同時辨識 NFR 與 nucleosomal 狀態" data-en="Distinguishes NFR vs nucleosomal states">區分 NFR / nucleosomal</td></tr>
+<tr><td>F-Seq2</td><td data-zh="kernel density" data-en="kernel density">KDE</td><td>⭐⭐⭐</td><td>BED</td><td data-zh="smooth、適合 broad peaks" data-en="Smooth, broad peaks">smooth</td></tr>
+</tbody></table>
+
+<div class="formula-box"><span class="fb-title" data-zh="MACS 的 Poisson p-value" data-en="MACS Poisson p-value">MACS3 統計核心</span>
+<em>p(x; λ)</em> = e<sup>−λ</sup> · λ<sup>x</sup> / x! &nbsp; ; &nbsp; λ = max(λ<sub>local</sub>, λ<sub>1kb</sub>, λ<sub>5kb</sub>, λ<sub>10kb</sub>)
+<span class="fb-note" data-zh="x = peak 區內 read 數；λ = 該區的「期望」背景 reads，取多尺度最大值以保守。" data-en="x = reads in peak region; λ = expected background, taken as the conservative max across scales.">多尺度動態背景</span>
+</div>
+
+<div class="decision-tree"><h4>🌳 <span data-zh="該選哪個 peak caller？" data-en="Which peak caller?">該選哪個 peak caller？</span></h4>
+<div data-lang="zh">
+<div class="dt-node"><span class="dt-q">Q1:</span><div>你只有一個樣本、想跟現有 ENCODE 比較？<span class="dt-arrow">→</span> <strong>MACS3 with ATAC params</strong></div></div>
+<div class="dt-node"><span class="dt-q">Q2:</span><div>多 replicates、想要一次聯合 call？<span class="dt-arrow">→</span> <strong>Genrich -t r1.bam r2.bam</strong></div></div>
+<div class="dt-node"><span class="dt-q">Q3:</span><div>想分開 NFR vs nucleosomal peak？<span class="dt-arrow">→</span> <strong>HMMRATAC</strong></div></div>
+<div class="dt-node"><span class="dt-q">Q4:</span><div>scATAC？<span class="dt-arrow">→</span> <strong>MACS3 on pseudo-bulk per cluster</strong>（ArchR/Signac 預設）</div></div>
+</div>
+<div data-lang="en">
+<div class="dt-node"><span class="dt-q">Q1:</span><div>Single sample, want ENCODE comparability? <span class="dt-arrow">→</span> <strong>MACS3 with ATAC params</strong></div></div>
+<div class="dt-node"><span class="dt-q">Q2:</span><div>Multiple replicates, want joint call? <span class="dt-arrow">→</span> <strong>Genrich -t r1.bam r2.bam</strong></div></div>
+<div class="dt-node"><span class="dt-q">Q3:</span><div>Want NFR vs nucleosomal split? <span class="dt-arrow">→</span> <strong>HMMRATAC</strong></div></div>
+<div class="dt-node"><span class="dt-q">Q4:</span><div>scATAC? <span class="dt-arrow">→</span> <strong>MACS3 on pseudo-bulk per cluster</strong> (ArchR/Signac default)</div></div>
+</div>
+</div>
+
+<div class="pitfall">
+<span data-lang="zh"><strong>不要忘了 <code>--nomodel --shift -75 --extsize 150</code></strong>：MACS 預設的「建模 fragment size」是為 ChIP-seq 設計的，對 ATAC 會錯。<code>--shift -75</code> 把每個 Tn5 切位向後挪 75 bp，<code>--extsize 150</code> 向前延 150 bp，結果以每個 Tn5 切位為中心畫 150 bp 視窗——對應「一個 nucleosome 寬度的 OCR」。</span>
+<span data-lang="en"><strong>Don't forget <code>--nomodel --shift -75 --extsize 150</code></strong>: MACS's default "model fragment size" is built for ChIP and is wrong for ATAC. <code>--shift -75</code> + <code>--extsize 150</code> centres each Tn5 cut in a 150-bp window — matching "one-nucleosome-wide OCR" logic.</span>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="QC 五指標" data-en="QC 5 METRICS">QC 五指標</div>
+<h2 data-zh="ENCODE 推薦的 5 個核心 QC" data-en="ENCODE's 5 Core QC Metrics">ENCODE 5 個核心 QC</h2>
+<div class="card-grid cols-2">
+<div class="card"><div class="card-icon">📈</div><h4>TSS Enrichment</h4>
+<div data-lang="zh"><p>TSS ±2 kb 內訊號 / 背景訊號的比值。<strong>ATAC 最重要的單一指標</strong>。&gt; 7 高、5–7 可、&lt; 5 低。</p><p>公式：&nbsp;<em>TSS_e = mean(coverage, TSS ± 100 bp) / mean(coverage, TSS ± 1.9–2 kb)</em></p></div>
+<div data-lang="en"><p>Signal at TSS ±2 kb / background signal. <strong>Single most important ATAC metric</strong>. &gt; 7 high, 5–7 acceptable, &lt; 5 low.</p><p>Formula: <em>TSS_e = mean(coverage, TSS ± 100 bp) / mean(coverage, TSS ± 1.9–2 kb)</em></p></div>
+</div>
+<div class="card"><div class="card-icon">🎯</div><h4>FRiP (Fraction of Reads in Peaks)</h4>
+<div data-lang="zh"><p>落在 peaks 內的 read 比例。<strong>ENCODE 建議 &gt; 0.3</strong>；&gt; 0.5 優秀。</p><p>公式：&nbsp;<em>FRiP = reads_in_peaks / total_reads</em></p></div>
+<div data-lang="en"><p>Read fraction in peaks. <strong>ENCODE recommends &gt; 0.3</strong>; &gt; 0.5 is excellent.</p><p>Formula: <em>FRiP = reads_in_peaks / total_reads</em></p></div>
+</div>
+<div class="card"><div class="card-icon">🔄</div><h4>PBC1 (PCR Bottleneck Coefficient)</h4>
+<div data-lang="zh"><p>Library 複雜度指標。&gt; 0.7 良好。過低代表 PCR 過頭或樣本不足。</p><p>公式：&nbsp;<em>PBC1 = N₁ / N_d</em>，N₁ = 只出現 1 次的 fragment 位置數；N_d = 不同 fragment 位置總數。</p></div>
+<div data-lang="en"><p>Library complexity. &gt; 0.7 good; low → PCR over-amplification.</p><p>Formula: <em>PBC1 = N₁ / N_d</em>, where N₁ = # positions appearing exactly once, N_d = # distinct positions.</p></div>
+</div>
+<div class="card"><div class="card-icon">🧪</div><h4>NRF (Non-Redundant Fraction)</h4>
+<div data-lang="zh"><p>Non-duplicate reads / total reads。<strong>ENCODE 建議 &gt; 0.8</strong>。</p><p>公式：&nbsp;<em>NRF = N_d / N_r</em>，N_r = 總 mapped read 數。</p></div>
+<div data-lang="en"><p>Non-duplicate reads / total reads. <strong>ENCODE recommends &gt; 0.8</strong>.</p><p>Formula: <em>NRF = N_d / N_r</em>, N_r = total mapped reads.</p></div>
+</div>
+<div class="card"><div class="card-icon">🔢</div><h4 data-zh="Peak 數量" data-en="Peak count">Peak 數量</h4>
+<div data-lang="zh"><p>典型人類樣本：50,000 – 150,000 peaks (q &lt; 0.05)。過少代表 under-tagmented 或 chrM% 高；過多代表噪音過頭。</p></div>
+<div data-lang="en"><p>Typical human samples: 50,000 – 150,000 peaks (q &lt; 0.05). Too few → under-tagmented or high chrM%; too many → noise-driven.</p></div>
+</div>
+<div class="card"><div class="card-icon">🪞</div><h4>Cross-Replicate IDR</h4>
+<div data-lang="zh"><p>Irreproducibility Discovery Rate。兩個 replicates 的 peak rank 一致性。ENCODE 標準：IDR &lt; 0.05 視為 reproducible peak。</p></div>
+<div data-lang="en"><p>Irreproducibility Discovery Rate. Consistency of peak ranks between replicates. ENCODE standard: IDR &lt; 0.05 = reproducible peak.</p></div>
+</div>
+</div>
+
+<div class="formula-box"><span class="fb-title" data-zh="ENCODE ATAC 推薦範圍" data-en="ENCODE ATAC recommended ranges">QC 速查表</span>
+TSS enrichment: <em>&gt; 7</em> (high), 5–7 (med), &lt; 5 (fail)
+FRiP: <em>&gt; 0.3</em> (acceptable), &gt; 0.5 (excellent)
+PBC1: <em>&gt; 0.7</em>, NRF: <em>&gt; 0.8</em>
+chrM%: <em>&lt; 20%</em> (post-removal), peak count: 50k–150k (human)
+<span class="fb-note" data-zh="任何 1 項 fail 都建議重做或標記為低品質。" data-en="Any single fail → recommend re-run or flag as low quality.">所有指標都應達標</span>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="互動模擬 1" data-en="INTERACTIVE 1">互動模擬 1</div>
+<h2 data-zh="TSS Enrichment 形狀" data-en="TSS Enrichment Shape">TSS Enrichment 形狀模擬器</h2>
+<div data-lang="zh"><p>調整品質參數，看 TSS ±2 kb coverage 曲線。一個健康樣本會出現「尖塔」（中心 7–10 倍背景）：</p></div>
+<div data-lang="en"><p>Tune quality; see the ±2 kb coverage profile around TSSs. A healthy sample shows a "tower" (centre 7–10× background):</p></div>
 <div class="interactive-panel">
-<div class="slider-group"><label data-lang="zh">樣本品質<span id="valQ">7</span></label><label data-lang="en">Sample quality<span id="valQEn">7</span></label><input type="range" id="sliderQ" min="1" max="15" value="7" step="0.5"></div>
+<div class="slider-group"><label data-lang="zh">樣本品質 (TSS_e)<span id="valQ">7</span></label><label data-lang="en">Sample quality (TSS_e)<span id="valQEn">7</span></label><input type="range" id="sliderQ" min="1" max="15" value="7" step="0.5"></div>
 <div class="stat-row">
 <div class="stat-box"><div class="sb-num" id="tssScore">--</div><div class="sb-lbl">TSS Enrichment</div></div>
 <div class="stat-box"><div class="sb-num" id="qLabel">--</div><div class="sb-lbl" data-zh="評估" data-en="Verdict">評估</div></div>
+<div class="stat-box"><div class="sb-num" id="advice">--</div><div class="sb-lbl" data-zh="建議行動" data-en="Recommend">建議</div></div>
 </div>
-<div class="chart-container" style="height:280px;"><canvas id="tssChart"></canvas></div>
+<div class="chart-container" style="height:300px;"><canvas id="tssChart"></canvas></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="互動模擬 2" data-en="INTERACTIVE 2">互動模擬 2</div>
+<h2 data-zh="FRiP 與 PBC1 的權衡" data-en="FRiP vs PBC1 Trade-off">FRiP vs PBC1 模擬</h2>
+<div data-lang="zh"><p>調整測序深度與 PCR 循環次數，看 FRiP 與 PBC1 如何變化：</p></div>
+<div data-lang="en"><p>Tune sequencing depth and PCR cycles; watch FRiP and PBC1 evolve:</p></div>
+<div class="interactive-panel">
+<div class="slider-group"><label data-lang="zh">測序深度 (M reads)<span id="valDp">25</span></label><label data-lang="en">Sequencing depth (M reads)<span id="valDpEn">25</span></label><input type="range" id="sliderDp" min="5" max="100" value="25" step="5"></div>
+<div class="slider-group"><label data-lang="zh">PCR cycles<span id="valPcr">10</span></label><label data-lang="en">PCR cycles<span id="valPcrEn">10</span></label><input type="range" id="sliderPcr" min="6" max="18" value="10" step="1"></div>
+<div class="stat-row">
+<div class="stat-box"><div class="sb-num" id="frScore">--</div><div class="sb-lbl">FRiP</div></div>
+<div class="stat-box"><div class="sb-num" id="pbcScore">--</div><div class="sb-lbl">PBC1</div></div>
+<div class="stat-box"><div class="sb-num" id="nrfScore">--</div><div class="sb-lbl">NRF</div></div>
+<div class="stat-box"><div class="sb-num" id="overall">--</div><div class="sb-lbl" data-zh="總評" data-en="Overall">總評</div></div>
+</div>
+<div id="qcTip" style="font-size:.9rem;color:var(--c-ink-light);margin-top:8px;"></div>
 </div>
 </section>
 
 <section class="section"><div class="section-label" data-zh="程式碼" data-en="CODE">程式碼</div>
-<h2 data-zh="完整流程" data-en="Full Pipeline">完整流程</h2>
+<h2 data-zh="完整 peak + QC 流程" data-en="Full Peak + QC Pipeline">完整流程程式碼</h2>
 <div class="code-tabs"><div class="code-tab-btns">
 <button class="code-tab-btn active" onclick="switchTab(this,'macs')">MACS3 peak calling</button>
 <button class="code-tab-btn" onclick="switchTab(this,'genrich')">Genrich</button>
 <button class="code-tab-btn" onclick="switchTab(this,'qc')">QC 指標</button>
+<button class="code-tab-btn" onclick="switchTab(this,'ataqv')">ataqv</button>
+<button class="code-tab-btn" onclick="switchTab(this,'idr')">IDR</button>
 </div>
-<div class="code-tab-content active" id="macs"><pre><span class="comment"># MACS3 (or MACS2) 對 ATAC paired-end 推薦設定</span>
+<div class="code-tab-content active" id="macs"><pre><span class="comment"># MACS3 推薦 ATAC paired-end 設定（ENCODE 規格）</span>
+<span class="comment"># --nomodel: 跳過建模（ATAC 不像 ChIP 有單一 fragment size）</span>
+<span class="comment"># --shift -75 --extsize 150: 每個 Tn5 切位中心畫 150 bp 視窗</span>
 macs3 callpeak \
-  -f BAMPE -t shifted.bam \
+  -f BAMPE -t shifted.sorted.bam \
   -g hs -n sample1 \
   --nomodel --shift -<span class="num">75</span> --extsize <span class="num">150</span> \
-  -q <span class="num">0.05</span> \
-  --keep-dup all \
-  --outdir macs3_out/</pre></div>
-<div class="code-tab-content" id="genrich"><pre><span class="comment"># Genrich 內建 ATAC 模式，無需手動 shift</span>
-samtools sort -n shifted.bam -o sorted_qname.bam
+  -q <span class="num">0.05</span> --keep-dup all \
+  --call-summits \
+  --outdir macs3_out/
+
+<span class="comment"># 輸出: sample1_peaks.narrowPeak (9 cols), sample1_peaks.xls, sample1_summits.bed</span>
+
+<span class="comment"># 想要 broad peaks（適合廣域組蛋白修飾如 H3K27me3）：</span>
+macs3 callpeak ... --broad --broad-cutoff <span class="num">0.1</span></pre></div>
+<div class="code-tab-content" id="genrich"><pre><span class="comment"># Genrich 是 ATAC 友好：內建 -j（ATAC mode）、-r（替代 PCR-dup）、-e（排除 chrM）</span>
+samtools sort -n shifted.sorted.bam -o sorted_qname.bam   <span class="comment"># Genrich 要 qname-sorted</span>
+
 Genrich -t sorted_qname.bam \
   -j -y -r -e chrM \
+  -q <span class="num">0.05</span> \
   -o sample1.narrowPeak \
-  -k sample1.pileup.bedgraph</pre></div>
-<div class="code-tab-content" id="qc"><pre><span class="comment"># FRiP（落在 peaks 的 read 比例）</span>
-in_peak=$(bedtools intersect -u -a shifted.bam -b sample1.narrowPeak | samtools view -c -)
-total=$(samtools view -c shifted.bam)
+  -k sample1.pileup.bedgraph \
+  -f sample1.log
+
+<span class="comment"># 多 replicates 聯合呼叫 (Genrich 內建支援):</span>
+Genrich -t rep1.bam,rep2.bam,rep3.bam \
+  -j -y -r -e chrM -o joint.narrowPeak</pre></div>
+<div class="code-tab-content" id="qc"><pre><span class="comment"># 1. FRiP — 落在 peaks 的 read 比例</span>
+in_peak=$(bedtools intersect -u -a shifted.sorted.bam -b sample1_peaks.narrowPeak | samtools view -c -)
+total=$(samtools view -c shifted.sorted.bam)
 echo <span class="str">"FRiP = $(echo "scale=3; $in_peak / $total" | bc)"</span>
 
-<span class="comment"># TSS enrichment（deepTools）</span>
+<span class="comment"># 2. TSS enrichment (deepTools) — 視覺化 + 計算</span>
 computeMatrix reference-point \
-  -S sample1.bw -R tss.bed \
+  -S sample1.bw -R hg38_tss.bed \
   --referencePoint TSS -a <span class="num">2000</span> -b <span class="num">2000</span> \
+  --skipZeros -p <span class="num">8</span> \
   --outFileName tss_matrix.gz
 
 plotProfile -m tss_matrix.gz -o tss_profile.png \
-  --regionsLabel <span class="str">"TSS"</span> --plotTitle <span class="str">"TSS Enrichment"</span></pre></div>
+  --regionsLabel <span class="str">"TSS"</span> --plotTitle <span class="str">"TSS Enrichment"</span> \
+  --yAxisLabel <span class="str">"signal"</span>
+
+<span class="comment"># 3. PBC1 / NRF (encode-tools)</span>
+python -c <span class="str">"
+import pysam
+positions = {}
+for r in pysam.AlignmentFile('shifted.sorted.bam','rb'):
+  if r.is_read1 and r.is_proper_pair:
+    key = (r.reference_name, r.reference_start, r.template_length)
+    positions[key] = positions.get(key,0) + 1
+N1 = sum(1 for v in positions.values() if v==1)
+Nd = len(positions); Nr = sum(positions.values())
+print(f'NRF = {Nd/Nr:.3f}  PBC1 = {N1/Nd:.3f}')
+"</span></pre></div>
+<div class="code-tab-content" id="ataqv"><pre><span class="comment"># ataqv (Parker lab) — ATAC 專用 QC 包，一次出 HTML 報表</span>
+ataqv --peak-file sample1_peaks.narrowPeak \
+      --tss-file hg38_tss.bed \
+      --metrics-file sample1.metrics.json.gz \
+      --threads <span class="num">8</span> \
+      --name sample1 human shifted.sorted.bam
+
+mkarv viewer/ *.metrics.json.gz   <span class="comment"># 多樣本合併成單一 HTML viewer</span></pre></div>
+<div class="code-tab-content" id="idr"><pre><span class="comment"># IDR — replicate 之間的 peak 一致性</span>
+<span class="comment"># 先分別 call peaks（rep1, rep2, pooled）</span>
+idr --samples rep1.narrowPeak rep2.narrowPeak \
+    --peak-list pooled.narrowPeak \
+    --input-file-type narrowPeak \
+    --rank p.value \
+    --output-file idr.txt \
+    --plot --idr-threshold <span class="num">0.05</span>
+
+<span class="comment"># 取 IDR &lt; 0.05 的 peaks 為「reproducible」</span>
+awk <span class="str">'$11 &lt;= 0.05'</span> idr.txt &gt; idr_passed.narrowPeak</pre></div>
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="進階" data-en="ADVANCED">進階</div>
-<h2 data-zh="差異開放區域 (DAR)" data-en="Differential Accessible Regions (DAR)">差異開放區域 (DAR)</h2>
-<div data-lang="zh"><p>類似 RNA-seq 的 DE，可以找出兩組樣本間 peak 開放度不同的區域：</p></div>
-<div data-lang="en"><p>Similar to RNA-seq DE — find peaks differentially open between groups:</p></div>
+<section class="section"><div class="section-label" data-zh="差異開放區" data-en="DIFFERENTIAL">差異開放區</div>
+<h2 data-zh="找出兩組樣本間的 DAR" data-en="Finding Differentially Accessible Regions (DARs)">差異開放區 (DAR)</h2>
+<div data-lang="zh">
+<p>類似 RNA-seq 的 DE，但作用在 peak count 上。兩大主流：</p>
+</div>
+<div data-lang="en">
+<p>Like RNA-seq DE but on peak counts. Two mainstream approaches:</p>
+</div>
+<div class="vs-grid">
+<div class="vs-side left"><h5>DiffBind</h5><ul>
+<li data-lang="zh">基於 <strong>peak-level</strong> 計數</li>
+<li data-lang="en">Peak-level counts</li>
+<li data-lang="zh">後端：DESeq2 / edgeR</li>
+<li data-lang="en">Backend: DESeq2 / edgeR</li>
+<li data-lang="zh">優：簡單、與 RNA-seq 一致；缺：依賴 peak 集合（union/consensus）</li>
+<li data-lang="en">Pros: simple, RNA-like; Cons: peak-set dependent</li>
+</ul></div>
+<div class="vs-mid">VS</div>
+<div class="vs-side right"><h5>csaw</h5><ul>
+<li data-lang="zh">基於 <strong>sliding window</strong> 計數</li>
+<li data-lang="en">Sliding-window counts</li>
+<li data-lang="zh">後端：edgeR (QL F-test)</li>
+<li data-lang="en">Backend: edgeR (QL F-test)</li>
+<li data-lang="zh">優：不依賴預先 peak set；缺：複雜、計算量大</li>
+<li data-lang="en">Pros: peak-set free; Cons: complex, heavier compute</li>
+</ul></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="DAR 程式碼" data-en="DAR CODE">DAR 程式碼</div>
 <div class="code-tabs"><div class="code-tab-btns">
 <button class="code-tab-btn active" onclick="switchTab(this,'dbn')">DiffBind</button>
 <button class="code-tab-btn" onclick="switchTab(this,'cs')">csaw</button>
+<button class="code-tab-btn" onclick="switchTab(this,'deseq2')">DESeq2 (manual)</button>
 </div>
 <div class="code-tab-content active" id="dbn"><pre><span class="kw">library</span>(DiffBind)
+<span class="comment"># samples.csv 含 SampleID, Condition, Replicate, bamReads, Peaks, PeakCaller</span>
 samples &lt;- <span class="func">dba</span>(sampleSheet = <span class="str">"samples.csv"</span>)
-samples &lt;- <span class="func">dba.count</span>(samples, summits = <span class="num">200</span>)
-samples &lt;- <span class="func">dba.normalize</span>(samples)
-samples &lt;- <span class="func">dba.contrast</span>(samples, categories = DBA_CONDITION)
+samples &lt;- <span class="func">dba.count</span>(samples, summits = <span class="num">200</span>)            <span class="comment"># 以 summit ±200 bp 為計數區</span>
+samples &lt;- <span class="func">dba.normalize</span>(samples, method = DBA_DESEQ2)
+samples &lt;- <span class="func">dba.contrast</span>(samples, categories = DBA_CONDITION,
+                          minMembers = <span class="num">2</span>)
 samples &lt;- <span class="func">dba.analyze</span>(samples)
-db &lt;- <span class="func">dba.report</span>(samples, th = <span class="num">0.05</span>)</pre></div>
+db &lt;- <span class="func">dba.report</span>(samples, th = <span class="num">0.05</span>, fold = <span class="num">1</span>)         <span class="comment"># |log2FC|≥1, FDR≤0.05</span>
+
+<span class="func">dba.plotMA</span>(samples)           <span class="comment"># MA plot</span>
+<span class="func">dba.plotVolcano</span>(samples)
+<span class="func">dba.plotHeatmap</span>(samples, contrast = <span class="num">1</span>, correlations = <span class="kw">FALSE</span>)</pre></div>
 <div class="code-tab-content" id="cs"><pre><span class="kw">library</span>(csaw)
-counts &lt;- <span class="func">windowCounts</span>(bam.files, width = <span class="num">150</span>, ext = <span class="num">200</span>)
+<span class="comment"># 1. sliding-window counts (width 150 bp, ext 200 bp)</span>
+counts &lt;- <span class="func">windowCounts</span>(bam.files, width = <span class="num">150</span>, ext = <span class="num">200</span>,
+                       param = <span class="func">readParam</span>(minq = <span class="num">30</span>, pe = <span class="str">"both"</span>))
+<span class="comment"># 2. 過濾低訊號 window</span>
 counts &lt;- <span class="func">filterWindowsGlobal</span>(counts)
-counts &lt;- <span class="func">normFactors</span>(counts)
-fit &lt;- <span class="func">glmQLFit</span>(counts, design = design)
-res &lt;- <span class="func">glmQLFTest</span>(fit, contrast = c.matrix)</pre></div>
+keep &lt;- counts$filter$filter &gt; <span class="func">log2</span>(<span class="num">3</span>)
+counts &lt;- counts[keep,]
+<span class="comment"># 3. 標準化（trended bias）</span>
+counts &lt;- <span class="func">normOffsets</span>(counts)
+<span class="comment"># 4. edgeR QL F-test</span>
+y &lt;- <span class="func">asDGEList</span>(counts); y &lt;- <span class="func">estimateDisp</span>(y, design)
+fit &lt;- <span class="func">glmQLFit</span>(y, design, robust = <span class="kw">TRUE</span>)
+res &lt;- <span class="func">glmQLFTest</span>(fit, contrast = c.matrix)
+<span class="comment"># 5. 合併鄰近 window 為 regions</span>
+merged &lt;- <span class="func">mergeResults</span>(counts, res$table, tol = <span class="num">500</span>)</pre></div>
+<div class="code-tab-content" id="deseq2"><pre><span class="kw">library</span>(DESeq2); <span class="kw">library</span>(GenomicAlignments)
+<span class="comment"># 1. 取所有樣本的 union peaks</span>
+union_peaks &lt;- <span class="func">reduce</span>(<span class="func">do.call</span>(c, <span class="func">lapply</span>(peak_files, rtracklayer::import)))
+<span class="comment"># 2. 算每個樣本在 union peak 的 count matrix</span>
+counts &lt;- <span class="func">summarizeOverlaps</span>(features = union_peaks, reads = bam_files,
+                          mode = <span class="str">"Union"</span>, ignore.strand = <span class="kw">TRUE</span>)
+<span class="comment"># 3. DESeq2 標準流程</span>
+dds &lt;- <span class="func">DESeqDataSet</span>(counts, design = ~ condition)
+dds &lt;- <span class="func">DESeq</span>(dds)
+res &lt;- <span class="func">results</span>(dds, contrast = <span class="func">c</span>(<span class="str">"condition"</span>, <span class="str">"treated"</span>, <span class="str">"ctrl"</span>),
+               alpha = <span class="num">0.05</span>)
+<span class="func">summary</span>(res)</pre></div>
 </div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="真實案例" data-en="CASE STUDY">真實案例</div>
+<h2 data-zh="案例：TCGA 410 樣本 ATAC 圖譜" data-en="Case: TCGA 410-Sample ATAC Atlas">真實案例：TCGA Pan-Cancer ATAC</h2>
+<div class="case-study">
+<h4>🎗️ <span data-zh="癌症 enhancer 圖譜的誕生" data-en="Birth of the Cancer Enhancer Atlas">癌症 enhancer 圖譜的誕生</span></h4>
+<div class="case-meta">Corces MR, Granja JM, …, Chang HY. <em>Science</em> 2018, 362:eaav1898. (NCI TCGA + Stanford)</div>
+<div data-lang="zh">
+<p><strong>規模：</strong>410 個 ATAC 樣本，跨 23 種 TCGA 癌症（BRCA、LUAD、COAD、GBM、PRAD…）。每個樣本用 omni-ATAC，平均 6800 萬 paired-end reads。</p>
+<p><strong>流程：</strong>Bowtie2 → MACS2 → 算 union peak set（562,709 個 reproducible peaks）→ 每樣本算 count matrix → DESeq2 找 cancer-specific peaks。</p>
+<p><strong>關鍵 QC 報表：</strong></p>
+<ul style="margin-left:20px;line-height:1.85;color:var(--c-ink-light);">
+<li>TSS enrichment 中位數 7.5（範圍 4.2–18.6）</li>
+<li>FRiP 中位數 0.38</li>
+<li>每樣本 50k–180k peaks</li>
+<li>排除 TSS_e &lt; 4 的樣本（剩 410）</li>
+</ul>
+<p><strong>關鍵生物學發現：</strong></p>
+<ol style="margin-left:24px;line-height:1.85;color:var(--c-ink-light);">
+<li>~30% 癌症 enhancer 在<strong>對應正常組織中不開放</strong>——是 tumour-specific。</li>
+<li>BRCA luminal subtype 在 FOXA1 / ESR1 motif 富集；basal subtype 在 SOX10 / TFAP2A。</li>
+<li>新發現的 enhancer 與 GWAS noncoding variant 高度共定位——把 SNP 連到表觀調控機制。</li>
+<li>釋出資料：<code>tcga.atacseq.xenahubs.net</code>，已被引用 &gt; 1000 次。</li>
+</ol>
+<p><strong>學到什麼？</strong>大規模 ATAC 需要：(a) 統一 protocol（omni-ATAC）；(b) 統一 union peak set；(c) 嚴格 QC（TSS_e&gt;5）；(d) batch effect 處理。這篇是「ATAC 做大規模臨床」的範本。</p>
+</div>
+<div data-lang="en">
+<p><strong>Scale:</strong> 410 ATAC samples across 23 TCGA cancers (BRCA, LUAD, COAD, GBM, PRAD…). Each sample run with omni-ATAC, ~68M paired-end reads on average.</p>
+<p><strong>Pipeline:</strong> Bowtie2 → MACS2 → 562,709-peak reproducible union set → per-sample counts → DESeq2 for cancer-specific peaks.</p>
+<p><strong>Key QC report:</strong></p>
+<ul style="margin-left:20px;line-height:1.85;color:var(--c-ink-light);">
+<li>Median TSS enrichment 7.5 (range 4.2–18.6)</li>
+<li>Median FRiP 0.38</li>
+<li>50k–180k peaks per sample</li>
+<li>Excluded samples with TSS_e &lt; 4 (final n = 410)</li>
+</ul>
+<p><strong>Key biological findings:</strong></p>
+<ol style="margin-left:24px;line-height:1.85;color:var(--c-ink-light);">
+<li>~30% of cancer enhancers are <strong>not open in matched normal tissue</strong> — tumour-specific.</li>
+<li>BRCA luminal subtype enriches FOXA1 / ESR1 motifs; basal enriches SOX10 / TFAP2A.</li>
+<li>New enhancers co-localise with GWAS noncoding variants — linking SNPs to epigenetic mechanism.</li>
+<li>Data release: <code>tcga.atacseq.xenahubs.net</code>; cited &gt; 1,000 times.</li>
+</ol>
+<p><strong>Lessons:</strong> Large-scale ATAC needs (a) unified protocol (omni-ATAC); (b) unified union peaks; (c) strict QC (TSS_e&gt;5); (d) batch-effect control. The template for "ATAC at clinical scale."</p>
+</div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="陷阱" data-en="PITFALLS">陷阱</div>
+<h2 data-zh="這一步最常犯的 5 個錯" data-en="5 Common Mistakes Here">5 個常見錯誤</h2>
+<div class="pitfall"><span data-lang="zh"><strong>用 MACS 預設參數（ChIP 為目的設計）跑 ATAC：</strong>會建模 fragment size 為單峰（ATAC 是多峰），peaks 形狀變形。<strong>務必加 <code>--nomodel --shift -75 --extsize 150</code></strong>。</span><span data-lang="en"><strong>Using MACS defaults (ChIP-designed) for ATAC:</strong> tries to model a single fragment size (ATAC is multimodal), peaks deform. <strong>Always add <code>--nomodel --shift -75 --extsize 150</code></strong>.</span></div>
+<div class="pitfall"><span data-lang="zh"><strong>沒移除 chrM 就算 FRiP：</strong>chrM 是巨大 noise pool；FRiP 會被嚴重低估。先排除 chrM 再算。</span><span data-lang="en"><strong>Computing FRiP without removing chrM:</strong> chrM is a giant noise pool; FRiP gets badly underestimated. Filter chrM first.</span></div>
+<div class="pitfall"><span data-lang="zh"><strong>沒做 IDR 就比較 replicates：</strong>單一樣本的 peaks 可能有 FDR 5% 的噪音；replicates IDR &lt; 0.05 才是真正穩定 peaks。</span><span data-lang="en"><strong>Comparing replicates without IDR:</strong> a single sample's peaks include ~5% FDR noise; only replicate IDR &lt; 0.05 marks robust peaks.</span></div>
+<div class="pitfall"><span data-lang="zh"><strong>DiffBind 用不同 peak caller 結果混搭：</strong>MACS3 narrowPeak 與 Genrich narrowPeak 的 summit 定義不同；統一用同一 caller。</span><span data-lang="en"><strong>Mixing peak callers in DiffBind:</strong> MACS3 and Genrich define summits differently. Stick to one caller.</span></div>
+<div class="pitfall"><span data-lang="zh"><strong>沒去 blacklist 就 motif enrichment：</strong>ENCODE blacklist 含重複序列；motif 富集會被假陽性主導。</span><span data-lang="en"><strong>Motif enrichment without removing blacklist:</strong> ENCODE blacklist holds repeat regions; enrichment gets dominated by artifacts.</span></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="討論題" data-en="DISCUSSION">討論題</div>
+<div class="discussion"><h4 data-zh="思考題" data-en="Thought questions">🤔 思考題</h4>
+<ol data-lang="zh">
+<li>如果你的樣本 FRiP = 0.5 但 TSS_e = 3，會怎麼診斷？兩個 metric 彼此矛盾的可能原因？</li>
+<li>有人說「peak 數越多越好」——這是對是錯？舉例說明。</li>
+<li>你要比較野生型 vs KO 兩組各 3 個 replicates 的 DAR。你會選 DiffBind、csaw 還是手寫 DESeq2？理由？</li>
+<li>scATAC 的 peak calling 是先 pool 細胞再 call、還是先 call 再 aggregate？兩者差別在哪裡？</li>
+</ol>
+<ol data-lang="en">
+<li>FRiP = 0.5 but TSS_e = 3 — how do you diagnose? Why might these two metrics contradict?</li>
+<li>"More peaks is always better." True or false? Give an example.</li>
+<li>You need DARs between WT vs KO (3 reps each). DiffBind, csaw, or manual DESeq2 — and why?</li>
+<li>For scATAC, do you call peaks on pooled cells first, or per-cluster then aggregate? What's the difference?</li>
+</ol>
+</div>
+</section>
+
+<section class="quiz-section"><h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
+<div class="quiz-q" data-answer="1"><p data-lang="zh">1. 對 ATAC paired-end 數據用 MACS3，下列哪組參數最合適？</p><p data-lang="en">1. For ATAC paired-end data with MACS3, which parameters are best?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 預設參數即可</span><span data-lang="en">A. Default parameters</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. <code>-f BAMPE --nomodel --shift -75 --extsize 150 -q 0.05</code></span><span data-lang="en">B. <code>-f BAMPE --nomodel --shift -75 --extsize 150 -q 0.05</code></span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. <code>--broad --broad-cutoff 0.5</code></span><span data-lang="en">C. <code>--broad --broad-cutoff 0.5</code></span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. <code>--SPMR --bdg</code></span><span data-lang="en">D. <code>--SPMR --bdg</code></span></div>
+</div><div class="quiz-feedback" id="fb1"></div></div>
+
+<div class="quiz-q" data-answer="2"><p data-lang="zh">2. TSS enrichment 是什麼？</p><p data-lang="en">2. What is TSS enrichment?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. TSS 上 reads / 總 reads</span><span data-lang="en">A. Reads on TSS / total reads</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. TSS 數量</span><span data-lang="en">B. Number of TSSs</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. TSS ±2 kb 內訊號 / 邊緣背景訊號</span><span data-lang="en">C. Signal at TSS ±2 kb / flanking background</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. TSS 上 peak 的 q-value</span><span data-lang="en">D. q-value of TSS peaks</span></div>
+</div><div class="quiz-feedback" id="fb2"></div></div>
+
+<div class="quiz-q" data-answer="0"><p data-lang="zh">3. PBC1 = 0.4，最可能的問題是？</p><p data-lang="en">3. PBC1 = 0.4 — most likely cause?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. PCR 過頭 / library 複雜度低</span><span data-lang="en">A. PCR over-amplification / low library complexity</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. peak caller 設太嚴</span><span data-lang="en">B. Peak caller too strict</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. blacklist 沒移除</span><span data-lang="en">C. Blacklist not removed</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. Tn5 shift 沒做</span><span data-lang="en">D. Tn5 shift not applied</span></div>
+</div><div class="quiz-feedback" id="fb3"></div></div>
+
+<div class="quiz-q" data-answer="1"><p data-lang="zh">4. Genrich 與 MACS3 比，最大的 ATAC 友好特性？</p><p data-lang="en">4. Genrich's biggest ATAC-friendly feature vs MACS3?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 速度更快</span><span data-lang="en">A. Faster</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 內建 -j ATAC mode + -e chrM + 多 replicate 聯合呼叫</span><span data-lang="en">B. Built-in -j ATAC mode + -e chrM + joint-replicate calling</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 有 GUI</span><span data-lang="en">C. Has GUI</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 結果更敏感（找更多 peak）</span><span data-lang="en">D. More sensitive (finds more peaks)</span></div>
+</div><div class="quiz-feedback" id="fb4"></div></div>
+
+<div class="quiz-q" data-answer="2"><p data-lang="zh">5. DiffBind vs csaw 主要差別？</p><p data-lang="en">5. DiffBind vs csaw — main difference?</p><div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. DiffBind 比 csaw 慢</span><span data-lang="en">A. DiffBind is slower</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. csaw 只支援 ATAC，DiffBind 不支援</span><span data-lang="en">B. csaw only supports ATAC, DiffBind doesn't</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. DiffBind 用 peak-level counts，csaw 用 sliding-window counts</span><span data-lang="en">C. DiffBind uses peak-level counts; csaw uses sliding-window counts</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. csaw 不需要 replicates</span><span data-lang="en">D. csaw doesn't need replicates</span></div>
+</div><div class="quiz-feedback" id="fb5"></div></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="FAQ" data-en="FAQ">FAQ</div>
+<h2 data-zh="本章 FAQ" data-en="Chapter FAQ">本章 FAQ</h2>
+<div class="faq-list">
+<div class="faq-item"><button class="faq-q" data-zh="narrowPeak 與 broadPeak 該選哪個？" data-en="narrowPeak or broadPeak?">narrowPeak vs broadPeak？</button><div class="faq-a"><span data-lang="zh">ATAC 99% 用 narrowPeak（OCR 是窄區域）。broadPeak 適合 H3K27me3 / H3K9me3 等廣域組蛋白修飾，不是 ATAC。</span><span data-lang="en">ATAC uses narrowPeak 99% of the time (OCRs are narrow). broadPeak is for broad histone marks like H3K27me3 / H3K9me3.</span></div></div>
+<div class="faq-item"><button class="faq-q" data-zh="MACS3 跟 MACS2 差在哪？" data-en="MACS3 vs MACS2?">MACS3 vs MACS2？</button><div class="faq-a"><span data-lang="zh">MACS3 (2022) 是 MACS2 的 Python 3 重寫，加速 + bug 修復，演算法核心相同。新專案直接用 MACS3。</span><span data-lang="en">MACS3 (2022) is the Python 3 rewrite of MACS2 — faster + bug fixes; same core algorithm. Use MACS3 for new projects.</span></div></div>
+<div class="faq-item"><button class="faq-q" data-zh="--keep-dup all 對嗎？我已經 dedup 了" data-en="--keep-dup all? But I already dedup'd">--keep-dup all 對嗎？</button><div class="faq-a"><span data-lang="zh">對。你已用 picard MarkDuplicates 標記+移除，所以叫 peak 時告訴 MACS「不要再 dedup」（避免重複工作 + 防止 MACS 用自己較弱的 dedup）。</span><span data-lang="en">Yes. You already MarkDuplicates'd, so tell MACS not to dedup again (avoid double work + MACS's weaker dedup logic).</span></div></div>
+<div class="faq-item"><button class="faq-q" data-zh="兩個 replicates 之間 peaks 重疊率多少算合理？" data-en="What's reasonable peak overlap between replicates?">replicates overlap 多少合理？</button><div class="faq-a"><span data-lang="zh">高品質：&gt; 0.7。中等：0.5–0.7。低於 0.5 表示 replicates 變異太大，建議檢查批次效應或 TSS_e 是否不一致。</span><span data-lang="en">High quality: &gt; 0.7. Medium: 0.5–0.7. Below 0.5 → too-large replicate variance; check batch effects or TSS_e disparity.</span></div></div>
+<div class="faq-item"><button class="faq-q" data-zh="DAR 的 fold change 該設多少？" data-en="What |log2FC| should I use for DARs?">DAR |log2FC| 設多少？</button><div class="faq-a"><span data-lang="zh">和 RNA-seq 不同：peaks 是 binary-ish（open 或 not），fold 通常較小。建議 |log2FC|≥1 (= 2-fold) + FDR≤0.05 起步，視專案調整。</span><span data-lang="en">Unlike RNA-seq, peaks are near-binary; fold changes are smaller. Start with |log2FC|≥1 + FDR≤0.05, adjust by project.</span></div></div>
+<div class="faq-item"><button class="faq-q" data-zh="可以混合 narrowPeak 與 broadPeak 做 DiffBind？" data-en="Can I mix narrow + broad in DiffBind?">混 narrow/broad？</button><div class="faq-a"><span data-lang="zh">不建議：兩者長度尺度差很大（narrow ~300 bp、broad 數 kb），counts 不可比。各自分開做。</span><span data-lang="en">No: very different length scales (narrow ~300 bp, broad several kb); counts incomparable. Do them separately.</span></div></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="延伸閱讀" data-en="FURTHER READING">延伸閱讀</div>
+<h2 data-zh="參考文獻與工具" data-en="References & Tools">延伸閱讀</h2>
+<ul style="margin-left:20px;line-height:1.9;color:var(--c-ink-light);">
+<li>📄 Zhang Y et al. (2008) <em>Genome Biol</em> 9:R137. — MACS 原始論文</li>
+<li>📄 Tarbell ED, Liu T. (2019) <em>NAR Genomics &amp; Bioinformatics</em>. — HMMRATAC</li>
+<li>📄 Stark R, Brown G. (2011) DiffBind: differential binding analysis of ChIP-Seq peak data. (Bioconductor)</li>
+<li>📄 Lun ATL, Smyth GK. (2016) <em>NAR</em> 44:e45. — csaw</li>
+<li>📄 Li Q et al. (2011) <em>Ann Appl Stat</em> 5:1752. — IDR</li>
+<li>📄 Corces MR et al. (2018) <em>Science</em> 362:eaav1898. — TCGA Pan-Cancer ATAC</li>
+<li>📘 ataqv: <code>github.com/ParkerLab/ataqv</code></li>
+<li>📘 nf-core/atacseq: <code>nf-co.re/atacseq</code></li>
+<li>📘 ENCODE pipeline: <code>github.com/ENCODE-DCC/atac-seq-pipeline</code></li>
+</ul>
 </section>
 
 <nav class="page-nav"><a href="principles.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 1：原理" data-en="Step 1: Principles">Step 1：原理</span></a><a href="motif.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 3：Motif" data-en="Step 3: Motif">Step 3：Motif</span></a></nav>
@@ -119,16 +475,46 @@ const ch=new Chart(document.getElementById('tssChart'),{type:'line',data:{labels
 function upT(){
   const q=+document.getElementById('sliderQ').value;
   document.getElementById('valQ').textContent=q.toFixed(1);document.getElementById('valQEn').textContent=q.toFixed(1);
-  const data=xs.map(x=>{return 1+(q-1)*Math.exp(-(x**2)/(2*250**2));});
+  const data=xs.map(x=>1+(q-1)*Math.exp(-(x**2)/(2*250**2)));
   ch.data.datasets[0].data=data;ch.update('none');
   document.getElementById('tssScore').textContent=q.toFixed(1);
-  const L=I18n.get();
-  let label;
-  if(q>=7)label=L==='zh'?'優':'High';
-  else if(q>=5)label=L==='zh'?'可':'OK';
-  else if(q>=3)label=L==='zh'?'差':'Low';
-  else label=L==='zh'?'不可用':'Reject';
+  const L=I18n.get();let label,adv;
+  if(q>=7){label=L==='zh'?'優':'High';adv=L==='zh'?'通過 ENCODE 高品質':'Pass ENCODE high';}
+  else if(q>=5){label=L==='zh'?'可':'OK';adv=L==='zh'?'可接受，建議檢查 chrM%':'Acceptable, check chrM%';}
+  else if(q>=3){label=L==='zh'?'差':'Low';adv=L==='zh'?'重做或標記低品質':'Re-run or flag';}
+  else{label=L==='zh'?'不可用':'Reject';adv=L==='zh'?'不可用':'Discard';}
   document.getElementById('qLabel').textContent=label;
+  document.getElementById('advice').textContent=adv;
 }
 document.getElementById('sliderQ').addEventListener('input',upT);document.addEventListener('langchange',upT);upT();
+
+function upQC(){
+  const d=+document.getElementById('sliderDp').value;
+  const p=+document.getElementById('sliderPcr').value;
+  document.getElementById('valDp').textContent=d;document.getElementById('valDpEn').textContent=d;
+  document.getElementById('valPcr').textContent=p;document.getElementById('valPcrEn').textContent=p;
+  // simple model: FRiP rises then plateaus with depth; PBC1/NRF drop with PCR
+  const frip=Math.min(0.6,0.15+0.012*d-(p-10)*0.01);
+  const pbc1=Math.max(0.3,1.0-0.06*(p-6));
+  const nrf=Math.max(0.4,1.0-0.04*(p-6));
+  document.getElementById('frScore').textContent=frip.toFixed(2);
+  document.getElementById('pbcScore').textContent=pbc1.toFixed(2);
+  document.getElementById('nrfScore').textContent=nrf.toFixed(2);
+  const ok=(frip>=0.3 && pbc1>=0.7 && nrf>=0.8);
+  const L=I18n.get();
+  document.getElementById('overall').textContent= ok ? (L==='zh'?'通過':'PASS') : (L==='zh'?'低品質':'LOW');
+  let msg;
+  if(p>13)msg=L==='zh'?'PCR 過頭：PBC1 / NRF 跌破 ENCODE 標準。減 cycles 或重新建庫。':'Over-PCR: PBC1 / NRF below ENCODE. Reduce cycles or remake library.';
+  else if(d<15)msg=L==='zh'?'深度過淺：可能 miss 稀有 enhancer。建議 ≥ 25M reads。':'Too shallow: rare enhancers missed. Aim for ≥ 25M reads.';
+  else if(ok)msg=L==='zh'?'所有 QC 達標。✔️':'All QC passed. ✔️';
+  else msg=L==='zh'?'某項 QC 失敗，請參照表格調整。':'One QC failed; see table.';
+  document.getElementById('qcTip').textContent=msg;
+}
+document.getElementById('sliderDp').addEventListener('input',upQC);document.getElementById('sliderPcr').addEventListener('input',upQC);document.addEventListener('langchange',upQC);upQC();
+
+window._QF={zh:{q1_y:'ATAC paired-end 需要 --nomodel --shift -75 --extsize 150。',q1_n:'B 才對。',q2_y:'TSS ±2 kb 內訊號 / 邊緣背景，ATAC 最重要的 QC。',q2_n:'C 才對。',q3_y:'PBC1 = unique positions / mapped positions；低代表 PCR 過頭。',q3_n:'A 才對：PCR 過頭。',q4_y:'Genrich 內建 ATAC 模式並可聯合 replicates。',q4_n:'B 才對。',q5_y:'DiffBind 是 peak-level，csaw 是 window-level。',q5_n:'C 才對。'},en:{q1_y:'ATAC paired-end requires --nomodel --shift -75 --extsize 150.',q1_n:'Answer is B.',q2_y:'Signal at TSS ±2 kb / flanking background — ATAC core QC.',q2_n:'Answer is C.',q3_y:'PBC1 = unique / mapped positions; low → PCR over-amplification.',q3_n:'Answer is A.',q4_y:'Genrich has native ATAC mode and joint replicate calling.',q4_n:'Answer is B.',q5_y:'DiffBind is peak-level; csaw is sliding-window-level.',q5_n:'Answer is C.'}};
+const QF=window._QF||{};document.querySelectorAll(".quiz-q").forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll(".quiz-opt").forEach(o=>{o.addEventListener("click",()=>{if(q.classList.contains("answered"))return;q.classList.add("answered");const fb=document.getElementById("fb"+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?"correct":"wrong");if(!ok)q.querySelectorAll(".quiz-opt")[ans].classList.add("correct");const L=I18n.get();fb.className="quiz-feedback show "+(ok?"correct-fb":"wrong-fb");fb.textContent=(ok?"✅ ":"❌ ")+(QF[L]&&QF[L]["q"+(qi+1)+"_"+(ok?"y":"n")]||"");});});});
+
+document.querySelectorAll('.faq-q').forEach(b=>b.addEventListener('click',()=>{b.classList.toggle('open');b.nextElementSibling.classList.toggle('open');}));
+document.querySelectorAll('.level-tabs').forEach(tabs=>{tabs.querySelectorAll('.level-tab').forEach(t=>t.addEventListener('click',()=>{const tgt=t.dataset.tab;tabs.querySelectorAll('.level-tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===tgt));tabs.parentElement.querySelectorAll('.level-pane').forEach(p=>p.classList.toggle('active',p.dataset.pane===tgt));}));});
 </script></body></html>

@@ -1,153 +1,352 @@
 <!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>QC & Trimming — Bulk RNA-seq</title>
-<link rel="stylesheet" href="../styles.css"></head><body class="theme-bulk">
+<link rel="stylesheet" href="../styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+</head><body class="theme-bulk">
 <nav class="top-nav"><div class="top-nav-inner">
   <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="生物資訊教學" data-en="Bioinformatics Tutorial">生物資訊教學</span></a>
   <ul class="top-nav-links">
-    <li><a href="index.html">Bulk RNA</a></li>
-    <li><a href="qc-trim.html" class="active">QC</a></li>
-    <li><a href="alignment.html">Align</a></li>
-    <li><a href="quantification.html">Quant</a></li>
-    <li><a href="normalization.html">Norm</a></li>
-    <li><a href="de.html">DE</a></li>
-    <li><a href="visualization.html">Viz</a></li>
-    <li><a href="gsea.html">GSEA</a></li>
+    <li><a href="index.html">Bulk RNA</a></li><li><a href="qc-trim.html" class="active">QC</a></li><li><a href="alignment.html">Align</a></li><li><a href="quantification.html">Quant</a></li><li><a href="normalization.html">Norm</a></li><li><a href="de.html">DE</a></li><li><a href="visualization.html">Viz</a></li><li><a href="gsea.html">GSEA</a></li>
   </ul>
 </div></nav>
 <div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
-<header class="page-hero"><div class="step-badge">STEP 1 / 7</div><h1 data-zh="原始品質管控與修剪" data-en="Raw QC & Trimming">原始品質管控與修剪</h1><p class="subtitle" data-lang="zh">在比對之前先檢視 reads 品質、移除接頭與低品質鹼基——garbage in, garbage out。</p><p class="subtitle" data-lang="en">Inspect read quality and remove adapters / low-quality bases before alignment — garbage in, garbage out.</p></header><main class="content-wrap">
+<header class="page-hero"><div class="step-badge">STEP 1 / 7 · BULK RNA-seq</div>
+<h1 data-zh="原始品質管控與修剪" data-en="Raw QC & Trimming">原始品質管控與修剪</h1>
+<p class="subtitle" data-lang="zh">在分析之前先看清 reads 的健康狀態——garbage in, garbage out 是體學分析的鐵律。</p>
+<p class="subtitle" data-lang="en">Inspect read health before analysis — "garbage in, garbage out" is the iron law of omics.</p>
+<div style="margin-top:18px"><span class="diff-chip beg">🟢 Beginner</span><span class="diff-chip int">🟡 Intermediate</span><span class="diff-chip adv">🔴 Advanced</span></div>
+</header>
 
-<section class="section"><div class="section-label" data-zh="檔案格式" data-en="FILE FORMAT">檔案格式</div><h2 data-zh="認識 FASTQ" data-en="Understanding FASTQ">認識 FASTQ</h2>
-<div data-lang="zh"><p>FASTQ 是定序儀的標準輸出格式，每筆 read 佔 4 行：</p></div>
-<div data-lang="en"><p>FASTQ is the standard sequencer output. Each read takes 4 lines:</p></div>
-<div class="code-tabs"><div class="code-tab-btns"><button class="code-tab-btn active" onclick="switchTab(this,'fq1')">FASTQ</button></div>
-<div class="code-tab-content active" id="fq1"><pre><span class="comment">@SRR1039508.1 HWI-ST177:290:C0TECACXX:1:1101:1225:2130 length=63</span>
-GAACAGCGGCTTGGGCAGCGAGCAGCTGCACCCTGAGGGGCCACTTTCAGGCAACTTCCATG
-<span class="comment">+</span>
-<span class="str">CCCFFFFFHHHHHJJIIJIJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJIJJJIJJJIJJJ</span></pre></div></div>
-<div class="card-grid cols-2">
-  <div class="card"><h4>Line 1</h4><p data-lang="zh"><code>@</code> 開頭，後面是 read ID 與機器資訊。</p><p data-lang="en"><code>@</code> followed by read ID and sequencer metadata.</p></div>
-  <div class="card"><h4>Line 2</h4><p data-lang="zh">DNA 序列 (A/C/G/T/N)，N 表示無法判讀。</p><p data-lang="en">DNA sequence (A/C/G/T/N); N marks ambiguous calls.</p></div>
-  <div class="card"><h4>Line 3</h4><p data-lang="zh"><code>+</code> 分隔符。</p><p data-lang="en">A <code>+</code> separator.</p></div>
-  <div class="card"><h4>Line 4</h4><p data-lang="zh">Phred 品質分數（ASCII 編碼，Q33）。<code>Q30</code> 代表錯誤率 0.1%。</p><p data-lang="en">Phred quality (ASCII Q33). <code>Q30</code> means 0.1% error rate.</p></div>
+<main class="content-wrap">
+
+<section class="section">
+<div class="section-label" data-zh="開場故事" data-en="MOTIVATION">開場故事</div>
+<h2 data-zh="為什麼第一步就是看 reads？" data-en="Why start by inspecting the reads?">為什麼第一步就是看 reads？</h2>
+<div data-lang="zh"><p>想像你收到一批新到的 RNA-seq 資料：100 GB 的 FASTQ、20 個樣本、3 個月實驗成果。實驗夥伴信誓旦旦：「定序中心說品質沒問題！」於是你直接餵給 STAR、跑 DESeq2，得到 8000 個顯著 DEGs。論文也許能這樣寫，但<strong>結論可能是錯的</strong>。因為定序中心的「品質報告」只看儀器層級指標（chastity filter pass rate），<em>不會</em>告訴你接頭是否切乾淨、樣本間 GC 偏好是否一致、是否有 rRNA / mt-RNA 汙染。這些都需要分析師親自確認。2019 年 Bioinformatics 期刊有一則撤稿：一篇號稱「找到新癌症生物標記」的論文被指出是接頭序列沒 trim 乾淨，所謂的「新標記」其實是技術 artifact。<strong>QC 不只是流程儀式，而是科學完整性的守門員。</strong></p></div>
+<div data-lang="en"><p>Imagine you receive a fresh RNA-seq batch: 100 GB of FASTQ, 20 samples, three months of wet-lab work. Your collaborator insists: "The sequencing facility said quality is fine!" So you feed it to STAR, run DESeq2, and get 8000 significant DEGs. The manuscript could write itself — except the conclusions might be wrong. In 2019 a Bioinformatics retraction was issued: a paper claiming a "novel cancer biomarker" turned out to have un-trimmed adapter sequences creating PCR-duplicate / mis-alignment artifacts — the "marker" was a technical artifact. <strong>QC is not ceremony; it is the gatekeeper of scientific integrity.</strong></p></div>
+
+<div class="analogy" data-lang="zh"><strong>類比：</strong>把 reads 想像成從河裡撈起的塑膠瓶——理論上每個都是「容器」，但實際上有些漏底（低品質）、有些卡黏液（含接頭）、有些是兩個瓶子套在一起（雙端讀穿）。在你倒水進去之前，必須先把瓶子分類乾淨。</div>
+<div class="analogy" data-lang="en"><strong>Analogy:</strong> Think of reads as plastic bottles fished from a river. Some have holes, some are coated in grime, some are stuck together. Sort them before pouring anything in.</div>
+
+<div class="concept-map">
+  <div class="cm-root" data-zh="QC 與 Trimming 的三大目標" data-en="Three Goals of QC & Trimming">QC 與 Trimming 的三大目標</div>
+  <div class="cm-branches">
+    <div class="cm-branch"><h5 data-zh="① 檢視" data-en="① Inspect">① 檢視</h5><p data-lang="zh">用 FastQC / MultiQC 看「健檢報告」：品質沿讀長變化、GC、接頭比例、重複序列。</p><p data-lang="en">Use FastQC / MultiQC for a "health check": per-base quality, GC, adapter fraction, duplication.</p></div>
+    <div class="cm-branch"><h5 data-zh="② 清理" data-en="② Clean">② 清理</h5><p data-lang="zh">用 fastp / trim_galore 切接頭、修 3' 低品質、移除過短 reads。</p><p data-lang="en">Use fastp / trim_galore to clip adapters, trim 3' ends, drop too-short reads.</p></div>
+    <div class="cm-branch"><h5 data-zh="③ 記錄" data-en="③ Document">③ 記錄</h5><p data-lang="zh">把每樣本 pre/post-trim 統計記錄下來。日後 debugging 時最快的線索。</p><p data-lang="en">Record pre/post-trim stats per sample. Fastest debugging clue down the line.</p></div>
+  </div>
 </div>
-<div class="callout tip"><span class="callout-icon">💡</span><div data-lang="zh"><strong>Phred 公式：</strong><code>Q = -10·log10(P_error)</code>。Q20 = 1%、Q30 = 0.1%、Q40 = 0.01%。Illumina 新平台大多 Q30+。</div><div data-lang="en"><strong>Phred formula:</strong> <code>Q = -10·log10(P_error)</code>. Q20 = 1%, Q30 = 0.1%, Q40 = 0.01%. Modern Illumina is mostly Q30+.</div></div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="工具" data-en="TOOLS">工具</div><h2 data-zh="FastQC 與 MultiQC" data-en="FastQC & MultiQC">FastQC 與 MultiQC</h2>
-<div data-lang="zh"><p><strong>FastQC</strong> 是業界標準的單樣本品質報告產生器；<strong>MultiQC</strong> 則把多個 FastQC（或 STAR、Salmon、…）的 log 整合成一份可瀏覽的 HTML。</p></div>
-<div data-lang="en"><p><strong>FastQC</strong> is the industry-standard per-sample QC report. <strong>MultiQC</strong> aggregates FastQC (and STAR, Salmon, …) logs into one browsable HTML.</p></div>
-<div class="tool-pills"><span class="tool-pill">fastqc</span><span class="tool-pill">multiqc</span><span class="tool-pill">fastp</span><span class="tool-pill">trim_galore</span><span class="tool-pill">trimmomatic</span><span class="tool-pill">cutadapt</span></div>
+<section class="section"><div class="section-label" data-zh="檔案格式" data-en="FILE FORMAT">檔案格式</div>
+<h2 data-zh="一、認識 FASTQ：定序資料的通用語" data-en="I. Understanding FASTQ">一、認識 FASTQ：定序資料的通用語</h2>
+<div data-lang="zh"><p><span class="term">FASTQ<span class="term-tip">由 Wellcome Sanger Institute 在 2000 年代提出，目前是 Illumina、PacBio、ONT 等主流定序平台的標準輸出格式。每筆 read 佔 4 行。</span></span> 是定序儀的標準輸出。每條 read 佔 <span class="kw-inline">4 行</span>：</p></div>
+<div data-lang="en"><p><span class="term">FASTQ<span class="term-tip">Proposed by Wellcome Sanger Institute (2000s); now standard for Illumina, PacBio, ONT. Each read takes 4 lines.</span></span> is the standard sequencer output. Each read spans <span class="kw-inline">4 lines</span>:</p></div>
+<div class="code-tabs"><div class="code-tab-btns"><button class="code-tab-btn active" onclick="switchTab(this,'fq1')">FASTQ</button></div>
+<div class="code-tab-content active" id="fq1"><pre><span class="comment">@SRR1039508.1 HWI-ST177:290:C0TECACXX:1:1101:1225:2130   ← Line 1: ID + 機器資訊</span>
+GAACAGCGGCTTGGGCAGCGAGCAGCTGCACCCTGAGGGGCCACTTTCAGGCAACTTCCATG   <span class="comment">← Line 2: DNA 序列</span>
++                                                                  <span class="comment">← Line 3: 分隔符</span>
+<span class="str">CCCFFFFFHHHHHJJIIJIJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJIJJJIJJJIJJJ</span>   <span class="comment">← Line 4: Phred 品質 (ASCII 編碼)</span></pre></div></div>
 
-<h3 data-zh="FastQC 重點指標" data-en="Key FastQC Metrics">FastQC 重點指標</h3>
-<table class="comp-table"><thead><tr><th data-zh="模組" data-en="Module">模組</th><th data-zh="觀察" data-en="What to look for">觀察</th><th data-zh="常見原因" data-en="Common cause">常見原因</th></tr></thead><tbody>
-<tr><td>Per base sequence quality</td><td data-zh="3' 端品質下滑屬正常" data-en="3' end drop is normal">3' 端品質下滑屬正常</td><td data-zh="化學循環疲乏" data-en="Chemistry exhaustion">化學循環疲乏</td></tr>
-<tr><td>Per base sequence content</td><td data-zh="前 10–12 bp 不平衡" data-en="Imbalance in first 10–12 bp">前 10–12 bp 不平衡</td><td data-zh="random hexamer priming bias，正常現象" data-en="Random hexamer priming bias — normal">random hexamer priming bias</td></tr>
-<tr><td>Sequence duplication levels</td><td data-zh="高表達基因易高重複，PCR 重複也會貢獻" data-en="Highly expressed genes inflate this; PCR dups too">高表達基因 / PCR 重複</td><td data-zh="library complexity 不足或過度 PCR" data-en="Low library complexity or PCR overcycling">複雜度不足</td></tr>
-<tr><td>Overrepresented sequences</td><td data-zh="若是接頭→需 trim" data-en="If adapter, trim">需要修剪</td><td data-zh="insert 太短" data-en="Insert too short">insert 太短</td></tr>
-<tr><td>Adapter content</td><td data-zh="3' 端比例上升" data-en="Rising 3'-end content">3' 端含量上升</td><td data-zh="部分 read 讀穿 insert" data-en="Reads read through insert">讀穿 insert</td></tr>
+<h3 data-zh="深入 Phred 品質分數" data-en="Deep dive: Phred quality">深入 Phred 品質分數</h3>
+<div data-lang="zh"><p><span class="term">Phred score<span class="term-tip">Phil Green 1990s 為 Sanger phred 設計。Q = -10·log10(P_error)。Q20 = 1%、Q30 = 0.1%、Q40 = 0.01%。</span></span> 是定序機對每個鹼基「我有多確定？」的估計，用對數表達錯誤機率：</p></div>
+<div data-lang="en"><p>The <span class="term">Phred score<span class="term-tip">Phil Green 1990s for Sanger phred. Q = -10·log10(P_error). Q20=1%, Q30=0.1%, Q40=0.01%.</span></span> is the sequencer's "how confident am I?" estimate, in log-probability:</p></div>
+<div class="formula-box">Q = -10 · log<sub>10</sub>(P<sub>error</sub>)<span class="formula-label" data-zh="Phred 公式" data-en="Phred formula">Phred 公式</span></div>
+
+<table class="comp-table"><thead><tr><th>Q</th><th data-zh="錯誤率" data-en="Error">錯誤率</th><th data-zh="準確度" data-en="Accuracy">準確度</th><th data-zh="解讀" data-en="Interpretation">解讀</th></tr></thead><tbody>
+<tr><td>Q10</td><td>10%</td><td>90%</td><td data-zh="非常差，應 trim" data-en="Very poor — trim">非常差</td></tr>
+<tr><td>Q20</td><td>1%</td><td>99%</td><td data-zh="可接受最低門檻" data-en="Acceptable minimum">可接受門檻</td></tr>
+<tr><td>Q30</td><td>0.1%</td><td>99.9%</td><td data-zh="現代 Illumina 多數鹼基" data-en="Most Illumina bases">現代 Illumina 多數</td></tr>
+<tr><td>Q40</td><td>0.01%</td><td>99.99%</td><td data-zh="極佳 (PacBio HiFi)" data-en="Excellent (PacBio HiFi)">極佳</td></tr>
 </tbody></table>
+
+<div class="protip"><strong data-zh="實務" data-en="In practice">實務</strong><span data-zh="：99% 你會遇到的 FASTQ 都是 Phred+33。若工具報「quality out of range」，幾乎肯定是編碼錯誤——可能拿到 Illumina 1.3-1.7 的 Phred+64 舊資料。" data-en=": 99% of FASTQ you'll see is Phred+33. If a tool errors with 'quality out of range,' you likely have legacy Illumina 1.3–1.7 Phred+64 data."></span></div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div><h2 data-zh="調整 Trimming 參數，看 read 留存率" data-en="Tune Trimming Parameters, See Read Retention">調整 Trimming 參數</h2>
-<div data-lang="zh"><p>觀察「最小品質」(Q-threshold) 與「最小長度」(min-length) 如何影響 read 通過率與平均品質：</p></div>
-<div data-lang="en"><p>See how min-quality (Q-threshold) and min-length affect read pass rate and average quality:</p></div>
+<section class="section"><div class="section-label" data-zh="工具" data-en="TOOLS">工具</div>
+<h2 data-zh="二、FastQC 11 個模組怎麼讀？" data-en="II. Reading FastQC's 11 modules">二、FastQC 11 個模組怎麼讀？</h2>
+<div data-lang="zh"><p><span class="term">FastQC<span class="term-tip">Simon Andrews (Babraham Institute) 2010+。免費開源跨平台。</span></span> 是業界標準的單樣本 QC，輸出 11 個模組（綠✓黃⚠紅✗）。但<strong>不要盲信顏色</strong>——許多紅色是 RNA-seq 的正常現象。</p></div>
+<div data-lang="en"><p><span class="term">FastQC<span class="term-tip">Simon Andrews (Babraham Institute) since 2010. Free, open-source, cross-platform.</span></span> is the per-sample QC standard with 11 modules (green/yellow/red). <strong>Don't trust colors blindly</strong> — many "reds" are normal for RNA-seq.</p></div>
+
+<table class="comp-table"><thead><tr><th data-zh="模組" data-en="Module">模組</th><th data-zh="解讀" data-en="Interpretation">解讀</th><th data-zh="紅旗正常嗎？" data-en="Red OK?">紅旗正常嗎？</th></tr></thead><tbody>
+<tr><td><strong>Per base quality</strong></td><td data-zh="3' 端 Q 下滑正常" data-en="3' Q drop is normal">3' Q 下滑正常</td><td>✓ 通常正常</td></tr>
+<tr><td><strong>Per tile quality</strong></td><td data-zh="若整 tile 暗 = flowcell 氣泡" data-en="Dark tile = flowcell bubble">tile 故障警訊</td><td>✗ 不正常</td></tr>
+<tr><td><strong>Per base sequence content</strong></td><td data-zh="前 10-12 bp 偏差 = random hexamer priming" data-en="First 10-12 bp imbalance = random hexamer priming">RNA-seq 正常</td><td data-zh="✓ RNA-seq 正常" data-en="✓ Normal for RNA-seq">RNA-seq 正常</td></tr>
+<tr><td><strong>Per sequence GC</strong></td><td data-zh="應接近物種期望鐘形 (人類 ~41%)" data-en="Bell curve around species expectation (~41% human)">應接近物種 GC</td><td data-zh="多峰 → 可能 rRNA/汙染" data-en="Multi-peak → rRNA/contamination">多峰警惕</td></tr>
+<tr><td><strong>Duplication levels</strong></td><td data-zh="RNA-seq 高表達基因產生大量相同 reads" data-en="Highly expressed genes produce many identical reads">RNA-seq 必然紅</td><td>✓✓ 完全正常</td></tr>
+<tr><td><strong>Overrepresented sequences</strong></td><td data-zh="檢查是否為接頭、rRNA、polyA" data-en="Check if adapter, rRNA, polyA">須查具體序列</td><td data-zh="接頭需 trim" data-en="Adapter → trim">看狀況</td></tr>
+<tr><td><strong>Adapter content</strong></td><td data-zh="3' 比例上升 → 必 trim" data-en="Rising 3' fraction → must trim">trim 訊號</td><td>✗ 必 trim</td></tr>
+</tbody></table>
+
+<div class="pitfall"><strong data-zh="陷阱" data-en="Pitfall">陷阱</strong><span data-zh="：FastQC 對 RNA-seq 的 duplication 與 per-base content 幾乎一定報紅或黃，這是生物學常態（高表達基因 + random hexamer priming），不是樣本品質問題。寫 QC 報告時不該升級為警訊。" data-en=": FastQC almost always flags duplication and per-base content red/yellow for RNA-seq — these are biological norms (highly expressed genes + random hexamer priming), not quality issues. Don't escalate them in reports."></span></div>
+
+<h3 data-zh="MultiQC：拼成全景圖" data-en="MultiQC: panorama">MultiQC：拼成全景圖</h3>
+<div data-lang="zh"><p><span class="term">MultiQC<span class="term-tip">Phil Ewels et al. 2016 (Bioinformatics)。整合 100+ 種生物資訊工具的 log 成可瀏覽 HTML。</span></span> 解決一個樞紐問題：當你有 20 個樣本，逐一翻 FastQC 會崩潰。MultiQC 把指標拼成長條圖/熱圖，<strong>異常樣本一眼跳出來</strong>。支援 100+ 工具，是現代 RNA-seq 流程標配。</p></div>
+<div data-lang="en"><p><span class="term">MultiQC<span class="term-tip">Phil Ewels et al. 2016 (Bioinformatics). Aggregates 100+ tool logs into browsable HTML.</span></span> solves a pivotal problem: 20 FastQC reports are exhausting to review one by one. MultiQC stitches per-sample metrics into bar/heat plots so <strong>outliers stand out at a glance</strong>. Supports 100+ tools — a must in modern RNA-seq.</p></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="互動模擬 1" data-en="INTERACTIVE 1">互動模擬 1</div>
+<h2 data-zh="模擬器：四種典型品質曲線" data-en="Simulator: Four typical quality profiles">模擬器：四種典型品質曲線</h2>
+<div data-lang="zh"><p>切換情境，看 per-base quality 曲線變化。理解這些品質「fingerprint」是專業分析師基本功。</p></div>
+<div data-lang="en"><p>Toggle scenarios. Recognising these quality "fingerprints" is foundational for a professional analyst.</p></div>
 <div class="interactive-panel">
-<div class="slider-group"><label>Min Quality (Q) <span id="valQ">20</span></label><input type="range" id="sliderQ" min="0" max="40" value="20" step="1"></div>
-<div class="slider-group"><label>Min Length (bp) <span id="valL">36</span></label><input type="range" id="sliderL" min="0" max="100" value="36" step="1"></div>
-<div class="sim-stats"><div class="sim-stat pass" id="passStat">Pass: 0%</div><div class="sim-stat" id="meanStat">Mean Q: --</div><div class="sim-stat" id="kepStat">Reads kept: 0 / 10000</div></div>
+<div class="toggle-row">
+  <button class="toggle-btn active" data-pf="healthy" data-zh="健康樣本" data-en="Healthy">健康樣本</button>
+  <button class="toggle-btn" data-pf="degraded" data-zh="RNA 降解" data-en="Degraded">RNA 降解</button>
+  <button class="toggle-btn" data-pf="tile" data-zh="Tile 故障" data-en="Tile failure">Tile 故障</button>
+  <button class="toggle-btn" data-pf="overcycled" data-zh="過度循環" data-en="Overcycled">過度循環</button>
+</div>
+<div class="chart-container" style="height:320px;"><canvas id="qcCurveChart"></canvas></div>
+<div id="qcCurveMsg" style="font-size:.92rem;color:var(--c-ink);background:var(--c-surface-alt);padding:14px 18px;border-radius:8px;margin-top:10px;"></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="修剪理論" data-en="TRIMMING THEORY">修剪理論</div>
+<h2 data-zh="三、Trimming 的兩種「東西」要切" data-en="III. Two things to clip">三、Trimming 的兩種「東西」要切</h2>
+<div class="vs-grid">
+  <div class="vs-side"><h5 data-zh="① 接頭修剪" data-en="① Adapter Trimming">① 接頭修剪</h5>
+  <p data-lang="zh"><strong>何時發生：</strong>insert 比 read 短時，read 讀穿到接頭。</p><p data-lang="en"><strong>When:</strong> insert shorter than read length — read sequences through into adapter.</p>
+  <ul data-lang="zh"><li>偵測：與已知接頭序列比對</li><li>常見：Illumina TruSeq、Nextera</li><li>影響：未 trim → 比對失敗或讀錯位置</li></ul>
+  <ul data-lang="en"><li>Detection: align to known adapters</li><li>Common: Illumina TruSeq, Nextera</li><li>Impact: untrimmed → alignment fails or wrong locus</li></ul></div>
+  <div class="vs-mid">vs</div>
+  <div class="vs-side"><h5 data-zh="② 品質修剪" data-en="② Quality Trimming">② 品質修剪</h5>
+  <p data-lang="zh"><strong>何時發生：</strong>定序末段化學疲乏，3' Q 下滑。</p><p data-lang="en"><strong>When:</strong> chemistry exhaustion in late cycles — 3' Q drops.</p>
+  <ul data-lang="zh"><li>偵測：滑動視窗或 3' Q 門檻</li><li>常用：Q20，window 4 bp</li><li>影響：過嚴 → 丟訊號；不夠 → 錯配率升</li></ul>
+  <ul data-lang="en"><li>Detection: sliding window or 3' Q threshold</li><li>Typical: Q20, 4-bp window</li><li>Impact: too strict → loses signal; too loose → mismatches</li></ul></div>
+</div>
+
+<table class="comp-table"><thead><tr><th>Tool</th><th data-zh="速度" data-en="Speed">速度</th><th data-zh="特色" data-en="Notes">特色</th><th data-zh="推薦情境" data-en="Best for">推薦情境</th></tr></thead><tbody>
+<tr><td><strong>fastp</strong></td><td>★★★★★</td><td data-zh="多執行緒、一站式 QC+trim+報告" data-en="Multi-threaded; one-pass QC+trim+report">最快、一站式</td><td data-zh="現代 RNA-seq 預設" data-en="Modern default">現代預設</td></tr>
+<tr><td><strong>trim_galore</strong></td><td>★★★</td><td data-zh="自動偵測接頭，預設穩定" data-en="Auto-detect adapter; stable defaults">易用</td><td data-zh="新手" data-en="Beginner">新手</td></tr>
+<tr><td><strong>cutadapt</strong></td><td>★★★★</td><td data-zh="接頭比對最精細、可多 adapter" data-en="Most precise adapter alignment; multi-adapter">細節控制</td><td data-zh="客製化" data-en="Custom">客製化</td></tr>
+<tr><td><strong>BBDuk</strong></td><td>★★★★</td><td data-zh="k-mer 比對極快、可同時 contamination 過濾" data-en="Very fast k-mer; can filter contamination">高通量</td><td data-zh="大型 cohort" data-en="Large cohort">大 cohort</td></tr>
+</tbody></table>
+
+<div class="protip"><strong data-zh="專業選擇" data-en="Pro choice">專業選擇</strong><span data-zh="：2024 主流共識是 fastp，一個指令同時做 QC + adapter trim + quality trim + polyG + UMI + dup detection。NF-core rnaseq pipeline 預設即 fastp。" data-en=": 2024 consensus is fastp — one command does QC + adapter + quality + polyG + UMI + dup detection. NF-core/rnaseq defaults to fastp."></span></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="互動模擬 2" data-en="INTERACTIVE 2">互動模擬 2</div>
+<h2 data-zh="模擬器：trimming 門檻 vs reads 命運" data-en="Simulator: trim threshold vs reads' fate">模擬器：trimming 門檻</h2>
+<div data-lang="zh"><p>調「最小 Q」與「最小長度」，看 read 留存率與平均品質。找到「保留最多訊號 + 平均 Q 夠高」的平衡點。</p></div>
+<div data-lang="en"><p>Tune min Q and min length. Find the balance: maximum signal with acceptable mean Q.</p></div>
+<div class="interactive-panel">
+<div class="slider-group"><label><span data-zh="最小 Phred Q" data-en="Min Q">最小 Q</span> <span id="valQ">20</span></label><input type="range" id="sliderQ" min="0" max="40" value="20" step="1"></div>
+<div class="slider-group"><label><span data-zh="最小長度 (bp)" data-en="Min length (bp)">最小長度 (bp)</span> <span id="valL">36</span></label><input type="range" id="sliderL" min="0" max="100" value="36" step="1"></div>
+<div class="stat-row">
+<div class="stat-box"><div class="sb-num" id="passStat">--</div><div class="sb-lbl" data-zh="通過率" data-en="Pass rate">通過率</div></div>
+<div class="stat-box"><div class="sb-num" id="meanStat">--</div><div class="sb-lbl" data-zh="平均 Q" data-en="Mean Q">平均 Q</div></div>
+<div class="stat-box"><div class="sb-num" id="kepStat">--</div><div class="sb-lbl" data-zh="保留 reads" data-en="Kept">保留</div></div>
+</div>
 <div class="chart-container" style="height:280px;"><canvas id="trimChart"></canvas></div>
 </div>
-<div class="callout warn"><span class="callout-icon">⚠️</span><div data-lang="zh"><strong>避免過度 trimming：</strong>Q20、min length 25–36 通常足夠。過度嚴格會丟失大量訊號，且現代比對工具（如 STAR、HISAT2）對輕微低品質鹼基有容忍度。</div><div data-lang="en"><strong>Avoid over-trimming:</strong> Q20 and min length 25–36 are usually enough. Overly strict thresholds discard real signal; modern aligners (STAR, HISAT2) tolerate slightly low-quality bases.</div></div>
+
+<div class="callout warn"><span class="callout-icon">⚠️</span><div>
+<span data-lang="zh"><strong>避免過度 trimming：</strong>Q20、min length 25-36 通常足夠。Williams et al. (2016) BMC Bioinformatics 證明：對 STAR 比對，trim Q5-Q15 已足夠，更嚴格只增成本不改善結果。</span>
+<span data-lang="en"><strong>Avoid over-trimming:</strong> Q20 and min length 25-36 usually suffice. Williams et al. (2016) showed Q5–Q15 is enough for STAR; stricter only adds cost.</span>
+</div></div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="程式碼" data-en="CODE">程式碼</div><h2 data-zh="實作範例" data-en="Code Examples">實作範例</h2>
-<div class="code-tabs"><div class="code-tab-btns">
-<button class="code-tab-btn active" onclick="switchTab(this,'fastp')">fastp</button>
-<button class="code-tab-btn" onclick="switchTab(this,'trimg')">trim_galore</button>
-<button class="code-tab-btn" onclick="switchTab(this,'mqc')">multiqc</button>
-</div>
-<div class="code-tab-content active" id="fastp"><pre><span class="comment"># 推薦：fastp 一站式 QC + trimming + 報告</span>
-fastp \
-  -i sample_R1.fastq.gz -I sample_R2.fastq.gz \
-  -o trim_R1.fastq.gz   -O trim_R2.fastq.gz \
-  --detect_adapter_for_pe \
-  --qualified_quality_phred <span class="num">20</span> \
-  --length_required <span class="num">36</span> \
-  --thread <span class="num">8</span> \
-  --html sample.fastp.html --json sample.fastp.json</pre></div>
-<div class="code-tab-content" id="trimg"><pre><span class="comment"># trim_galore 包裝 cutadapt，自動偵測接頭</span>
-trim_galore \
-  --paired --illumina \
-  --quality <span class="num">20</span> --length <span class="num">36</span> \
-  --cores <span class="num">4</span> --fastqc \
-  -o trimmed/ \
-  sample_R1.fq.gz sample_R2.fq.gz</pre></div>
-<div class="code-tab-content" id="mqc"><pre><span class="comment"># 跑完 FastQC 後一鍵彙整</span>
-fastqc -o fastqc_out/ *.fastq.gz
-multiqc fastqc_out/ trimmed/ -o multiqc_report/
-<span class="comment"># 開啟 multiqc_report/multiqc_report.html</span></pre></div>
+<section class="section"><div class="section-label" data-zh="案例研究" data-en="CASE STUDY">案例研究</div>
+<h2 data-zh="四、真實案例：ENCODE 標準 QC 流程" data-en="IV. Real case: ENCODE's QC pipeline">四、真實案例：ENCODE 標準 QC 流程</h2>
+<div class="case-study">
+<div class="case-meta">ENCODE Project · 2003-present · 16,000+ samples</div>
+<h4 data-zh="📂 ENCODE 怎麼做 QC？" data-en="📂 How ENCODE Does QC">📂 ENCODE 怎麼做 QC？</h4>
+<div data-lang="zh"><p><span class="real-data" data-zh="真實資料" data-en="Real Data">真實資料</span> <strong>ENCODE Project</strong> NHGRI 自 2003 年運行至今，目前公開 &gt; 16,000 個 RNA-seq 樣本。為讓資料可比，他們訂了嚴格 QC SOP：</p>
+<ol style="margin-left:22px;color:var(--c-ink-light);font-size:.92rem;">
+<li><strong>原始 reads ≥ 25 M PE</strong>（標準）或 30 M（splice junction 分析）</li>
+<li><strong>FastQC + MultiQC</strong> 報告必須隨資料發佈</li>
+<li><strong>fastp Q20 + min length 25</strong>，UMI 樣本另用 umi_tools 抽取</li>
+<li><strong>STAR mapping rate ≥ 80%</strong>（unique &gt; 65%）</li>
+<li><strong>rRNA ratio &lt; 5%</strong>（SortMeRNA / Picard CollectRnaSeqMetrics）</li>
+<li><strong>3'/5' bias &lt; 2.0</strong>（RIN ≥ 7 樣本應如此）</li>
+</ol>
+<p>未通過 SOP 的樣本會被打 <code>error_status</code> 旗標，重做或註記。這套標準後來影響了 GTEx、TCGA、recount3 等大型 cohort。<strong>啟示：</strong>沿用 ENCODE 指標能讓你的資料更容易進入 meta-analysis。</p></div>
+<div data-lang="en"><p><span class="real-data">Real Data</span> <strong>ENCODE Project</strong> (NHGRI, since 2003) hosts &gt;16,000 RNA-seq samples. To enforce cross-cohort comparability:</p>
+<ol style="margin-left:22px;color:var(--c-ink-light);font-size:.92rem;">
+<li><strong>Raw reads ≥ 25 M PE</strong> (or 30 M for splice junctions)</li>
+<li><strong>FastQC + MultiQC</strong> reports co-published</li>
+<li><strong>fastp Q20 + length 25</strong>; umi_tools first for UMI samples</li>
+<li><strong>STAR mapping ≥ 80%</strong> (unique &gt; 65%)</li>
+<li><strong>rRNA &lt; 5%</strong> (SortMeRNA / Picard)</li>
+<li><strong>3'/5' bias &lt; 2.0</strong> (for RIN ≥ 7 samples)</li>
+</ol>
+<p>Failed samples get an <code>error_status</code> flag. This SOP shaped GTEx, TCGA, recount3. <strong>Takeaway:</strong> adopting ENCODE thresholds eases meta-analysis.</p></div>
 </div>
 </section>
 
-<section class="section"><div class="section-label" data-zh="決策" data-en="DECISION">決策</div><h2 data-zh="工具選擇" data-en="Tool Choice">工具選擇</h2>
-<div class="decision-tree"><h4>🌳 <span data-zh="哪個 trimming 工具？" data-en="Which trimming tool?">哪個 trimming 工具？</span></h4>
+<section class="section"><div class="section-label" data-zh="陷阱" data-en="PITFALLS">陷阱</div>
+<h2 data-zh="五、五個常見陷阱" data-en="V. Five common pitfalls">五、五個常見陷阱</h2>
+
+<div class="pitfall"><strong data-zh="陷阱 1：把 RNA-seq 高重複度當品質問題" data-en="Pitfall 1: Mistaking RNA-seq's high duplication for a quality issue">陷阱 1：把 RNA-seq 高重複度當品質問題</strong><span data-zh="。高表達基因（GAPDH、ACTB、rRNA）每分鐘合成數百份相同 transcript，FastQC duplication levels 報紅是正常。不應因此做去重——會嚴重低估真實表達量。例外：DNA-seq、ATAC-seq、ChIP-seq 才需要 mark/remove duplicate。" data-en=". Highly expressed genes (GAPDH, ACTB, rRNA) produce hundreds of identical transcripts per minute. FastQC 'duplication' will be red for RNA-seq — do NOT deduplicate, it deflates true expression. Exception: DNA-seq, ATAC-seq, ChIP-seq need dedup."></span></div>
+
+<div class="pitfall"><strong data-zh="陷阱 2：FastQC 全綠 ≠ 完美" data-en="Pitfall 2: All-green FastQC = perfect sample?">陷阱 2：FastQC 全綠 ≠ 完美</strong><span data-zh="。FastQC 是 read-level 工具，看不到「樣本生物學」是否健康。它無法告訴你：(a) rRNA 比例（需 SortMeRNA/picard）、(b) 跨樣本 batch effect（需 PCA）、(c) 物種汙染（需 FastQ Screen/Kraken2）。FastQC 只是第一道濾網。" data-en=". FastQC is read-level — blind to sample biology. It cannot tell you: (a) rRNA ratio (use SortMeRNA/picard), (b) batch effects (use PCA), (c) species contamination (use FastQ Screen/Kraken2). It's just the first sieve."></span></div>
+
+<div class="pitfall"><strong data-zh="陷阱 3：Q30 trim 太嚴格" data-en="Pitfall 3: Q30 trim is too strict">陷阱 3：Q30 trim 太嚴格</strong><span data-zh="。教科書寫 Q30 是「高品質」門檻，新手就把它套到 trim 上。實際上 trim Q30 會把超過 30-50% reads 切到剩 &lt; 50 bp，造成大量 unmappable。Williams et al. 2016 證明 STAR 比對只需 Q5-Q15 trim，Q20 已是保守選擇。" data-en=". Textbooks call Q30 'high quality,' so beginners apply it to trimming. Q30 clips 30–50% of reads to &lt; 50 bp, producing many unmappable reads. Williams et al. (2016) showed Q5–Q15 is enough for STAR; Q20 is already conservative."></span></div>
+
+<div class="pitfall"><strong data-zh="陷阱 4：未去除 NovaSeq polyG 假象" data-en="Pitfall 4: Not removing NovaSeq polyG artifacts">陷阱 4：未去除 NovaSeq polyG 假象</strong><span data-zh="。Illumina NovaSeq/NextSeq 用 2-channel 化學，cluster 訊號弱時錯讀為 G，3' 端出現假 polyG。STAR 會比對到 polyG repeat 區（chr16 末端），造成假陽性。fastp --trim_poly_g 自動處理。" data-en=". NovaSeq/NextSeq 2-channel chemistry mis-calls empty signals as G, creating fake polyG tails. STAR maps them to polyG repeats (chr16 ends), producing false positives. fastp --trim_poly_g fixes this."></span></div>
+
+<div class="pitfall"><strong data-zh="陷阱 5：接頭被當「新生物標記」" data-en="Pitfall 5: Mistaking adapter for novel discovery">陷阱 5：接頭被當「新生物標記」</strong><span data-zh="。當 FastQC Overrepresented sequences 回報「No Hit」，新手有時直接 BLAST。實際 90% 是接頭碎片（FastQC 內建接頭庫不完整）。建議：先在 NEB / Illumina 文件查 library kit 完整接頭序列，再用 cutadapt 顯式指定。" data-en=". When FastQC's 'Overrepresented sequences' returns 'No Hit,' beginners BLAST it. 90% of the time it's an adapter fragment (FastQC's adapter DB is incomplete). Best practice: look up the full adapter from NEB / Illumina kit docs and specify explicitly to cutadapt."></span></div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="討論" data-en="DISCUSSION">討論</div>
+<h2 data-zh="六、思考題" data-en="VI. Discussion questions">六、思考題</h2>
+<div class="discussion">
+<h4 data-zh="💭 五道值得思考的問題" data-en="💭 Five thought-provoking questions">💭 五道值得思考的問題</h4>
 <div data-lang="zh">
-<div class="dt-node"><span class="dt-q">速度優先：</span><div><strong>fastp</strong> — 多執行緒 + 一次完成 QC、trim、報告。</div></div>
-<div class="dt-node"><span class="dt-q">簡單易用：</span><div><strong>trim_galore</strong> — 自動偵測接頭，預設參數即可上手。</div></div>
-<div class="dt-node"><span class="dt-q">精細調控：</span><div><strong>cutadapt / Trimmomatic</strong> — 需要客製接頭序列或滑動視窗時的選擇。</div></div>
-<div class="dt-node"><span class="dt-q">UMI 處理：</span><div><strong>umi_tools extract</strong> 先抽 UMI，再 trim。</div></div>
+<p><span class="q-ico">Q1.</span> 拿到一批 single-end 50 bp 舊資料（2012）與 paired-end 150 bp 新資料（2024）混在一個 cohort 做 DE，你會用什麼策略？要把新資料 down-trim 到 50 bp 嗎？還是分批處理後 meta-analysis？</p>
+<p><span class="q-ico">Q2.</span> FastQC per-base sequence content 前 12 bp 偏離 25%/25%/25%/25%，你會 trim 嗎？答案是「不」——但為何這對 RNA-seq 正常、對 ChIP-seq 卻是嚴重警訊？（提示：random hexamer priming）</p>
+<p><span class="q-ico">Q3.</span> collaborator 堅持把所有 reads trim 到固定長度（如 75 bp），認為這樣可「公平比較」。如何說服他這是錯的？（提示：mapping rate、splice junction）</p>
+<p><span class="q-ico">Q4.</span> 樣本 mapping rate 只有 35%，FastQC 卻全綠。下一步？（提示：FastQ Screen、SortMeRNA、blast 典型 unmapped read）</p>
+<p><span class="q-ico">Q5.</span> 為何 ENCODE 把 rRNA &lt; 5% 列為 SOP？想想 ribozero / polyA capture 化學差異——若樣本 rRNA 達 30%，是 library prep 失敗還是 RNA degradation？</p>
 </div>
 <div data-lang="en">
-<div class="dt-node"><span class="dt-q">Speed-first:</span><div><strong>fastp</strong> — multi-threaded, one-shot QC + trim + report.</div></div>
-<div class="dt-node"><span class="dt-q">Easy default:</span><div><strong>trim_galore</strong> — auto adapter detection; defaults work out of box.</div></div>
-<div class="dt-node"><span class="dt-q">Fine control:</span><div><strong>cutadapt / Trimmomatic</strong> — for custom adapters or sliding-window logic.</div></div>
-<div class="dt-node"><span class="dt-q">UMI handling:</span><div><strong>umi_tools extract</strong> first, then trim.</div></div>
+<p><span class="q-ico">Q1.</span> A mixed cohort: old SE 50 bp (2012) + new PE 150 bp (2024) for joint DE. Strategy? Down-trim new to 50 bp, or batch-process and meta-analyse?</p>
+<p><span class="q-ico">Q2.</span> Per-base content deviates from 25%/25%/25%/25% in first 12 bp. Trim it? Answer: no — explain why this is normal for RNA-seq yet a warning for ChIP-seq. (Hint: random hexamer priming.)</p>
+<p><span class="q-ico">Q3.</span> A collaborator wants all reads trimmed to fixed length (75 bp) "for fair comparison." How to convince them it's wrong? (Hint: mapping rate, splice junction.)</p>
+<p><span class="q-ico">Q4.</span> Sample has 35% mapping rate but FastQC is all green. Next move? (Hint: FastQ Screen, SortMeRNA, BLAST a typical unmapped read.)</p>
+<p><span class="q-ico">Q5.</span> Why does ENCODE require rRNA &lt; 5%? Consider ribozero vs polyA capture chemistry — if rRNA hits 30%, is it library prep failure or RNA degradation?</p>
 </div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="分級學習" data-en="LAYERED LEARNING">分級學習</div>
+<h2 data-zh="七、依程度學習" data-en="VII. Learn by level">七、依程度學習</h2>
+<div class="level-tabs">
+  <button class="level-tab active" data-tab="beg">🟢 Beginner</button>
+  <button class="level-tab" data-tab="int">🟡 Intermediate</button>
+  <button class="level-tab" data-tab="adv">🔴 Advanced</button>
+</div>
+<div class="level-pane active" data-pane="beg">
+<div data-lang="zh"><p>剛接觸 RNA-seq？掌握三件事：</p><ol style="margin-left:22px;color:var(--c-ink-light);"><li>跑一次 fastp 預設參數（<code>-q 20 -l 36</code>）</li><li>用 MultiQC 整合所有 fastp 報告</li><li>檢查 duplication 與 GC% 是否有極端 outlier</li></ol><p>建議練習資料：Bioconductor <code>airway</code> 或 <code>pasilla</code>，乾淨且公開。</p></div>
+<div data-lang="en"><p>New to RNA-seq? Three priorities:</p><ol style="margin-left:22px;color:var(--c-ink-light);"><li>Run fastp once with defaults (<code>-q 20 -l 36</code>)</li><li>MultiQC to merge all fastp reports</li><li>Look for outliers in duplication and GC%</li></ol><p>Practice data: Bioconductor <code>airway</code> or <code>pasilla</code>.</p></div>
+</div>
+<div class="level-pane" data-pane="int">
+<div data-lang="zh"><p>熟悉基本流程？進階：</p><ol style="margin-left:22px;color:var(--c-ink-light);"><li><strong>RNA-seq 特有 QC</strong>：Picard CollectRnaSeqMetrics 看 5'/3' bias、coverage 均勻度</li><li><strong>跨樣本 QC</strong>：PCA 觀察樣本群聚；若 case/ctrl 沒分開卻沿 batch 軸分開 = batch effect</li><li><strong>汙染檢測</strong>：FastQ Screen / Kraken2 同時對多物種比對</li><li><strong>UMI 流程</strong>：對 SC 或低輸入樣本是 counts 關鍵</li></ol></div>
+<div data-lang="en"><p>Comfortable with basics? Level up:</p><ol style="margin-left:22px;color:var(--c-ink-light);"><li><strong>RNA-seq-specific QC:</strong> Picard CollectRnaSeqMetrics — 5'/3' bias, coverage uniformity</li><li><strong>Cross-sample QC:</strong> PCA — if case/ctrl don't separate but batch does, batch effect</li><li><strong>Contamination:</strong> FastQ Screen / Kraken2 vs multiple genomes</li><li><strong>UMI workflows:</strong> critical for SC and low-input</li></ol></div>
+</div>
+<div class="level-pane" data-pane="adv">
+<div data-lang="zh"><p>進階研究員 / 流程開發者？</p><ol style="margin-left:22px;color:var(--c-ink-light);"><li><strong>Error-mode 行為</strong>：BBDuk vs fastp 在 reverse-complement adapter detection 精度差異</li><li><strong>Q-score recalibration</strong>：DNA-seq 用 GATK BQSR；SmartSeq2 等 PCR-heavy 也可能受益</li><li><strong>PolyG/polyX 邊界</strong>：保留 mRNA 真實 polyA 尾 vs 去除 NovaSeq polyG（fastp --poly_g_min_len 細節）</li><li><strong>批次效應與 trim 異質性</strong>：不同樣本若用不同 trim 參數會引入隱性 batch effect</li><li><strong>nf-core / Snakemake</strong> 整合：撰寫可重現 QC 模組</li></ol></div>
+<div data-lang="en"><p>Advanced researcher / pipeline developer:</p><ol style="margin-left:22px;color:var(--c-ink-light);"><li><strong>Error-mode behavior:</strong> BBDuk vs fastp reverse-complement adapter detection differences</li><li><strong>Q-score recalibration:</strong> GATK BQSR for DNA-seq; SmartSeq2 PCR-heavy may benefit</li><li><strong>PolyG/polyX boundary:</strong> preserve real polyA vs remove NovaSeq polyG (fastp --poly_g_min_len)</li><li><strong>Batch effects from trim heterogeneity:</strong> different trim params introduce hidden batch effects</li><li><strong>nf-core / Snakemake integration</strong> — reproducible QC modules</li></ol></div>
+</div>
+</section>
+
+<section class="section"><div class="section-label" data-zh="FAQ" data-en="FAQ">FAQ</div>
+<h2 data-zh="八、常見問答" data-en="VIII. FAQ">八、常見問答</h2>
+<div class="faq-list">
+<div class="faq-item"><button class="faq-q" data-zh="❓ 可以跳過 trimming 嗎？" data-en="❓ Can I skip trimming?">❓ 可以跳過 trimming 嗎？</button>
+<div class="faq-a"><div data-lang="zh"><p>技術可行——STAR/Salmon 對輕微未 trim 接頭有容忍度。但實務上：</p><ol style="margin-left:20px;"><li>未 trim 略降 mapping rate（2-5%）</li><li>FastQC adapter content 紅色殘留</li><li>對 splice junction detection 干擾</li></ol><p>建議仍跑一次 trim（fastp 預設），時間成本 &lt; 5 分鐘/樣本，效益值得。</p></div>
+<div data-lang="en"><p>Technically yes — but practically:</p><ol style="margin-left:20px;"><li>Drops mapping rate 2–5%</li><li>FastQC adapter content stays red</li><li>Interferes with splice-junction detection</li></ol><p>Recommend: still run fastp defaults (&lt;5 min/sample).</p></div></div></div>
+
+<div class="faq-item"><button class="faq-q" data-zh="❓ Trim 完接頭還是紅色？" data-en="❓ Adapter still red after trim?">❓ Trim 完接頭還是紅色？</button>
+<div class="faq-a"><div data-lang="zh"><p>常見原因：(1) 非標準接頭（NEBNext / Lexogen 用 Illumina 不同接頭），需顯式指定；(2) FastQC 把高重複序列誤判為接頭（如特定 mtRNA 區段）；(3) NovaSeq polyG 假象，加 fastp --trim_poly_g。</p></div>
+<div data-lang="en"><p>Common causes: (1) non-standard adapters (NEBNext/Lexogen use different sequences); (2) FastQC mistakes repeats for adapters; (3) NovaSeq polyG artifacts — add fastp --trim_poly_g.</p></div></div></div>
+
+<div class="faq-item"><button class="faq-q" data-zh="❓ R1/R2 品質不對稱怎辦？" data-en="❓ R1/R2 quality asymmetric?">❓ R1/R2 品質不對稱怎辦？</button>
+<div class="faq-a"><div data-lang="zh"><p>正常——R2 在 R1 後才開始定序，3' 端品質下滑更快。但<strong>必須同步 trim R1/R2</strong>：若一邊 trim 到 50 bp、另一邊 150 bp，就不再 paired。fastp/trim_galore 預設會自動保持 pair 關係。</p></div>
+<div data-lang="en"><p>Normal — R2 sequences later, 3' degrades faster. But you <strong>must trim R1/R2 in sync</strong>: if one is 50 bp and the other 150 bp, they're no longer paired. fastp/trim_galore preserve pair relationships by default.</p></div></div></div>
+
+<div class="faq-item"><button class="faq-q" data-zh="❓ GC 雙峰一定是汙染嗎？" data-en="❓ Does bimodal GC always mean contamination?">❓ GC 雙峰一定是汙染嗎？</button>
+<div class="faq-a"><div data-lang="zh"><p>不一定：(a) rRNA 殘留（GC ~60%）與 mRNA peak（41%）形成雙峰，ribozero 不徹底時常見；(b) 細菌/病毒汙染（GC 變化大）；(c) 正常組織（如肝）高表達基因 GC bias 強。建議先看 rRNA 比例，再做 Kraken2/FastQ Screen 確認。</p></div>
+<div data-lang="en"><p>Not always: (a) rRNA carry-over (GC ~60%) + mRNA peak (41%) = bimodal — common with incomplete ribozero; (b) bacterial/viral contamination; (c) some tissues (liver) have strong GC bias. Check rRNA first, then Kraken2/FastQ Screen.</p></div></div></div>
+
+<div class="faq-item"><button class="faq-q" data-zh="❓ 何時該重做樣本？" data-en="❓ When to resequence?">❓ 何時該重做樣本？</button>
+<div class="faq-a"><div data-lang="zh"><p>業界經驗：mapping rate &lt; 50%、rRNA &gt; 30%、5'/3' bias &gt; 4、trim 後 usable reads &lt; 10 M、PCA 嚴重 outlier 之一發生即考慮重做或剔除。</p></div>
+<div data-lang="en"><p>Industry rules: any of — mapping &lt; 50%, rRNA &gt; 30%, 5'/3' bias &gt; 4, usable reads &lt; 10 M, severe PCA outlier — consider resequencing or excluding.</p></div></div></div>
 </div>
 </section>
 
 <section class="quiz-section"><h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
-<div class="quiz-q" data-answer="2"><p data-lang="zh">下列哪一項對 FASTQ 品質分數 Q 與錯誤率 P 的描述正確？</p><p data-lang="en">Which is correct about FASTQ quality Q and error rate P?</p><div class="quiz-options">
-<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. Q = P × 100</span><span data-lang="en">A. Q = P × 100</span></div>
-<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. Q = 10·ln(P)</span><span data-lang="en">B. Q = 10·ln(P)</span></div>
-<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. Q = -10·log10(P)</span><span data-lang="en">C. Q = -10·log10(P)</span></div>
-<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. Q 與 P 無數學關係</span><span data-lang="en">D. No mathematical relation</span></div>
+<div class="quiz-q" data-answer="2"><p data-lang="zh">1. FASTQ 品質分數 Q 與錯誤率 P 的關係？</p><p data-lang="en">1. Relation between FASTQ Q and error rate P?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">Q = P × 100</span><span data-lang="en">Q = P × 100</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">Q = 10·ln(P)</span><span data-lang="en">Q = 10·ln(P)</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">Q = -10·log10(P)</span><span data-lang="en">Q = -10·log10(P)</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">無數學關係</span><span data-lang="en">No relation</span></div>
 </div><div class="quiz-feedback" id="fb1"></div></div>
-<div class="quiz-q" data-answer="1"><p data-lang="zh">FastQC「Per base sequence content」前 10–12 bp 出現不平衡通常是？</p><p data-lang="en">Imbalance in "Per base sequence content" at the first 10–12 bp is usually due to?</p><div class="quiz-options">
-<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 嚴重的接頭汙染</span><span data-lang="en">A. Severe adapter contamination</span></div>
-<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. random hexamer priming 偏差，屬正常</span><span data-lang="en">B. Random hexamer priming bias — normal</span></div>
-<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 基因組 GC 偏好</span><span data-lang="en">C. Genome GC bias</span></div>
-<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 樣本退化</span><span data-lang="en">D. Sample degradation</span></div>
+
+<div class="quiz-q" data-answer="1"><p data-lang="zh">2. FastQC per-base content 前 10-12 bp 不平衡？</p><p data-lang="en">2. FastQC per-base content imbalance in first 10–12 bp?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">嚴重接頭汙染</span><span data-lang="en">Severe adapter</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">random hexamer priming（RNA-seq 正常）</span><span data-lang="en">Random hexamer priming (normal for RNA-seq)</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">基因組 GC 偏好</span><span data-lang="en">Genome GC bias</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">RNA 嚴重降解</span><span data-lang="en">Severe degradation</span></div>
 </div><div class="quiz-feedback" id="fb2"></div></div>
+
+<div class="quiz-q" data-answer="3"><p data-lang="zh">3. 最適合處理 NovaSeq 2-channel 化學的人工序列？</p><p data-lang="en">3. Best for NovaSeq 2-channel chemistry artifacts?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">cutadapt 預設</span><span data-lang="en">cutadapt defaults</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">trim_galore --paired</span><span data-lang="en">trim_galore --paired</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">FastQC 警告</span><span data-lang="en">FastQC warning</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">fastp --trim_poly_g</span><span data-lang="en">fastp --trim_poly_g</span></div>
+</div><div class="quiz-feedback" id="fb3"></div></div>
+
+<div class="quiz-q" data-answer="2"><p data-lang="zh">4. RNA-seq FastQC duplication 報紅，最合理做法？</p><p data-lang="en">4. RNA-seq FastQC duplication red — best action?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">picard MarkDuplicates 去重</span><span data-lang="en">Remove with picard</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">重做樣本</span><span data-lang="en">Resequence</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">不處理——高表達基因自然產生重複</span><span data-lang="en">No action — highly expressed genes naturally produce duplicates</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">down-sample 到 50%</span><span data-lang="en">Down-sample to 50%</span></div>
+</div><div class="quiz-feedback" id="fb4"></div></div>
+
+<div class="quiz-q" data-answer="1"><p data-lang="zh">5. ENCODE RNA-seq SOP 對 rRNA 比例門檻？</p><p data-lang="en">5. ENCODE RNA-seq SOP rRNA threshold?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">&lt; 20%</span><span data-lang="en">&lt; 20%</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">&lt; 5%</span><span data-lang="en">&lt; 5%</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">任意</span><span data-lang="en">Any</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">&gt; 30%</span><span data-lang="en">&gt; 30%</span></div>
+</div><div class="quiz-feedback" id="fb5"></div></div>
 </section>
 
-<nav class="page-nav"><a href="index.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Bulk RNA 總覽" data-en="Bulk RNA Overview">Bulk RNA 總覽</span></a><a href="alignment.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 2：Alignment" data-en="Step 2: Alignment">Step 2：Alignment</span></a></nav>
+<section class="section"><div class="section-label" data-zh="延伸閱讀" data-en="FURTHER READING">延伸閱讀</div>
+<h2 data-zh="九、深入學習" data-en="IX. Going deeper">九、深入學習</h2>
+<div data-lang="zh"><ul style="margin-left:24px;color:var(--c-ink-light);">
+<li>📄 Chen et al. <em>fastp</em>, Bioinformatics 34:i884 (2018) — fastp 原始論文</li>
+<li>📄 Ewels et al. <em>MultiQC</em>, Bioinformatics 32:3047 (2016) — MultiQC 原始論文</li>
+<li>📄 Williams et al. <em>Trimming alters RNA-seq estimates</em>, BMC Bioinformatics 17:103 (2016) — 為什麼過度 trim 有害</li>
+<li>📄 Conesa et al. <em>Best practices for RNA-seq</em>, Genome Biology 17:13 (2016) — Bulk RNA-seq 最權威綜述</li>
+<li>🌐 ENCODE RNA-seq Standards: <a href="https://www.encodeproject.org/data-standards/rna-seq/" target="_blank">encodeproject.org</a></li>
+<li>🌐 nf-core/rnaseq: <a href="https://nf-co.re/rnaseq" target="_blank">nf-co.re/rnaseq</a></li>
+<li>🌐 完整文獻：<a href="../references/index.html">本教程 References 頁</a></li>
+</ul></div>
+<div data-lang="en"><ul style="margin-left:24px;color:var(--c-ink-light);">
+<li>📄 Chen et al. <em>fastp</em>, Bioinformatics 34:i884 (2018)</li>
+<li>📄 Ewels et al. <em>MultiQC</em>, Bioinformatics 32:3047 (2016)</li>
+<li>📄 Williams et al. <em>Trimming alters RNA-seq estimates</em>, BMC Bioinformatics 17:103 (2016)</li>
+<li>📄 Conesa et al. <em>Best practices for RNA-seq</em>, Genome Biology 17:13 (2016)</li>
+<li>🌐 ENCODE: <a href="https://www.encodeproject.org/data-standards/rna-seq/" target="_blank">encodeproject.org</a></li>
+<li>🌐 nf-core/rnaseq: <a href="https://nf-co.re/rnaseq" target="_blank">nf-co.re/rnaseq</a></li>
+<li>🌐 Full refs: <a href="../references/index.html">References page</a></li>
+</ul></div>
+</section>
+
+<nav class="page-nav">
+<a href="index.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Bulk RNA 總覽" data-en="Bulk RNA Overview">Bulk RNA 總覽</span></a>
+<a href="alignment.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 2：Alignment" data-en="Step 2: Alignment">Step 2：Alignment</span></a>
+</nav>
+
 </main>
 <footer class="site-footer">© Charlene — Bioinformatics Interactive Tutorial</footer>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="../i18n.js"></script>
 <script>
-window.addEventListener("scroll",()=>{const h=document.documentElement;document.getElementById("progressBar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+"%";});
-function switchTab(b,id){const p=b.closest(".code-tabs");p.querySelectorAll(".code-tab-btn").forEach(x=>x.classList.remove("active"));p.querySelectorAll(".code-tab-content").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(id).classList.add("active");}
-// Trim simulator
+window.addEventListener('scroll',()=>{const h=document.documentElement;document.getElementById('progressBar').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+'%';});
+function switchTab(b,id){const p=b.closest('.code-tabs');p.querySelectorAll('.code-tab-btn').forEach(x=>x.classList.remove('active'));p.querySelectorAll('.code-tab-content').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById(id).classList.add('active');}
+document.querySelectorAll('.faq-q').forEach(b=>b.addEventListener('click',()=>{b.classList.toggle('open');b.nextElementSibling.classList.toggle('open');}));
+document.querySelectorAll('.level-tabs').forEach(tabs=>{const panes=tabs.parentElement.querySelectorAll('.level-pane');tabs.querySelectorAll('.level-tab').forEach(t=>t.addEventListener('click',()=>{const tgt=t.dataset.tab;tabs.querySelectorAll('.level-tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===tgt));panes.forEach(p=>p.classList.toggle('active',p.dataset.pane===tgt));}));});
+const profiles={
+  healthy:{data:Array.from({length:150},(_,i)=>38-(Math.max(0,i-100))*0.18+Math.random()*0.6),zh:'健康樣本：3\' 端緩慢下滑（~Q35），前段穩 Q37+。定序中心應交付水準。',en:'Healthy: gradual 3\' decline (~Q35), stable Q37+ early. The standard.'},
+  degraded:{data:Array.from({length:150},(_,i)=>35-(Math.max(0,i-40))*0.25+Math.random()*0.8),zh:'RNA 降解：下滑提前且陡。常伴 RIN<7 與 5\'/3\' bias。若 RIN<5 建議重提 RNA。',en:'Degraded RNA: earlier, steeper decline. Often paired with RIN<7. If RIN<5 re-extract.'},
+  tile:{data:Array.from({length:150},(_,i)=>{const base=37-(Math.max(0,i-100))*0.15;return base-(i>70&&i<90?(Math.random()*8+3):0)+Math.random()*0.5;}),zh:'Tile 故障：中段突降。flowcell 氣泡/污點。從 ID 過濾該 tile 或重做。',en:'Tile failure: mid-section drop. Flowcell bubble/smear. Filter by ID or resequence.'},
+  overcycled:{data:Array.from({length:150},(_,i)=>{const base=36-(Math.max(0,i-60))*0.32;return Math.max(15,base+Math.random()*0.8);}),zh:'過度循環：定序深度超過化學負荷，整條偏低。可能 cluster density 過高，down-sample 或重做。',en:'Overcycled: depth exceeded chemistry. Possibly excessive cluster density — down-sample or resequence.'}
+};
+const qcCurveChart=new Chart(document.getElementById('qcCurveChart'),{type:'line',data:{labels:Array.from({length:150},(_,i)=>i+1),datasets:[{label:'Q',data:profiles.healthy.data,borderColor:'#1a6b5a',backgroundColor:'rgba(26,107,90,0.15)',borderWidth:2,pointRadius:0,fill:true,tension:0.2}]},options:{responsive:true,maintainAspectRatio:false,animation:false,scales:{x:{title:{display:true,text:'Position (bp)'},ticks:{maxTicksLimit:8}},y:{min:0,max:42,title:{display:true,text:'Phred Q'}}},plugins:{legend:{display:false}}}});
+function setProfile(p){document.querySelectorAll('.toggle-row .toggle-btn').forEach(b=>b.classList.toggle('active',b.dataset.pf===p));qcCurveChart.data.datasets[0].data=profiles[p].data;qcCurveChart.update('none');const L=(window.I18n&&I18n.get)?I18n.get():'zh';document.getElementById('qcCurveMsg').textContent=profiles[p][L];}
+document.querySelectorAll('.toggle-row .toggle-btn').forEach(b=>b.addEventListener('click',()=>setProfile(b.dataset.pf)));
+document.addEventListener('langchange',()=>{const a=document.querySelector('.toggle-row .toggle-btn.active');if(a)setProfile(a.dataset.pf);});
+setProfile('healthy');
 const N=10000;const reads=[];for(let i=0;i<N;i++){const len=Math.round(35+Math.random()*70);const q=Math.round(15+Math.random()*22);reads.push({len,q});}
-const trimChart=new Chart(document.getElementById('trimChart'),{type:'scatter',data:{datasets:[
-  {label:'Kept',data:[],backgroundColor:'rgba(26,107,90,0.5)',pointRadius:2},
-  {label:'Dropped',data:[],backgroundColor:'rgba(192,57,43,0.4)',pointRadius:2}
-]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{title:{display:true,text:'Read Length (bp)'}},y:{title:{display:true,text:'Quality (Q)'}}}}});
-function upTrim(){
-  const Q=+document.getElementById('sliderQ').value;const L=+document.getElementById('sliderL').value;
-  document.getElementById('valQ').textContent=Q;document.getElementById('valL').textContent=L;
-  const kept=[];const dropped=[];reads.forEach(r=>{if(r.q>=Q&&r.len>=L)kept.push({x:r.len,y:r.q});else dropped.push({x:r.len,y:r.q});});
-  const passPct=(kept.length/N*100).toFixed(1);const meanQ=kept.length?kept.reduce((s,r)=>s+r.y,0)/kept.length:0;
-  document.getElementById('passStat').textContent='Pass: '+passPct+'%';
-  document.getElementById('meanStat').textContent='Mean Q: '+meanQ.toFixed(1);
-  document.getElementById('kepStat').textContent='Reads kept: '+kept.length+' / '+N;
-  trimChart.data.datasets[0].data=kept.slice(0,500);trimChart.data.datasets[1].data=dropped.slice(0,500);trimChart.update('none');
-}
-document.getElementById('sliderQ').addEventListener('input',upTrim);document.getElementById('sliderL').addEventListener('input',upTrim);upTrim();
-// Quiz
-window._QF={zh:{q1_y:'Q = -10·log10(P)。Q30 對應錯誤率 0.001。',q1_n:'答案是 C：Q = -10·log10(P)。',q2_y:'這是 random hexamer priming 的固有偏差，正常現象，不需 trim。',q2_n:'答案是 B：random hexamer priming bias，是正常現象。'},en:{q1_y:'Q = -10·log10(P). Q30 corresponds to 0.001 error rate.',q1_n:'Answer is C: Q = -10·log10(P).',q2_y:'This is intrinsic random hexamer priming bias — normal, no need to trim.',q2_n:'Answer is B: random hexamer priming bias — a normal phenomenon.'}};
-const QF=window._QF||{};document.querySelectorAll(".quiz-q").forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll(".quiz-opt").forEach(o=>{o.addEventListener("click",()=>{if(q.classList.contains("answered"))return;q.classList.add("answered");const fb=document.getElementById("fb"+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?"correct":"wrong");if(!ok)q.querySelectorAll(".quiz-opt")[ans].classList.add("correct");const L=I18n.get();fb.className="quiz-feedback show "+(ok?"correct-fb":"wrong-fb");fb.textContent=(ok?"✅ ":"❌ ")+(QF[L]&&QF[L]["q"+(qi+1)+"_"+(ok?"y":"n")]||"");});});});
+const trimChart=new Chart(document.getElementById('trimChart'),{type:'scatter',data:{datasets:[{label:'Kept',data:[],backgroundColor:'rgba(26,107,90,0.5)',pointRadius:2},{label:'Dropped',data:[],backgroundColor:'rgba(192,57,43,0.4)',pointRadius:2}]},options:{responsive:true,maintainAspectRatio:false,animation:false,scales:{x:{title:{display:true,text:'Read Length'}},y:{title:{display:true,text:'Mean Q'}}}}});
+function upTrim(){const Q=+document.getElementById('sliderQ').value;const L=+document.getElementById('sliderL').value;document.getElementById('valQ').textContent=Q;document.getElementById('valL').textContent=L;const kept=[],dropped=[];reads.forEach(r=>{if(r.q>=Q&&r.len>=L)kept.push({x:r.len,y:r.q});else dropped.push({x:r.len,y:r.q});});const passPct=(kept.length/N*100).toFixed(1);const meanQ=kept.length?kept.reduce((s,r)=>s+r.y,0)/kept.length:0;document.getElementById('passStat').textContent=passPct+'%';document.getElementById('meanStat').textContent=meanQ.toFixed(1);document.getElementById('kepStat').textContent=kept.length+' / '+N;trimChart.data.datasets[0].data=kept.slice(0,500);trimChart.data.datasets[1].data=dropped.slice(0,500);trimChart.update('none');}
+['sliderQ','sliderL'].forEach(id=>document.getElementById(id).addEventListener('input',upTrim));upTrim();
+const QF={zh:{q1_y:'Q = -10·log10(P)。Q30 對應 0.1% 錯誤率。',q1_n:'答案是 C：Q = -10·log10(P)。',q2_y:'前 10-12 bp 不平衡是 random hexamer priming 偏差，RNA-seq 正常，不應 trim。',q2_n:'答案是 B：random hexamer priming bias。',q3_y:'NovaSeq 2-channel 化學會把空訊號讀成 G，產生假 polyG。fastp --trim_poly_g 處理。',q3_n:'答案是 D：fastp --trim_poly_g。',q4_y:'高表達基因天生產生大量相同 reads。不去重，否則低估真實 counts。',q4_n:'答案是 C：RNA-seq 高重複正常。',q5_y:'ENCODE 要求 rRNA<5%；超過代表 library prep 失敗或 RNA 降解。',q5_n:'答案是 B：<5%。'},en:{q1_y:'Q = -10·log10(P). Q30 = 0.1% error.',q1_n:'Answer is C: Q = -10·log10(P).',q2_y:'First 10-12 bp imbalance is random hexamer priming bias — normal for RNA-seq; do not trim.',q2_n:'Answer is B.',q3_y:'NovaSeq 2-channel mis-calls empty as G, creating fake polyG. fastp --trim_poly_g handles it.',q3_n:'Answer is D.',q4_y:'Highly expressed genes naturally produce many identical reads. Do not deduplicate.',q4_n:'Answer is C.',q5_y:'ENCODE requires rRNA<5%; exceeding indicates failed prep or degradation.',q5_n:'Answer is B: <5%.'}};
+document.querySelectorAll('.quiz-q').forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll('.quiz-opt').forEach(o=>{o.addEventListener('click',()=>{if(q.classList.contains('answered'))return;q.classList.add('answered');const fb=document.getElementById('fb'+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?'correct':'wrong');if(!ok)q.querySelectorAll('.quiz-opt')[ans].classList.add('correct');const L=(window.I18n&&I18n.get)?I18n.get():'zh';fb.className='quiz-feedback show '+(ok?'correct-fb':'wrong-fb');fb.innerHTML=(ok?'✅ ':'❌ ')+(QF[L]['q'+(qi+1)+'_'+(ok?'y':'n')]||'');});});});
 </script></body></html>
